@@ -1,0 +1,14 @@
+<use name=FWCore/Framework>
+<use name=FWCore/PluginManager>
+<use name=FWCore/ParameterSet>
+<use name=rootgraphics>
+<use name=root>
+<use name=CommonTools/Utils>
+
+<flags EDM_PLUGIN=1>
+<export>
+   <lib name=ND_Hto2PhotonsTreeReaders>
+   <use name=FWCore/Framework>
+   <use name=FWCore/PluginManager>
+   <use name=FWCore/ParameterSet>
+</export>
