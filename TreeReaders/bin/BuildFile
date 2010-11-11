@@ -4,5 +4,5 @@
 <use name=root>
 <use name=rootminuit>
 
-<bin name=HggConversion file=../src/HiggsAnalysis.C>
+<bin name=HiggsAnalysis file=../src/HiggsAnalysis.C>
 </bin>
