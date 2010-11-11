@@ -392,6 +392,8 @@ int main(int argc, char * charmass[]) {
         TFile * currentFile = new TFile(file.c_str());
         TTree * Analysis = (TTree *) currentFile->Get("NTuples/Analysis");
 
+        weight *= 50000/Analysis->GetEntries();
+        
         cout << "Reading the tree in file " << file << endl;
         mpaReader currentTree(Analysis);
       
@@ -404,11 +406,11 @@ int main(int argc, char * charmass[]) {
 
           if (currentTree.nPhotons<2) continue;
 
-          if (currentTree.pt[1]>currentTree.pt[0]) {
+          /*if (currentTree.pt[1]>currentTree.pt[0]) {
             cout << "WARNING! - Tree is not pt sorted!!!!!!!!!" << endl;
             cout << "LeadPt is " << currentTree.pt[0] << endl;
             cout << "SubLeadPt is " << currentTree.pt[1] << endl;
-          }
+            }*/
         
           hNPhotons[0]->Fill(currentTree.nPhotons,weight);
           if (currentTree.isEB[0]) iDetector=1;
@@ -424,7 +426,60 @@ int main(int argc, char * charmass[]) {
           hSubLeadEt[iDetector][0]->Fill(currentTree.et[1],weight);
           hSubLeadEta[0]->Fill(currentTree.eta[1],weight);
           hSubLeadR9[iDetector][0]->Fill(currentTree.r9[1],weight);
-      
+
+          TLorentzVector VLead( currentTree.momentumX[0],   currentTree.momentumY[0],  currentTree.momentumZ[0], currentTree.energy[0]);
+          TLorentzVector VSubLead( currentTree.momentumX[1],   currentTree.momentumY[1],  currentTree.momentumZ[1], currentTree.energy[1]);
+          TLorentzVector VSum=VLead+VSubLead;
+          double InvMass=fabs(VSum.M());
+
+          // calculate Cos_theta_star 
+          double beta_b  = VSum.Beta();
+          double gamma_b = VSum.Gamma();
+          TVector3 directionV= VSum.Vect().Unit();
+
+          // TVector3 directionV = VSum.Vect()*(1/VSum.Mag());
+          TVector3 CrossVLead=VLead.Vect().Cross(directionV);
+          double DotVLeadValue=VLead.Vect().Dot(directionV);
+          double CrossVLeadValue=sqrt(CrossVLead.x()*CrossVLead.x()+CrossVLead.y()*CrossVLead.y()+CrossVLead.z()*CrossVLead.z());
+          double sin_theta =  CrossVLeadValue/VLead.E();
+          double cos_theta =  DotVLeadValue/VLead.E(); 
+          double tg_thetas = sin_theta/(gamma_b*(cos_theta-beta_b));
+          double cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
+
+          int HiggsType = 0;
+          if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsType=0;
+          if ((currentTree.isEB[0] && currentTree.isEE[1]) || (currentTree.isEE[0] && currentTree.isEB[1])) HiggsType=1;
+          h_mass_2gamma[0][HiggsType]->Fill(InvMass,weight);
+          h_pt_2gamma[0][HiggsType]->Fill(VSum.Pt(),weight);
+          h_pz_2gamma[0][HiggsType]->Fill(VSum.Pz(),weight);
+          h_eta_2gamma[0][HiggsType]->Fill(VSum.Eta(),weight);
+          h_CosThetaStar[0][HiggsType]->Fill(cos_thetastar,weight);
+
+          if (currentTree.r9[0]>.93 && currentTree.r9[1]>.93) {
+            h_mass_2gamma_2gold[0][HiggsType]->Fill(InvMass,weight);
+            h_pt_2gamma_2gold[0][HiggsType]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_2gold[0][HiggsType]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_2gold[0][HiggsType]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_2gold[0][HiggsType]->Fill(cos_thetastar,weight);
+          }
+
+          if (((currentTree.isConverted[0]==1 && currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005) || (currentTree.isConverted[1]==1 && currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>0.0005)) &&
+              !(currentTree.isConverted[0]==1 && currentTree.isConverted[1]==1)) {
+            h_mass_2gamma_1conv[0][HiggsType]->Fill(InvMass,weight);
+            h_pt_2gamma_1conv[0][HiggsType]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_1conv[0][HiggsType]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_1conv[0][HiggsType]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_1conv[0][HiggsType]->Fill(cos_thetastar,weight);
+          }
+
+          if (currentTree.isConverted[0]==1 && currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005 && currentTree.isConverted[1]==1 && currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>.0005) {
+            h_mass_2gamma_2conv[0][HiggsType]->Fill(InvMass,weight);
+            h_pt_2gamma_2conv[0][HiggsType]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_2conv[0][HiggsType]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_2conv[0][HiggsType]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_2conv[0][HiggsType]->Fill(cos_thetastar,weight);
+          }
+          
           if (currentTree.pt[0]<30) continue;
           if (currentTree.pt[1]<25) continue;
           if (currentTree.eta[0]>2.5 || currentTree.eta[1]>2.5) continue;
@@ -447,26 +502,27 @@ int main(int argc, char * charmass[]) {
           hSubLeadR9[iDetector][1]->Fill(currentTree.r9[1],weight);
 
           // calculate invariant mass
-          TLorentzVector VLead( currentTree.momentumX[0],   currentTree.momentumY[0],  currentTree.momentumZ[0], currentTree.energy[0]);
-          TLorentzVector VSubLead( currentTree.momentumX[1],   currentTree.momentumY[1],  currentTree.momentumZ[1], currentTree.energy[1]);
-          TLorentzVector VSum=VLead+VSubLead;
-          double InvMass=fabs(VSum.M());
+
+          VLead = TLorentzVector( currentTree.momentumX[0],   currentTree.momentumY[0],  currentTree.momentumZ[0], currentTree.energy[0]);
+          VSubLead = TLorentzVector( currentTree.momentumX[1],   currentTree.momentumY[1],  currentTree.momentumZ[1], currentTree.energy[1]);
+          VSum=VLead+VSubLead;
+          InvMass=fabs(VSum.M());
 
           // calculate Cos_theta_star 
-          double beta_b  = VSum.Beta();
-          double gamma_b = VSum.Gamma();
-          TVector3 directionV= VSum.Vect().Unit();
+          beta_b  = VSum.Beta();
+          gamma_b = VSum.Gamma();
+          directionV= VSum.Vect().Unit();
 
           // TVector3 directionV = VSum.Vect()*(1/VSum.Mag());
-          TVector3 CrossVLead=VLead.Vect().Cross(directionV);
-          double DotVLeadValue=VLead.Vect().Dot(directionV);
-          double CrossVLeadValue=sqrt(CrossVLead.x()*CrossVLead.x()+CrossVLead.y()*CrossVLead.y()+CrossVLead.z()*CrossVLead.z());
-          double sin_theta =  CrossVLeadValue/VLead.E();
-          double cos_theta =  DotVLeadValue/VLead.E(); 
-          double tg_thetas = sin_theta/(gamma_b*(cos_theta-beta_b));
-          double cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
+          CrossVLead=VLead.Vect().Cross(directionV);
+          DotVLeadValue=VLead.Vect().Dot(directionV);
+          CrossVLeadValue=sqrt(CrossVLead.x()*CrossVLead.x()+CrossVLead.y()*CrossVLead.y()+CrossVLead.z()*CrossVLead.z());
+          sin_theta =  CrossVLeadValue/VLead.E();
+          cos_theta =  DotVLeadValue/VLead.E(); 
+          tg_thetas = sin_theta/(gamma_b*(cos_theta-beta_b));
+          cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
 
-          int HiggsType = 0;
+          HiggsType = 0;
           if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsType=0;
           if ((currentTree.isEB[0] && currentTree.isEE[1]) || (currentTree.isEE[0] && currentTree.isEB[1])) HiggsType=1;
           h_mass_2gamma[1][HiggsType]->Fill(InvMass,weight);
