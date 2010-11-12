@@ -120,18 +120,60 @@ bool convSel(
              float convVtxChi2Prob,
              float convDPhiTracksAtVtx,
              float convpairCotThetaSeparation,
-             float EoP,
-             float PoE
-             ) {
+             float EoP
+              ) {
 
   if (nTracks != 2) return false;
   if (!convVtxValid) return false;
   if (convVtxChi2Prob < 0.0005) return false;
-  if (fabs(convDPhiTracksAtVtx) > 0.2) return false;
-  if (fabs(convpairCotThetaSeparation) > 0.3) return false;
-  if (EoP > 3.) return false;
+  //if (fabs(convDPhiTracksAtVtx) > 0.2) return false;
+  //if (fabs(convpairCotThetaSeparation) > 0.3) return false;
+  //if (EoP > 3.) return false;
   //    if (PoE > 3.) return false;
 
   return true;
 
+}
+
+
+int photonCategory (float r9, int nTracks,  float convVtxChi2Prob ) {
+  
+  int cate=0;
+  if ( r9>0.93 ) {
+    cate=1; // golden
+  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 ) {
+    cate=2; // good reconstructed conversion
+  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob <=0.0005 ) {
+    cate=3; // poor reconstructed conversions
+  } else if ( r9<=0.93 && nTracks<2 ) {
+    cate=4;  // no tracks are reconstructed
+  }
+  return cate;
+  
+}
+
+int diPhotonCategory ( int c1, int c2) {
+  
+  int cate=0;
+  if ( c1==1 && c2==1 ) {
+    cate=1; // two golden photons
+
+  } else if (  (c1 ==1 && c2 ==2) ||  (c1 ==2 && c2 ==1)  ) {
+    cate=2; // 1 golden, 1 good conversion
+
+  } else if (  (c1 ==1 && c2 ==3) ||  (c1 ==3 && c2 ==1)  ) {
+    cate=3; // 1 golden, 1 poor conversion
+
+  } else if (   c1 == 2 &&   c2 ==2 ) {
+    cate=4; // 2 good conversions
+
+  }  else if (  (c1 ==1 && c2==4) || (c1==4 && c2==1) ) {
+    cate=5; // 1 golden, 1 no tracks reconstructed
+    
+  }  else if (  (c1==1 && c2==5) ||  (c1 ==5 && c2==1)  ) {
+    cate=6; // 1 golden, rest
+  }
+
+  return cate;
+  
 }
