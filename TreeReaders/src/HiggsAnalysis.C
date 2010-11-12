@@ -111,6 +111,7 @@ int main(int argc, char * charmass[]) {
       TH1D* h_CosThetaStar[2][2];
 
       TH1D* h_mass_2gamma_2gold[2][2];
+      TH1D* h_mass_2gamma_2goldConv[2][2];
       TH1D* h_pt_2gamma_2gold[2][2];
       TH1D* h_pz_2gamma_2gold[2][2];
       TH1D* h_eta_2gamma_2gold[2][2];
@@ -127,6 +128,13 @@ int main(int argc, char * charmass[]) {
       TH1D* h_pz_2gamma_2conv[2][2];
       TH1D* h_eta_2gamma_2conv[2][2];
       TH1D* h_CosThetaStar_2conv[2][2];
+
+      TH1D* h_mass_2gamma_leftover[2][2];
+      TH1D* h_pt_2gamma_leftover[2][2];
+      TH1D* h_pz_2gamma_leftover[2][2];
+      TH1D* h_eta_2gamma_leftover[2][2];
+      TH1D* h_CosThetaStar_leftover[2][2];
+
 
       TH2F*  h2_convVtxRvsZBarrel_[2];
 
@@ -322,12 +330,14 @@ int main(int argc, char * charmass[]) {
       h_CosThetaStar_2gold[0][1]       = new TH1D("h_CosThetaStarGoldenAllEE","cos#theta^{*};cos#theta^{*} all golden endcap candidates", 60, 0., 1.);
 
       h_mass_2gamma_2gold[1][0]        = new TH1D("h_mass_2gammaGoldenSelEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected barrel candidates", 160, 80.0, 160.0);
+      h_mass_2gamma_2goldConv[1][0]        = new TH1D("h_mass_2gammaGoldenConvSelEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected barrel candidates", 160, 80.0, 160.0);
       h_pt_2gamma_2gold[1][0]          = new TH1D("h_pt_2gammaGoldenSelEB","Di-photon P_{T} ;PT_{2#gamma} (GeV) golden selected barrel candidates", 200, 0., 200.0);
       h_pz_2gamma_2gold[1][0]          = new TH1D("h_pz_2gammaGoldenSelEB","Di-photon P_{T} ;Pz_{2#gamma} (GeV) golden selected barrel candidates", 100, -1000., 1000.0);
       h_eta_2gamma_2gold[1][0]         = new TH1D("h_eta_2gammaGoldenSelEB","Di-Photon #eta ;#eta(2#gamma) golden selected barrel candidates", 160, -8.0, 8.0);
       h_CosThetaStar_2gold[1][0]       = new TH1D("h_CosThetaStarGoldenSelEB","cos#theta^{*};cos#theta^{*} golden selected barrel candidates", 60, 0., 1.);
 
       h_mass_2gamma_2gold[1][1]        = new TH1D("h_mass_2gammaGoldenSelEE", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected endcap candidates", 160, 80.0, 160.0);
+      h_mass_2gamma_2goldConv[1][1]        = new TH1D("h_mass_2gammaGoldenConvSelEE", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected endcap candidates", 160, 80.0, 160.0);
       h_pt_2gamma_2gold[1][1]          = new TH1D("h_pt_2gammaGoldenSelEE","Di-photon P_{T} ;PT_{2#gamma} (GeV) golden selected endcap candidates", 200, 0., 200.0);
       h_pz_2gamma_2gold[1][1]          = new TH1D("h_pz_2gammaGoldenSelEE","Di-photon P_{T} ;Pz_{2#gamma} (GeV) golden selected endcap candidates", 100, -1000., 1000.0);
       h_eta_2gamma_2gold[1][1]         = new TH1D("h_eta_2gammaGoldenSelEE","Di-Photon #eta ;#eta(2#gamma) golden selected endcap candidates", 160, -8.0, 8.0);
@@ -380,6 +390,22 @@ int main(int argc, char * charmass[]) {
       h_pz_2gamma_2conv[1][1]          = new TH1D("h_pz_2gamma2convSelEE","Di-photon P_{T} ;Pz_{2#gamma} (GeV) selected endcap candidates with two conversions", 100, -1000., 1000.0);
       h_eta_2gamma_2conv[1][1]         = new TH1D("h_eta_2gamma2convSelEE","Di-Photon #eta ;#eta(2#gamma) selected endcap candidates with two conversions", 160, -8.0, 8.0);
       h_CosThetaStar_2conv[1][1]       = new TH1D("h_CosThetaStar2convSelEE","cos#theta^{*};cos#theta^{*} selected endcap candidates with two conversions", 60, 0., 1.);
+
+      h_mass_2gamma_leftover[1][0]        = new TH1D("h_mass_2gammaleftoverSelEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) selected barrel candidates with two conversions", 160, 80.0, 160.0);
+      h_pt_2gamma_leftover[1][0]          = new TH1D("h_pt_2gammaleftoverSelEB","Di-photon P_{T} ;PT_{2#gamma} (GeV) selected barrel candidates with two conversions", 200, 0., 200.0);
+      h_pz_2gamma_leftover[1][0]          = new TH1D("h_pz_2gammaleftoverSelEB","Di-photon P_{T} ;Pz_{2#gamma} (GeV) selected barrel candidates with two conversions", 100, -1000., 1000.0);
+      h_eta_2gamma_leftover[1][0]         = new TH1D("h_eta_2gammaleftoverSelEB","Di-Photon #eta ;#eta(2#gamma) selected barrel candidates with two conversions", 160, -8.0, 8.0);
+      h_CosThetaStar_leftover[1][0]       = new TH1D("h_CosThetaStarleftoverSelEB","cos#theta^{*};cos#theta^{*} selected barrel candidates with two conversions", 60, 0., 1.);
+
+      h_mass_2gamma_leftover[1][1]        = new TH1D("h_mass_2gammaleftoverSelEE", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) selected endcap candidates with two conversions", 160, 80.0, 160.0);
+      h_pt_2gamma_leftover[1][1]          = new TH1D("h_pt_2gammaleftoverSelEE","Di-photon P_{T} ;PT_{2#gamma} (GeV) selected endcap candidates with two conversions", 200, 0., 200.0);
+      h_pz_2gamma_leftover[1][1]          = new TH1D("h_pz_2gammaleftoverSelEE","Di-photon P_{T} ;Pz_{2#gamma} (GeV) selected endcap candidates with two conversions", 100, -1000., 1000.0);
+      h_eta_2gamma_leftover[1][1]         = new TH1D("h_eta_2gammaleftoverSelEE","Di-Photon #eta ;#eta(2#gamma) selected endcap candidates with two conversions", 160, -8.0, 8.0);
+      h_CosThetaStar_leftover[1][1]       = new TH1D("h_CosThetaStarleftoverSelEE","cos#theta^{*};cos#theta^{*} selected endcap candidates with two conversions", 60, 0., 1.);
+
+
+
+
 
       h2_convVtxRvsZBarrel_[0] =   new TH2F("convVtxRvsZBarrelAll"," Photon  conversion vtx position all candidates Barrel",200, 0., 280., 200, 0., 80.);
       h2_convVtxRvsZBarrel_[1] =   new TH2F("convVtxRvsZBarrelSel"," Photon  conversion vtx position selected candidates Barrel",200, 0., 280., 200, 0., 80.);
@@ -522,39 +548,72 @@ int main(int argc, char * charmass[]) {
           tg_thetas = sin_theta/(gamma_b*(cos_theta-beta_b));
           cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
 
-          HiggsType = 0;
-          if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsType=0;
-          if ((currentTree.isEB[0] && currentTree.isEE[1]) || (currentTree.isEE[0] && currentTree.isEB[1])) HiggsType=1;
-          h_mass_2gamma[1][HiggsType]->Fill(InvMass,weight);
-          h_pt_2gamma[1][HiggsType]->Fill(VSum.Pt(),weight);
-          h_pz_2gamma[1][HiggsType]->Fill(VSum.Pz(),weight);
-          h_eta_2gamma[1][HiggsType]->Fill(VSum.Eta(),weight);
-          h_CosThetaStar[1][HiggsType]->Fill(cos_thetastar,weight);
 
-          if (currentTree.r9[0]>.93 && currentTree.r9[1]>.93) {
-            h_mass_2gamma_2gold[1][HiggsType]->Fill(InvMass,weight);
-            h_pt_2gamma_2gold[1][HiggsType]->Fill(VSum.Pt(),weight);
-            h_pz_2gamma_2gold[1][HiggsType]->Fill(VSum.Pz(),weight);
-            h_eta_2gamma_2gold[1][HiggsType]->Fill(VSum.Eta(),weight);
-            h_CosThetaStar_2gold[1][HiggsType]->Fill(cos_thetastar,weight);
-          }
+          int HiggsInWhichDetector = 0;
+          if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
+          if ((currentTree.isEB[0] && currentTree.isEE[1]) || (currentTree.isEE[0] && currentTree.isEB[1])) HiggsInWhichDetector=1; // at least one photon in endcap
 
-          if (((currentTree.isConverted[0]==1 && currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005) || (currentTree.isConverted[1]==1 && currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>0.0005)) &&
-              !(currentTree.isConverted[0]==1 && currentTree.isConverted[1]==1)) {
-            h_mass_2gamma_1conv[1][HiggsType]->Fill(InvMass,weight);
-            h_pt_2gamma_1conv[1][HiggsType]->Fill(VSum.Pt(),weight);
-            h_pz_2gamma_1conv[1][HiggsType]->Fill(VSum.Pz(),weight);
-            h_eta_2gamma_1conv[1][HiggsType]->Fill(VSum.Eta(),weight);
-            h_CosThetaStar_1conv[1][HiggsType]->Fill(cos_thetastar,weight);
-          }
+          // all photon categories together 
+          h_mass_2gamma[1][HiggsInWhichDetector]->Fill(InvMass,weight);
+          h_pt_2gamma[1][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
+          h_pz_2gamma[1][HiggsInWhichDetector]->Fill(VSum.Pz(),weight);
+          h_eta_2gamma[1][HiggsInWhichDetector]->Fill(VSum.Eta(),weight);
+          h_CosThetaStar[1][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
 
-          if (currentTree.isConverted[0]==1 && currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005 && currentTree.isConverted[1]==1 && currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>.0005) {
-            h_mass_2gamma_2conv[1][HiggsType]->Fill(InvMass,weight);
-            h_pt_2gamma_2conv[1][HiggsType]->Fill(VSum.Pt(),weight);
-            h_pz_2gamma_2conv[1][HiggsType]->Fill(VSum.Pz(),weight);
-            h_eta_2gamma_2conv[1][HiggsType]->Fill(VSum.Eta(),weight);
-            h_CosThetaStar_2conv[1][HiggsType]->Fill(cos_thetastar,weight);
-          }
+          // define the photon categories
+          int category=0 ;         
+          if (currentTree.r9[0]>.93 && currentTree.r9[1]>.93 && !( currentTree.nTracks[0]==2 && currentTree.nTracks[1]==2 ) ) {
+	    category=1;	  // golden photons 
+	  } else if ( currentTree.r9[0]>.93 && currentTree.r9[1]>.93 &&  currentTree.nTracks[0]==2 && currentTree.nTracks[1]==2 ) {
+	    category=2;	  // golden photons with tracks
+	  } else if ( ((currentTree.r9[0]>.93 && currentTree.isConverted[0]==0) && (currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>0.0005 && currentTree.r9[1]<=.93 ) ) ||
+	       ((currentTree.r9[1]>.93 && currentTree.isConverted[0]==0) && (currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005 && currentTree.r9[0]<=.93  ) ) ) {
+	    category=3; // 1 golden and 1 converted 
+	  } 
+	
+	  //	  if (((currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005) || (currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>0.0005)) 
+	  //   &&!(currentTree.isConverted[0]==1 && currentTree.isConverted[1]==1)) {
+	  // category=2; // 1 golden and 1 converted 
+	  //} 
+
+	  else if (currentTree.nTracks[0]==2 && currentTree.convVtxChi2Prob[0]>0.0005 && currentTree.nTracks[1]==2 && currentTree.convVtxChi2Prob[1]>.0005) {
+	    category=4; 	    // two conversions 
+	  }
+
+
+          if ( category==1 ) {
+            h_mass_2gamma_2gold[1][HiggsInWhichDetector]->Fill(InvMass,weight);
+            h_pt_2gamma_2gold[1][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_2gold[1][HiggsInWhichDetector]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_2gold[1][HiggsInWhichDetector]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_2gold[1][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
+          } else if ( category==2 ) {
+
+            h_mass_2gamma_2goldConv[1][HiggsInWhichDetector]->Fill(InvMass,weight);
+
+          } else if ( category==3 ) {
+	    
+            h_mass_2gamma_1conv[1][HiggsInWhichDetector]->Fill(InvMass,weight);
+            h_pt_2gamma_1conv[1][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_1conv[1][HiggsInWhichDetector]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_1conv[1][HiggsInWhichDetector]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_1conv[1][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
+          } else if ( category==4 ) {
+
+            h_mass_2gamma_2conv[1][HiggsInWhichDetector]->Fill(InvMass,weight);
+            h_pt_2gamma_2conv[1][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_2conv[1][HiggsInWhichDetector]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_2conv[1][HiggsInWhichDetector]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_2conv[1][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
+          } else {
+
+            h_mass_2gamma_leftover[1][HiggsInWhichDetector]->Fill(InvMass,weight);
+            h_pt_2gamma_leftover[1][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
+            h_pz_2gamma_leftover[1][HiggsInWhichDetector]->Fill(VSum.Pz(),weight);
+            h_eta_2gamma_leftover[1][HiggsInWhichDetector]->Fill(VSum.Eta(),weight);
+            h_CosThetaStar_leftover[1][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
+
+	  }
       
         }
 
