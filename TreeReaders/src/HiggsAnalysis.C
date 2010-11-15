@@ -79,30 +79,30 @@ int main(int argc, char * charmass[]) {
 
   for (unsigned int itMasses=0; itMasses < filelist.size(); itMasses++) {
     
-    TFile * outfile = new TFile(filelist[itMasses].c_str(),"RECREATE");
+    TFile* outfile = new TFile(filelist[itMasses].c_str(),"RECREATE");
 
-    TH1F * hNPhotons[2];
-    TH1F * hLeadEt[3][2];
-    TH1F * hSubLeadEt[3][2];
-    TH1F * hLeadEta[2];
-    TH1F * hSubLeadEta[2];
-    TH1F * hLeadR9[3][2];
-    TH1F * hSubLeadR9[3][2];
-    TH1F * hLeadHoE[3][2];
-    TH1F * hSubLeadHoE[3][2];
-    TH1F * hLeadTrkPtSumSolid03[3][2];
-    TH1F * hSubLeadTrkPtSumSolid03[3][2];
-    TH1F * hLeadEcalPtSumSolid03[3][2];
-    TH1F * hSubLeadEcalPtSumSolid03[3][2];
-    TH1F * hLeadHcalPtSumSolid03[3][2];
-    TH1F * hSubLeadHcalPtSumSolid03[3][2];
-    TH1F * hLeadSigmaIetaIeta[3][2];
-    TH1F * hSubLeadSigmaIetaIeta[3][2];
+    TH1F* hNPhotons[2];
+    TH1F* hLeadEt[3][2];
+    TH1F* hSubLeadEt[3][2];
+    TH1F* hLeadEta[2];
+    TH1F* hSubLeadEta[2];
+    TH1F* hLeadR9[3][2];
+    TH1F* hSubLeadR9[3][2];
+    TH1F* hLeadHoE[3][2];
+    TH1F* hSubLeadHoE[3][2];
+    TH1F* hLeadTrkPtSumSolid03[3][2];
+    TH1F* hSubLeadTrkPtSumSolid03[3][2];
+    TH1F* hLeadEcalPtSumSolid03[3][2];
+    TH1F* hSubLeadEcalPtSumSolid03[3][2];
+    TH1F* hLeadHcalPtSumSolid03[3][2];
+    TH1F* hSubLeadHcalPtSumSolid03[3][2];
+    TH1F* hLeadSigmaIetaIeta[3][2];
+    TH1F* hSubLeadSigmaIetaIeta[3][2];
 
-    TH1F*  hLeadZPV_[3][2];
-    TH1F*  hSubLeadZPV_[3][2];
-    TH1F*  hLeadDzPV_[3][2];
-    TH1F*  hSubLeadDzPV_[3][2];
+    TH1F* hLeadZPV_[3][2];
+    TH1F* hSubLeadZPV_[3][2];
+    TH1F* hLeadDzPV_[3][2];
+    TH1F* hSubLeadDzPV_[3][2];
 
     TH1D* h_mass_2gamma[2][2];
     TH1D* h_pt_2gamma[2][2];
@@ -111,7 +111,6 @@ int main(int argc, char * charmass[]) {
     TH1D* h_CosThetaStar[2][2];
 
     TH1D* h_mass_2gamma_2gold[2][2];
-    TH1D* h_mass_2gamma_2goldConv[2][2];
     TH1D* h_pt_2gamma_2gold[2][2];
     TH1D* h_pz_2gamma_2gold[2][2];
     TH1D* h_eta_2gamma_2gold[2][2];
@@ -152,7 +151,7 @@ int main(int argc, char * charmass[]) {
     TH1D* h_lead_r9_cat4[3];
     TH1D* h_sublead_r9_cat4[3];
 
-    TH2F*  h2_convVtxRvsZBarrel_[2];
+    TH2F* h2_convVtxRvsZBarrel_[2];
 
     hNPhotons[0] = new TH1F("hNPhotonsAll","Num of photons in the event: all candidates",20,-0.5,19.5);
     hNPhotons[1] = new TH1F("hNPhotonsSel","Num of photons in the event: selected candidates",20,-0.5,19.5);
@@ -346,14 +345,12 @@ int main(int argc, char * charmass[]) {
     h_CosThetaStar_2gold[0][1]       = new TH1D("h_CosThetaStarGoldenAllEE","cos#theta^{*};cos#theta^{*} all golden endcap candidates", 60, 0., 1.);
 
     h_mass_2gamma_2gold[1][0]        = new TH1D("h_mass_2gammaGoldenSelEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected barrel candidates", 160, 80.0, 160.0);
-    h_mass_2gamma_2goldConv[1][0]        = new TH1D("h_mass_2gammaGoldenConvSelEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected barrel candidates", 160, 80.0, 160.0);
     h_pt_2gamma_2gold[1][0]          = new TH1D("h_pt_2gammaGoldenSelEB","Di-photon P_{T} ;PT_{2#gamma} (GeV) golden selected barrel candidates", 200, 0., 200.0);
     h_pz_2gamma_2gold[1][0]          = new TH1D("h_pz_2gammaGoldenSelEB","Di-photon P_{T} ;Pz_{2#gamma} (GeV) golden selected barrel candidates", 100, -1000., 1000.0);
     h_eta_2gamma_2gold[1][0]         = new TH1D("h_eta_2gammaGoldenSelEB","Di-Photon #eta ;#eta(2#gamma) golden selected barrel candidates", 160, -8.0, 8.0);
     h_CosThetaStar_2gold[1][0]       = new TH1D("h_CosThetaStarGoldenSelEB","cos#theta^{*};cos#theta^{*} golden selected barrel candidates", 60, 0., 1.);
 
     h_mass_2gamma_2gold[1][1]        = new TH1D("h_mass_2gammaGoldenSelEE", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected endcap candidates", 160, 80.0, 160.0);
-    h_mass_2gamma_2goldConv[1][1]        = new TH1D("h_mass_2gammaGoldenConvSelEE", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) golden selected endcap candidates", 160, 80.0, 160.0);
     h_pt_2gamma_2gold[1][1]          = new TH1D("h_pt_2gammaGoldenSelEE","Di-photon P_{T} ;PT_{2#gamma} (GeV) golden selected endcap candidates", 200, 0., 200.0);
     h_pz_2gamma_2gold[1][1]          = new TH1D("h_pz_2gammaGoldenSelEE","Di-photon P_{T} ;Pz_{2#gamma} (GeV) golden selected endcap candidates", 100, -1000., 1000.0);
     h_eta_2gamma_2gold[1][1]         = new TH1D("h_eta_2gammaGoldenSelEE","Di-Photon #eta ;#eta(2#gamma) golden selected endcap candidates", 160, -8.0, 8.0);
@@ -382,7 +379,6 @@ int main(int argc, char * charmass[]) {
     h_pz_2gamma_1goodconv[1][1]          = new TH1D("h_pz_2gamma1goodconvSelEE","Di-photon P_{T} ;Pz_{2#gamma} (GeV) selected endcap candidates with one conversion", 100, -1000., 1000.0);
     h_eta_2gamma_1goodconv[1][1]         = new TH1D("h_eta_2gamma1goodconvSelEE","Di-Photon #eta ;#eta(2#gamma) selected endcap candidates with one conversion", 160, -8.0, 8.0);
     h_CosThetaStar_1goodconv[1][1]       = new TH1D("h_CosThetaStar1goodconvSelEE","cos#theta^{*};cos#theta^{*} selected endcap candidates with one conversion", 60, 0., 1.);
-
 
     h_mass_2gamma_1poorconv[0][0]        = new TH1D("h_mass_2gamma1poorconvAllEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) all barrel candidates with one conversion", 160, 80.0, 160.0);
     h_pt_2gamma_1poorconv[0][0]          = new TH1D("h_pt_2gamma1poorconvAllEB","Di-photon P_{T} ;PT_{2#gamma} (GeV) all barrel candidates with one conversion", 200, 0., 200.0);
@@ -495,7 +491,6 @@ int main(int argc, char * charmass[]) {
     h_sublead_r9_cat4[0] = new TH1D("h_sublead_r9_cat4_allEcal","leading photon R9, selected candidates: all ECAL",100,0.,1.1);
     h_sublead_r9_cat4[1] = new TH1D("h_sublead_r9_cat4_Barrel","leading photon R9, selected candidates: Barrel",100,0.,1.1);
     h_sublead_r9_cat4[2] = new TH1D("h_sublead_r9_cat4_Endcap","leading photon R9, selected candidates: Endcap",100,0.,1.1);
-
     
     h2_convVtxRvsZBarrel_[0] =   new TH2F("convVtxRvsZBarrelAll"," Photon  conversion vtx position all candidates Barrel",200, 0., 280., 200, 0., 80.);
     h2_convVtxRvsZBarrel_[1] =   new TH2F("convVtxRvsZBarrelSel"," Photon  conversion vtx position selected candidates Barrel",200, 0., 280., 200, 0., 80.);
