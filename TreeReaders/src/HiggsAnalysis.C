@@ -512,7 +512,7 @@ int main(int argc, char * charmass[]) {
       mpaReader currentTree(Analysis);
       
       Long64_t nentries = currentTree.fChain->GetEntries();
-      weight *= 50000/Analysis->GetEntries();
+      weight /= Analysis->GetEntries();
       
       for ( Long64_t i = 0; i < nentries; ++i ) {
         int iLeadDetector = 0;
