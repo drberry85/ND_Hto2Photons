@@ -136,12 +136,12 @@ bool convSel(
 }
 
 
-int photonCategory (float r9, int nTracks,  float convVtxChi2Prob ) {
+int photonCategory (float r9, int nTracks,  float convVtxChi2Prob, float etOverPt ) {
   
   int cate=0;
   if ( r9>0.93 ) {
     cate=1; // golden
-  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 ) {
+  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3 ) {
     cate=2; // good reconstructed conversion
   } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob <=0.0005 ) {
     cate=3; // poor reconstructed conversions
