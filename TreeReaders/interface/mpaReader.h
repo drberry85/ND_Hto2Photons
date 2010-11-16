@@ -50,7 +50,7 @@ public :
    Double_t        beamSpotX;
    Double_t        beamSpotY;
    Double_t        beamSpotZ;
-   UChar_t         vtxIsFake;
+//   UChar_t         vtxIsFake;
    Double_t        vtxX;
    Double_t        vtxY;
    Double_t        vtxZ;
@@ -76,21 +76,21 @@ public :
    Float_t         metUncorrectedPhi;
    UChar_t         metIsCaloMET;
    UChar_t         metIsRecoMET;
-   Double_t        metMaxEtInEmTowers;
-   Double_t        metMaxEtInHadTowers;
-   Double_t        metEtFractionHadronic;
-   Double_t        metEmEtFraction;
-   Double_t        metHadEtInHB;
-   Double_t        metHadEtInHO;
-   Double_t        metHadEtInHE;
-   Double_t        metHadEtInHF;
-   Double_t        metSignificance;
-   Double_t        metCaloSETInpHF;
-   Double_t        metCaloSETInmHF;
-   Double_t        metCaloMETInpHF;
-   Double_t        metCaloMETInmHF;
-   Double_t        metCaloMETPhiInpHF;
-   Double_t        metCaloMETPhiInmHF;
+//    Double_t        metMaxEtInEmTowers;
+//    Double_t        metMaxEtInHadTowers;
+//    Double_t        metEtFractionHadronic;
+//    Double_t        metEmEtFraction;
+//    Double_t        metHadEtInHB;
+//    Double_t        metHadEtInHO;
+//    Double_t        metHadEtInHE;
+//    Double_t        metHadEtInHF;
+//    Double_t        metSignificance;
+//    Double_t        metCaloSETInpHF;
+//    Double_t        metCaloSETInmHF;
+//    Double_t        metCaloMETInpHF;
+//    Double_t        metCaloMETInmHF;
+//    Double_t        metCaloMETPhiInpHF;
+//    Double_t        metCaloMETPhiInmHF;
    Int_t           nJets;
    Int_t           kMaxJets;
    Float_t         jetPt[20];   //[nJets]
@@ -239,8 +239,8 @@ public :
    Float_t         convVtxX[10];   //[nPhotons]
    Float_t         convVtxY[10];   //[nPhotons]
    Float_t         convVtxZ[10];   //[nPhotons]
-   Float_t         convVtxChi2[10];   //[nPhotons]
-   Float_t         convVtxNdof[10];   //[nPhotons]
+  //   Float_t         convVtxChi2[10];   //[nPhotons]
+  //   Float_t         convVtxNdof[10];   //[nPhotons]
    Float_t         convMVALikelihood[10];   //[nPhotons]
    Float_t         convVtxChi2Prob[10];   //[nPhotons]
    Float_t         convEoverP[10];   //[nPhotons]
@@ -293,7 +293,7 @@ public :
    TBranch        *b_beamSpotX;   //!
    TBranch        *b_beamSpotY;   //!
    TBranch        *b_beamSpotZ;   //!
-   TBranch        *b_vtxIsFake;   //!
+  //   TBranch        *b_vtxIsFake;   //!
    TBranch        *b_vtxX;   //!
    TBranch        *b_vtxY;   //!
    TBranch        *b_vtxZ;   //!
@@ -319,21 +319,21 @@ public :
    TBranch        *b_metUncorrectedPhi;   //!
    TBranch        *b_metIsCaloMET;   //!
    TBranch        *b_metIsRecoMET;   //!
-   TBranch        *b_metMaxEtInEmTowers;   //!
-   TBranch        *b_metMaxEtInHadTowers;   //!
-   TBranch        *b_metEtFractionHadronic;   //!
-   TBranch        *b_metEmEtFraction;   //!
-   TBranch        *b_metHadEtInHB;   //!
-   TBranch        *b_metHadEtInHO;   //!
-   TBranch        *b_metHadEtInHE;   //!
-   TBranch        *b_metHadEtInHF;   //!
-   TBranch        *b_metSignificance;   //!
-   TBranch        *b_metCaloSETInpHF;   //!
-   TBranch        *b_metCaloSETInmHF;   //!
-   TBranch        *b_metCaloMETInpHF;   //!
-   TBranch        *b_metCaloMETInmHF;   //!
-   TBranch        *b_metCaloMETPhiInpHF;   //!
-   TBranch        *b_metCaloMETPhiInmHF;   //!
+//    TBranch        *b_metMaxEtInEmTowers;   //!
+//    TBranch        *b_metMaxEtInHadTowers;   //!
+//    TBranch        *b_metEtFractionHadronic;   //!
+//    TBranch        *b_metEmEtFraction;   //!
+//    TBranch        *b_metHadEtInHB;   //!
+//    TBranch        *b_metHadEtInHO;   //!
+//    TBranch        *b_metHadEtInHE;   //!
+//    TBranch        *b_metHadEtInHF;   //!
+//    TBranch        *b_metSignificance;   //!
+//    TBranch        *b_metCaloSETInpHF;   //!
+//    TBranch        *b_metCaloSETInmHF;   //!
+//    TBranch        *b_metCaloMETInpHF;   //!
+//    TBranch        *b_metCaloMETInmHF;   //!
+//    TBranch        *b_metCaloMETPhiInpHF;   //!
+//    TBranch        *b_metCaloMETPhiInmHF;   //!
    TBranch        *b_nJets;   //!
    TBranch        *b_kMaxJets;   //!
    TBranch        *b_jetPt;   //!
@@ -482,8 +482,8 @@ public :
    TBranch        *b_convVtxX;   //!
    TBranch        *b_convVtxY;   //!
    TBranch        *b_convVtxZ;   //!
-   TBranch        *b_convVtxChi2;   //!
-   TBranch        *b_convVtxNdof;   //!
+  //   TBranch        *b_convVtxChi2;   //!
+  //   TBranch        *b_convVtxNdof;   //!
    TBranch        *b_convMVALikelihood;   //!
    TBranch        *b_convVtxChi2Prob;   //!
    TBranch        *b_convEoverP;   //!
@@ -604,7 +604,7 @@ void mpaReader::Init(TTree *tree)
    fChain->SetBranchAddress("beamSpotX", &beamSpotX, &b_beamSpotX);
    fChain->SetBranchAddress("beamSpotY", &beamSpotY, &b_beamSpotY);
    fChain->SetBranchAddress("beamSpotZ", &beamSpotZ, &b_beamSpotZ);
-   fChain->SetBranchAddress("vtxIsFake", &vtxIsFake, &b_vtxIsFake);
+   //   fChain->SetBranchAddress("vtxIsFake", &vtxIsFake, &b_vtxIsFake);
    fChain->SetBranchAddress("vtxX", &vtxX, &b_vtxX);
    fChain->SetBranchAddress("vtxY", &vtxY, &b_vtxY);
    fChain->SetBranchAddress("vtxZ", &vtxZ, &b_vtxZ);
@@ -630,21 +630,21 @@ void mpaReader::Init(TTree *tree)
    fChain->SetBranchAddress("metUncorrectedPhi", &metUncorrectedPhi, &b_metUncorrectedPhi);
    fChain->SetBranchAddress("metIsCaloMET", &metIsCaloMET, &b_metIsCaloMET);
    fChain->SetBranchAddress("metIsRecoMET", &metIsRecoMET, &b_metIsRecoMET);
-   fChain->SetBranchAddress("metMaxEtInEmTowers", &metMaxEtInEmTowers, &b_metMaxEtInEmTowers);
-   fChain->SetBranchAddress("metMaxEtInHadTowers", &metMaxEtInHadTowers, &b_metMaxEtInHadTowers);
-   fChain->SetBranchAddress("metEtFractionHadronic", &metEtFractionHadronic, &b_metEtFractionHadronic);
-   fChain->SetBranchAddress("metEmEtFraction", &metEmEtFraction, &b_metEmEtFraction);
-   fChain->SetBranchAddress("metHadEtInHB", &metHadEtInHB, &b_metHadEtInHB);
-   fChain->SetBranchAddress("metHadEtInHO", &metHadEtInHO, &b_metHadEtInHO);
-   fChain->SetBranchAddress("metHadEtInHE", &metHadEtInHE, &b_metHadEtInHE);
-   fChain->SetBranchAddress("metHadEtInHF", &metHadEtInHF, &b_metHadEtInHF);
-   fChain->SetBranchAddress("metSignificance", &metSignificance, &b_metSignificance);
-   fChain->SetBranchAddress("metCaloSETInpHF", &metCaloSETInpHF, &b_metCaloSETInpHF);
-   fChain->SetBranchAddress("metCaloSETInmHF", &metCaloSETInmHF, &b_metCaloSETInmHF);
-   fChain->SetBranchAddress("metCaloMETInpHF", &metCaloMETInpHF, &b_metCaloMETInpHF);
-   fChain->SetBranchAddress("metCaloMETInmHF", &metCaloMETInmHF, &b_metCaloMETInmHF);
-   fChain->SetBranchAddress("metCaloMETPhiInpHF", &metCaloMETPhiInpHF, &b_metCaloMETPhiInpHF);
-   fChain->SetBranchAddress("metCaloMETPhiInmHF", &metCaloMETPhiInmHF, &b_metCaloMETPhiInmHF);
+//    fChain->SetBranchAddress("metMaxEtInEmTowers", &metMaxEtInEmTowers, &b_metMaxEtInEmTowers);
+//    fChain->SetBranchAddress("metMaxEtInHadTowers", &metMaxEtInHadTowers, &b_metMaxEtInHadTowers);
+//    fChain->SetBranchAddress("metEtFractionHadronic", &metEtFractionHadronic, &b_metEtFractionHadronic);
+//    fChain->SetBranchAddress("metEmEtFraction", &metEmEtFraction, &b_metEmEtFraction);
+//    fChain->SetBranchAddress("metHadEtInHB", &metHadEtInHB, &b_metHadEtInHB);
+//    fChain->SetBranchAddress("metHadEtInHO", &metHadEtInHO, &b_metHadEtInHO);
+//    fChain->SetBranchAddress("metHadEtInHE", &metHadEtInHE, &b_metHadEtInHE);
+//    fChain->SetBranchAddress("metHadEtInHF", &metHadEtInHF, &b_metHadEtInHF);
+//    fChain->SetBranchAddress("metSignificance", &metSignificance, &b_metSignificance);
+//    fChain->SetBranchAddress("metCaloSETInpHF", &metCaloSETInpHF, &b_metCaloSETInpHF);
+//    fChain->SetBranchAddress("metCaloSETInmHF", &metCaloSETInmHF, &b_metCaloSETInmHF);
+//    fChain->SetBranchAddress("metCaloMETInpHF", &metCaloMETInpHF, &b_metCaloMETInpHF);
+//    fChain->SetBranchAddress("metCaloMETInmHF", &metCaloMETInmHF, &b_metCaloMETInmHF);
+//    fChain->SetBranchAddress("metCaloMETPhiInpHF", &metCaloMETPhiInpHF, &b_metCaloMETPhiInpHF);
+//    fChain->SetBranchAddress("metCaloMETPhiInmHF", &metCaloMETPhiInmHF, &b_metCaloMETPhiInmHF);
 //   fChain->SetBranchAddress("nJets", &nJets, &b_nJets);
 //   fChain->SetBranchAddress("kMaxJets", &kMaxJets, &b_kMaxJets);
 //   fChain->SetBranchAddress("jetPt", jetPt, &b_jetPt);
@@ -793,8 +793,8 @@ void mpaReader::Init(TTree *tree)
    fChain->SetBranchAddress("convVtxX", convVtxX, &b_convVtxX);
    fChain->SetBranchAddress("convVtxY", convVtxY, &b_convVtxY);
    fChain->SetBranchAddress("convVtxZ", convVtxZ, &b_convVtxZ);
-   fChain->SetBranchAddress("convVtxChi2", convVtxChi2, &b_convVtxChi2);
-   fChain->SetBranchAddress("convVtxNdof", convVtxNdof, &b_convVtxNdof);
+   //   fChain->SetBranchAddress("convVtxChi2", convVtxChi2, &b_convVtxChi2);
+   //   fChain->SetBranchAddress("convVtxNdof", convVtxNdof, &b_convVtxNdof);
    fChain->SetBranchAddress("convMVALikelihood", convMVALikelihood, &b_convMVALikelihood);
    fChain->SetBranchAddress("convVtxChi2Prob", convVtxChi2Prob, &b_convVtxChi2Prob);
    fChain->SetBranchAddress("convEoverP", convEoverP, &b_convEoverP);
