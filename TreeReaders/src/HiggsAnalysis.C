@@ -26,13 +26,14 @@ using namespace std;
 
 int main(int argc, char * charmass[]) {
 
-  float globalWeight = 29.19;
+  //float globalWeight = 29.19;
+  float globalWeight = 1000;
   float BranchingFraction = 0;
   vector<pair<string, float> > filesAndWeights;
   vector<string> filelist;
     
   string Mass=charmass[1];
-  cout << "Mass is: " << Mass << endl;
+  //cout << "Mass is: " << Mass << endl;
 
   // Load Signal
   if (Mass=="90GeV") {
@@ -60,9 +61,8 @@ int main(int argc, char * charmass[]) {
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon150MPA.root",10.863*BranchingFraction));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA150.root",1.0985*BranchingFraction));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ150MPA.root",0.2035*BranchingFraction));
-  } else if (Mass=="Background") {
-    filelist.push_back("Background.root");
-    // Load Reducible Background
+  } else if (Mass=="PhotonPlusJet") {
+    filelist.push_back("PhotonPlusJet.root");
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_PhotonPlusJet0to15.root",84200000));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_PhotonPlusJet15to30.root",171700));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_PhotonPlusJet30to50.root",16690));
@@ -75,16 +75,21 @@ int main(int argc, char * charmass[]) {
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_PhotonPlusJet800to1400.root",0.003481));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_PhotonPlusJet1400to1800.root",0.00001270));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_PhotonPlusJet1800toInf.root",0.0000002936));
-
-    // Load Non-Reducible Background
+  } else if (Mass=="Born") {
+    filelist.push_back("Born.root");
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt10to25.root",236.4));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt25to250.root",22.37));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt250toInf.root",0.008072));
+  } else if (Mass=="Box") {
+    filelist.push_back("Box.root");
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBox_Pt10to25.root",358.2));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBox_Pt25to250.root",12.37));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBox_Pt250toInf.root",0.000208));
+  } else if (Mass=="EMEnriched") {
+    filelist.push_back("EMEnriched.root");
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_EMEnrichedpt20to30.root",236000000/0.0104));
   } else {
-    cout << "Warning!!!! No valid inputs!!!!" << endl;
+    cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, Born, Box, or EMEnriched" << endl;
   }
 
   for (unsigned int itMasses=0; itMasses < filelist.size(); itMasses++) {
