@@ -27,7 +27,7 @@ using namespace std;
 int main(int argc, char * charmass[]) {
 
   float globalWeight = 29.19;
-  
+  float BranchingFraction = 0;
   vector<pair<string, float> > filesAndWeights;
   vector<string> filelist;
     
@@ -36,26 +36,30 @@ int main(int argc, char * charmass[]) {
 
   // Load Signal
   if (Mass=="90GeV") {
+    BranchingFraction = 0.000549;
     filelist.push_back("HiggsAnalysis90GeV.root");
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon90MPA.root",28.619));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA90.root",2.113));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ90MPA.root",1.1576));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon90MPA.root",28.619*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA90.root",2.113*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ90MPA.root",1.1576*BranchingFraction));
     cout << "Warning Weights Not Correct!!!!!" << endl;
   } else if (Mass=="110GeV") {
+    BranchingFraction = 0.001939;
     filelist.push_back("HiggsAnalysis110GeV.root");
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon110MPA.root",20.493));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA110.root",1.4405));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ110MPA.root",0.9899));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon110MPA.root",20.493*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA110.root",1.4405*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ110MPA.root",0.9899*BranchingFraction));
   } else if (Mass=="120GeV") {
+    BranchingFraction = 0.002219;
     filelist.push_back("HiggsAnalysis120GeV.root");
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon120MPA.root",17.173));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA120.root",1.3062));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ120MPA.root",0.4240));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon120MPA.root",17.173*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA120.root",1.3062*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ120MPA.root",0.4240*BranchingFraction));
   } else if (Mass=="150GeV") {
+    BranchingFraction = 0.001363;
     filelist.push_back("HiggsAnalysis150GeV.root");
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon150MPA.root",10.863));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA150.root",1.0985));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ150MPA.root",0.2035));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggGluon150MPA.root",10.863*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggVBFMPA150.root",1.0985*BranchingFraction));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsSignal/HggQQ150MPA.root",0.2035*BranchingFraction));
   } else if (Mass=="Background") {
     filelist.push_back("Background.root");
     // Load Reducible Background
@@ -75,7 +79,7 @@ int main(int argc, char * charmass[]) {
     // Load Non-Reducible Background
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt10to25.root",236.4));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt25to250.root",22.37));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt250toInf.root",0.008072));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBorn_Pt250toInf.root",0.008072));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBox_Pt10to25.root",358.2));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBox_Pt25to250.root",12.37));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/HiggsBackground/MPA_DiPhotonBox_Pt250toInf.root",0.000208));
