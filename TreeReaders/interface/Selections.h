@@ -29,7 +29,8 @@ bool looseId(
              float trkSumPtHollowConeDR04,
              bool isEB,
              bool isEE,
-             float sigmaIetaIeta
+             float sigmaIetaIeta,
+             float hadronicOverEm
              ) {
 
   if (ecalRecHitSumEtConeDR04 > 4.2 + 0.006 * pt) return false;
@@ -37,6 +38,7 @@ bool looseId(
   if (trkSumPtHollowConeDR04 > 2.0 + 0.001 * pt) return false;
   if (isEB && sigmaIetaIeta > 0.0105) return false;
   if (isEE && sigmaIetaIeta > 0.030) return false;
+  if (hadronicOverEm > 0.05) return false;
 
 
 
@@ -51,7 +53,8 @@ bool looseControlId(
                     float trkSumPtHollowConeDR04,
                     bool isEB,
                     bool isEE,
-                    float sigmaIetaIeta
+                    float sigmaIetaIeta,
+                    float hadronicOverEm
                     ) {
 
   if (ecalRecHitSumEtConeDR04 > 4.2 + 0.003 * pt) return false;
@@ -59,6 +62,7 @@ bool looseControlId(
   if (trkSumPtHollowConeDR04 > 5.0 + 0.001 * pt) return false;
   if (isEB && sigmaIetaIeta > 0.015) return false;
   if (isEE && sigmaIetaIeta > 0.045) return false;
+  if (hadronicOverEm > 0.05) return false;
 
 
 
