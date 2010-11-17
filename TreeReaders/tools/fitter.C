@@ -44,7 +44,7 @@
       data->plotOn(plot);
       Convolution.plotOn(plot);
       //Convolution.paramOn(plot);
-      Convolution.paramOn(plot,Format("NELU",AutoPrecision(2)), Parameters(RooArgSet(m0, sigma, cut, power, Gamma, mRes)), Layout(.60, 0.99, 0.99), ShowConstants(kFALSE));
+      Convolution.paramOn(plot,Format("NELU",AutoPrecision(3)), Parameters(RooArgSet(m0, sigma, cut, power, Gamma, mRes)), Layout(.60, 0.99, 0.99), ShowConstants(kFALSE));
       TString PlotTitle(DataHist->GetTitle());
       PlotTitle += ";Mass_{2#gamma} (GeV/c^{2});Number of Weighted Events";
       plot->SetTitle(PlotTitle);
