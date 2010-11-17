@@ -686,13 +686,13 @@ int main(int argc, char * charmass[]) {
         }
 
         ///////////////////////////////  Event selection ///////////////////////////////////////
-        if (currentTree.pt[0]<30) continue; // leading photon
-        if (currentTree.pt[1]<25) continue; // subleading photon
+        if (currentTree.pt[0]<40) continue; // leading photon
+        if (currentTree.pt[1]<30) continue; // subleading photon
         //isolation 
         
         if (currentTree.eta[0]>2.5 || currentTree.eta[1]>2.5) continue;
-        if (!(looseId(currentTree.pt[0],currentTree.ecalRecHitSumEtConeDR04[0],currentTree.hcalTowerSumEtConeDR04[0],currentTree.trkSumPtHollowConeDR04[0],(bool) currentTree.isEB[0],(bool) currentTree.isEE[0],currentTree.sigmaIetaIeta[0]))) continue;
-        if (!(looseId(currentTree.pt[1],currentTree.ecalRecHitSumEtConeDR04[1],currentTree.hcalTowerSumEtConeDR04[1],currentTree.trkSumPtHollowConeDR04[1],(bool) currentTree.isEB[1],(bool) currentTree.isEE[1],currentTree.sigmaIetaIeta[1]))) continue;
+        if (!(looseId(currentTree.pt[0],currentTree.ecalRecHitSumEtConeDR04[0],currentTree.hcalTowerSumEtConeDR04[0],currentTree.trkSumPtHollowConeDR04[0],(bool) currentTree.isEB[0],(bool) currentTree.isEE[0],currentTree.sigmaIetaIeta[0],currentTree.hadronicOverEm[0]))) continue;
+        if (!(looseId(currentTree.pt[1],currentTree.ecalRecHitSumEtConeDR04[1],currentTree.hcalTowerSumEtConeDR04[1],currentTree.trkSumPtHollowConeDR04[1],(bool) currentTree.isEB[1],(bool) currentTree.isEE[1],currentTree.sigmaIetaIeta[1],currentTree.hadronicOverEm[1]))) continue;
 
         bool convsel1 = convSel(currentTree.nTracks[0],currentTree.convVtxValid[0] ,  currentTree.convVtxChi2Prob[0], currentTree.convDPhiTracksAtVtx[0], currentTree.convpairCotThetaSeparation[0], currentTree.pt[0]/currentTree.convPairMomentumPerp[0]);
         bool convsel2 = convSel(currentTree.nTracks[1],currentTree.convVtxValid[1] ,  currentTree.convVtxChi2Prob[1], currentTree.convDPhiTracksAtVtx[1], currentTree.convpairCotThetaSeparation[1], currentTree.pt[1]/currentTree.convPairMomentumPerp[1]);
