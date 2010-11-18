@@ -3,6 +3,7 @@
 
   //  gStyle->SetOptStat(0);
   gStyle->SetPalette(1);
+  gROOT->SetStyle("Plain");
   gStyle->SetPadLeftMargin(0.125);
   gStyle->SetTitleOffset(1.1,"y");
   TCanvas * c1 = new TCanvas("c1", "c1",430, 10, 600, 600);
@@ -41,10 +42,10 @@
       RooDataHist data(DataHistName,DataHistName,mass,DataHist,1.0);
       Convolution.fitTo(data);
       RooPlot * plot = mass.frame(80,160,160);
-      data->plotOn(plot);
+      data->plotOn(plot,DataError(RooAbsData::None));
       Convolution.plotOn(plot);
       //Convolution.paramOn(plot);
-      Convolution.paramOn(plot,Format("NELU",AutoPrecision(3)), Parameters(RooArgSet(m0, sigma, cut, power, Gamma, mRes)), Layout(.60, 0.99, 0.99), ShowConstants(kFALSE));
+      Convolution.paramOn(plot,Format("NEL",AutoPrecision(3)), Parameters(RooArgSet(m0, sigma, cut, power, Gamma, mRes)), Layout(.60, 0.99, 0.99), ShowConstants(kFALSE));
       TString PlotTitle(DataHist->GetTitle());
       PlotTitle += ";Mass_{2#gamma} (GeV/c^{2});Number of Weighted Events";
       plot->SetTitle(PlotTitle);
