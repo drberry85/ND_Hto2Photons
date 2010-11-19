@@ -619,8 +619,8 @@ int main(int argc, char * charmass[]) {
         if (currentTree.isEB[1]) iSubleadDetector=1;
         if (currentTree.isEE[1]) iSubleadDetector=2;
         /////////////////////////
-        int leadPhoCategory = photonCategory ( currentTree.r9[0],  currentTree.nTracks[0], currentTree.convVtxChi2Prob[0] , currentTree.pt[0]/currentTree.convPairMomentumPerp[0] );
-        int subleadPhoCategory = photonCategory ( currentTree.r9[1],  currentTree.nTracks[1], currentTree.convVtxChi2Prob[1] ,  currentTree.pt[1]/currentTree.convPairMomentumPerp[1]  );
+        int leadPhoCategory = photonCategory ( currentTree.hasPixelSeed[0], currentTree.r9[0],  currentTree.nTracks[0], currentTree.convVtxChi2Prob[0] , currentTree.pt[0]/currentTree.convPairMomentumPerp[0] );
+        int subleadPhoCategory = photonCategory (currentTree.hasPixelSeed[1], currentTree.r9[1],  currentTree.nTracks[1], currentTree.convVtxChi2Prob[1] ,  currentTree.pt[1]/currentTree.convPairMomentumPerp[1]  );
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
         ////////////////////////////////////
         
