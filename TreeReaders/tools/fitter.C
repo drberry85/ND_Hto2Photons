@@ -1,4 +1,4 @@
-{
+void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/HiggsAnalysis120GeV.root", float startmass = 120) {
   using namespace RooFit;
 
   //  gStyle->SetOptStat(0);
@@ -9,11 +9,11 @@
   TCanvas * c1 = new TCanvas("c1", "c1",430, 10, 600, 600);
   c1->SetBorderMode(0);
   
-  TFile * hFile = new TFile("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/HiggsAnalysis120GeV.root");
+  TFile * hFile = new TFile(filename);
   TList * HistList = hFile->GetListOfKeys();
   
   for (Int_t i=1; i<HistList->GetSize(); ++i) {
-    TString HistName(HistList->At(i).GetName());
+    TString HistName(HistList->At(i)->GetName());
     //cout << "Looking at Hist: " << HistName << endl; 
     if (HistName.Contains("mass")==1) {
       // Parameter used for mass in both CrystalBall or BreitWigner
@@ -27,7 +27,7 @@
       RooCBShape CrystalBall("CrystalBall", "A  Crystal Ball Lineshape", mass, m0,sigma, cut, power);
   
       //  Parameters for Breit-Wigner Distribution
-      RooRealVar mRes("M_{Higgs}", "Higgs Resonance  Mass", 110, 70, 200);//,"GeV/c^{2}"); 
+      RooRealVar mRes("M_{Higgs}", "Higgs Resonance  Mass", startmass, 70, 200);//,"GeV/c^{2}"); 
       RooRealVar Gamma("#Gamma", "#Gamma", 1, 0,10.0);//,"GeV/c^{2}"); 
       RooBreitWigner BreitWigner("BreitWigner","A Breit-Wigner Distribution",mass,mRes,Gamma);
 
@@ -42,7 +42,7 @@
       RooDataHist data(DataHistName,DataHistName,mass,DataHist,1.0);
       Convolution.fitTo(data);
       RooPlot * plot = mass.frame(80,160,160);
-      data->plotOn(plot,DataError(RooAbsData::None));
+      data.plotOn(plot,DataError(RooAbsData::None));
       Convolution.plotOn(plot);
       //Convolution.paramOn(plot);
       Convolution.paramOn(plot,Format("NEL",AutoPrecision(3)), Parameters(RooArgSet(m0, sigma, cut, power, Gamma, mRes)), Layout(.60, 0.99, 0.99), ShowConstants(kFALSE));
