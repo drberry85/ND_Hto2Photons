@@ -228,6 +228,13 @@ public :
    Float_t         convPairMomentumX[10];   //[nPhotons]
    Float_t         convPairMomentumY[10];   //[nPhotons]
    Float_t         convPairMomentumZ[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumMag[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumPerp[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumPhi[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumEta[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumX[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumY[10];   //[nPhotons]
+   Float_t         convPairRefittedMomentumZ[10];   //[nPhotons]
    Float_t         convDistOfMinimumApproach[10];   //[nPhotons]
    Float_t         convDPhiTracksAtVtx[10];   //[nPhotons]
    Float_t         convDPhiTracksAtEcal[10];   //[nPhotons]
@@ -471,6 +478,13 @@ public :
    TBranch        *b_convPairMomentumX;   //!
    TBranch        *b_convPairMomentumY;   //!
    TBranch        *b_convPairMomentumZ;   //!
+   TBranch        *b_convPairRefittedMomentumMag;   //!
+   TBranch        *b_convPairRefittedMomentumPerp;   //!
+   TBranch        *b_convPairRefittedMomentumPhi;   //!
+   TBranch        *b_convPairRefittedMomentumEta;   //!
+   TBranch        *b_convPairRefittedMomentumX;   //!
+   TBranch        *b_convPairRefittedMomentumY;   //!
+   TBranch        *b_convPairRefittedMomentumZ;   //!
    TBranch        *b_convDistOfMinimumApproach;   //!
    TBranch        *b_convDPhiTracksAtVtx;   //!
    TBranch        *b_convDPhiTracksAtEcal;   //!
@@ -782,6 +796,13 @@ void mpaReader::Init(TTree *tree)
    fChain->SetBranchAddress("convPairMomentumX", convPairMomentumX, &b_convPairMomentumX);
    fChain->SetBranchAddress("convPairMomentumY", convPairMomentumY, &b_convPairMomentumY);
    fChain->SetBranchAddress("convPairMomentumZ", convPairMomentumZ, &b_convPairMomentumZ);
+   fChain->SetBranchAddress("convPairRefittedMomentumMag", convPairRefittedMomentumMag, &b_convPairRefittedMomentumMag);
+   fChain->SetBranchAddress("convPairRefittedMomentumPerp", convPairRefittedMomentumPerp, &b_convPairRefittedMomentumPerp);
+   fChain->SetBranchAddress("convPairRefittedMomentumPhi", convPairRefittedMomentumPhi, &b_convPairRefittedMomentumPhi);
+   fChain->SetBranchAddress("convPairRefittedMomentumEta", convPairRefittedMomentumEta, &b_convPairRefittedMomentumEta);
+   fChain->SetBranchAddress("convPairRefittedMomentumX", convPairRefittedMomentumX, &b_convPairRefittedMomentumX);
+   fChain->SetBranchAddress("convPairRefittedMomentumY", convPairRefittedMomentumY, &b_convPairRefittedMomentumY);
+   fChain->SetBranchAddress("convPairRefittedMomentumZ", convPairRefittedMomentumZ, &b_convPairRefittedMomentumZ);
    fChain->SetBranchAddress("convDistOfMinimumApproach", convDistOfMinimumApproach, &b_convDistOfMinimumApproach);
    fChain->SetBranchAddress("convDPhiTracksAtVtx", convDPhiTracksAtVtx, &b_convDPhiTracksAtVtx);
    fChain->SetBranchAddress("convDPhiTracksAtEcal", convDPhiTracksAtEcal, &b_convDPhiTracksAtEcal);
