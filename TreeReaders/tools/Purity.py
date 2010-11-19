@@ -13,6 +13,7 @@ hists.append(["h_mass_2gammaGoldenAllEB","h_mass_2gammaGoldenAllEE","h_mass_2gam
 hists.append(["h_mass_2gamma1goodconvAllEB","h_mass_2gamma1goodconvAllEE","h_mass_2gamma1goodconvSelEB","h_mass_2gamma1goodconvSelEE","h_mass_2gamma1goodconvMatchedEB","h_mass_2gamma1goodconvMatchedEE"])
 hists.append(["h_mass_2gamma1poorconvAllEB","h_mass_2gamma1poorconvAllEE","h_mass_2gamma1poorconvSelEB","h_mass_2gamma1poorconvSelEE","h_mass_2gamma1poorconvMatchedEB","h_mass_2gamma1poorconvMatchedEE"])
 hists.append(["h_mass_2gamma2convAllEB","h_mass_2gamma2convAllEE","h_mass_2gamma2convSelEB","h_mass_2gamma2convSelEE","h_mass_2gamma2convMatchedEB","h_mass_2gamma2convMatchedEE"])
+hists.append(["h_mass_2gammaleftoverAllEB","h_mass_2gammaleftoverAllEE","h_mass_2gammaleftoverSelEB","h_mass_2gammaleftoverSelEE","h_mass_2gammaleftoverMatchedEB","h_mass_2gammaleftoverMatchedEE"])
 background = []
 data = []
 
@@ -60,5 +61,5 @@ for i in range(len(SignalFiles)):
 			for k in range(len(hists[j])):
 				hist.append(gDirectory.Get(hists[j][k]))
 				events.append(hist[k].Integral(LowerBin,UpperBin))
-				print "The number of events in %s is: %0.02f with %.02f background events so the purity is %.02f%%" %(hists[j][k],events[k],backgroundsum[j][k],events[k]/(events[k]+backgroundsum[j][k]))
+				print "The number of events in %s is: %0.02f with %.02f background events so the purity is %.02f%%" %(hists[j][k],events[k],backgroundsum[j][k],100*events[k]/(events[k]+backgroundsum[j][k]))
 			
