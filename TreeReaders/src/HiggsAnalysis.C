@@ -637,7 +637,7 @@ int main(int argc, char * charmass[]) {
         //////////////// basic selection
         if (currentTree.pt[0]<20) continue;
         if (currentTree.pt[1]<20) continue;
-        if (fabs(currentTree.eta[0])>2.5 || fabs(currentTree.eta[1])>2.5) continue;
+        if (fabs(currentTree.scEta[0])>2.5 || fabs(currentTree.scEta[1])>2.5) continue;
         if (currentTree.isEBEEGap[0] || currentTree.isEBEEGap[1] ) continue;
         ////////////////////////////////////
         if (currentTree.isEB[0]) iLeadDetector=1;
@@ -790,7 +790,7 @@ int main(int argc, char * charmass[]) {
         if (currentTree.pt[1]<30) continue; // subleading photon
         //isolation 
         
-        if (fabs(currentTree.eta[0])>2.5 || fabs(currentTree.eta[1])>2.5) continue;
+        if (fabs(currentTree.scEta[0])>2.5 || fabs(currentTree.scEta[1])>2.5) continue;
         if (!(looseId(currentTree.pt[0],currentTree.ecalRecHitSumEtConeDR04[0],currentTree.hcalTowerSumEtConeDR04[0],currentTree.trkSumPtHollowConeDR04[0],(bool) currentTree.isEB[0],(bool) currentTree.isEE[0],currentTree.sigmaIetaIeta[0],currentTree.hadronicOverEm[0]))) continue;
         if (!(looseId(currentTree.pt[1],currentTree.ecalRecHitSumEtConeDR04[1],currentTree.hcalTowerSumEtConeDR04[1],currentTree.trkSumPtHollowConeDR04[1],(bool) currentTree.isEB[1],(bool) currentTree.isEE[1],currentTree.sigmaIetaIeta[1],currentTree.hadronicOverEm[1]))) continue;
 
