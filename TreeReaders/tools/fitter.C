@@ -41,7 +41,7 @@ void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3
       DataHistName += "fit";
       RooDataHist data(DataHistName,DataHistName,mass,DataHist,1.0);
       CrystalBall.fitTo(data,Range(startmass-20, startmass+10));
-      RooPlot * plot = mass.frame(80,160,160);
+      RooPlot * plot = mass.frame(80,160,80);
       data.plotOn(plot,DataError(RooAbsData::None));
       CrystalBall.plotOn(plot);
       //CrystalBall.paramOn(plot);
@@ -49,6 +49,7 @@ void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3
       TString PlotTitle(DataHist->GetTitle());
       PlotTitle += ";Mass_{2#gamma} (GeV/c^{2});Number of Weighted Events";
       plot->SetTitle(PlotTitle);
+      plot->GetXaxis()->SetRangeUser(100.,135.);
       plot->Draw();
       TString OutPutName = HistName + "fit.gif";
       c1->SaveAs(OutPutName);
