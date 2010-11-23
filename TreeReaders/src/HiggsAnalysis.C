@@ -157,7 +157,7 @@ int main(int argc, char * input[]) {
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1400to1800.root",0.00001270/1097060));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1800toInf.root",0.0000002936/1091360));
   }
-  if (InputArgs.Contains("EMEnriched")) {
+  if (InputArgs.Contains("EMEnriched") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("EMEnriched.root",3));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/.0104/37169939));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/0.065/71845473));
@@ -700,7 +700,8 @@ int main(int argc, char * input[]) {
       
       TFile * currentFile = new TFile(file.c_str());
       TTree * Analysis = (TTree *) currentFile->Get("NTuples/Analysis");
-      
+
+      //cout << "FirstFileNum is " << FirstFileNum << " and itFile is: " << itFile << endl;
       cout << "Reading the tree in file " << file << endl;
       mpaReader currentTree(Analysis);
       
@@ -1093,6 +1094,6 @@ int main(int argc, char * input[]) {
     
     outfile->Write();
     outfile->Close();
-    FirstFileNum=itFilePair->second;
+    FirstFileNum+=itFilePair->second;
   }
 }
