@@ -163,23 +163,23 @@ int main(int argc, char * input[]) {
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1400to1800.root",0.00001270/1097060));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1800toInf.root",0.0000002936/1091360));
   }
-  if (InputArgs.Contains("EMEnriched") || InputArgs.Contains("All")) {
+  if ((InputArgs.Contains("EMEnriched") && !(InputArgs.Contains("DoubleEMEnriched"))) || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("EMEnriched.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/.0104/37169939));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/0.065/71845473));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt80to170.root",900000/0.155/8073559));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/(37169939/0.0104)));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/(71845473/0.065)));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt80to170.root",900000/(8073559/0.155)));
   }
   if (InputArgs.Contains("DoubleEMEnriched") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("DoubleEMEnriched.root",1));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",20750000000/0.0563/31536145));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",293300000/0.239/10912061));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",18700000/0.00216/21229315));
+    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",20750000000/(31536145/0.0563)));
+    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",293300000/(10912061/0.239)));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",18700000/(21229315/0.00216)));
   }
   if (InputArgs.Contains("QCDBCtoE") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("QCDBCtoE.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt20to30.root",236000000/0.00056/2243439));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt30to80.root",59480000/0.00230/1995502));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt80to170.root",900000/0.0104/1043390));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt20to30.root",236000000/(2243439/0.00056)));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt30to80.root",59480000/(1995502/0.00230)));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt80to170.root",900000/(1043390/0.0104)));
   }
   if (InputArgs.Contains("Born") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("Born.root",3));
@@ -196,7 +196,11 @@ int main(int argc, char * input[]) {
 
   if (InputArgs.Contains("Unweighted")) unweighted=true;
   
-  if (filesAndWeights.size()==0) cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
+  if (filesAndWeights.size()==0) {
+    cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
+    cout << "Exiting Program!!!!" << endl;
+    return 0;
+  }
   
   for (vector<pair<string, int> >::iterator itFilePair = filelist.begin(); itFilePair != filelist.end(); ++itFilePair) {
 
