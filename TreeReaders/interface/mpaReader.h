@@ -8,6 +8,9 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
+#include <iostream>
+
+using namespace std;
 
 class mpaReader {
 public :
@@ -529,15 +532,15 @@ mpaReader::mpaReader(TTree *tree)
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
-   if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("/data/ndpc1/b/tkolberg/MPAntuples/PhotonJet_Pt170_Spring10-START3X_V26_S09-v1_GEN-SIM-RECO/MultiPhotonAnalyzer.root");
-      if (!f) {
-         f = new TFile("/data/ndpc1/b/tkolberg/MPAntuples/PhotonJet_Pt170_Spring10-START3X_V26_S09-v1_GEN-SIM-RECO/MultiPhotonAnalyzer.root");
-      }
-      tree = (TTree*)gDirectory->Get("Analysis");
-
-   }
-   Init(tree);
+//    if (tree == 0) {
+//       TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("/data/ndpc1/b/tkolberg/MPAntuples/PhotonJet_Pt170_Spring10-START3X_V26_S09-v1_GEN-SIM-RECO/MultiPhotonAnalyzer.root");
+//       if (!f) {
+//          f = new TFile("/data/ndpc1/b/tkolberg/MPAntuples/PhotonJet_Pt170_Spring10-START3X_V26_S09-v1_GEN-SIM-RECO/MultiPhotonAnalyzer.root");
+//       }
+//       tree = (TTree*)gDirectory->Get("Analysis");
+//    }
+  if (tree == 0) cout << "Warning!!!!! Analysis tree is emtpy!!!!!" << endl;
+  Init(tree);
 }
 
 mpaReader::~mpaReader()
