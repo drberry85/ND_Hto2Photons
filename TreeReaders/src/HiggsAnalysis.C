@@ -150,10 +150,10 @@ int main(int argc, char * input[]) {
   }
   if (InputArgs.Contains("PhotonPlusJet") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("PhotonPlusJet.root",11));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet0to15.root",84200000/1057100));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet15to30.root",171700/1025840));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet30to50.root",16690/1025480));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet50to80.root",2722/1024608));
+    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet0to15.root",84200000.0/1057100));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet15to30.root",171700.0/1025840));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet30to50.root",16690.0/1025480));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet50to80.root",2722.0/1024608));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet80to120.root",447.2/1048215));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet120to170.root",84.17/1023361));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet170to300.root",22.64/1089000));
@@ -195,7 +195,6 @@ int main(int argc, char * input[]) {
   }
 
   if (InputArgs.Contains("Unweighted")) unweighted=true;
-  
   if (filesAndWeights.size()==0) {
     cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
     cout << "Exiting Program!!!!" << endl;
@@ -214,6 +213,7 @@ int main(int argc, char * input[]) {
     }
     
     TFile* outfile = new TFile(outfilename.c_str(),"RECREATE");
+    outfile->cd();
     cout << outfilename << " created." << endl;
 
     TH1F* hNPhotons[2];
@@ -710,8 +710,9 @@ int main(int argc, char * input[]) {
       if (itFilePair->first=="Data.root") weight=1;
       
       TFile * currentFile = new TFile(file.c_str());
+      currentFile->cd();
       TTree * Analysis = (TTree *) currentFile->Get("NTuples/Analysis");
-
+      outfile->cd();
       //cout << "FirstFileNum is " << FirstFileNum << " and itFile is: " << itFile << endl;
       cout << "Reading the tree in file " << file << endl;
       mpaReader currentTree(Analysis);
@@ -1100,11 +1101,15 @@ int main(int argc, char * input[]) {
         }
         
       }
+      
+      currentFile->Close();
+      delete currentFile;
 
     }
     
     outfile->Write();
     outfile->Close();
+    delete outfile;
     FirstFileNum+=itFilePair->second;
   }
 }
