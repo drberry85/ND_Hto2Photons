@@ -2,6 +2,7 @@ print "Loading Root..."
 
 from ROOT import *
 import pdb
+from math import log
 gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
@@ -26,15 +27,16 @@ for i in range(len(SignalFiles)):
 	backgroundmatrix = []
 	backgroundsum = []
 	eventmatrix = []
+	print "#############################################################################################################################################################################"
 	print "Opening file: %s" %(SignalFiles[i])
 	data.append(TFile(pwd+SignalFiles[i]))
 	HiggsMass = SignalFiles[i][SignalFiles[i].find("Analysis")+8:SignalFiles[i].find("GeV")]
-	LowerBin=int(floor(float(HiggsMass)*0.98)-80)
-	UpperBin=int(floor(float(HiggsMass)*1.02)+1-80)
-	print "The Mass Range is: %d to %d" %(float(HiggsMass)*0.98,float(HiggsMass)*1.02)
+	LowerBin=int(floor(float(HiggsMass)*0.98)-79)
+	UpperBin=int(floor(float(HiggsMass)*1.02)-79)
+	print "The Mass Range is: %d to %d" %(floor(float(HiggsMass)*0.98),ceil(float(HiggsMass)*1.02))
 	print "Mass Range is bin number %d to %d" %(LowerBin,UpperBin)
 	for j in range(len(BackgroundFiles)):
-		print "Looking at Background File: %s" %BackgroundFiles[j]
+		#print "Looking at Background File: %s" %BackgroundFiles[j]
 		background[j].cd()
 		backgroundlist=[]
 		for k in range(len(hists)):
@@ -44,7 +46,7 @@ for i in range(len(SignalFiles)):
 				hist.append(gDirectory.Get(hists[k][l]))
 				#import pdb; pdb.set_trace()
 				events.append(hist[l].Integral(LowerBin,UpperBin))
-				print "The number of events in %s is: %0.02f" %(hists[k][l],events[l])
+				#print "The number of events in %s is: %0.02f" %(hists[k][l],events[l])
 			backgroundlist.append(events)
 		backgroundmatrix.append(backgroundlist)
 	data[i].cd()
@@ -55,30 +57,29 @@ for i in range(len(SignalFiles)):
 			for l in range(len(backgroundmatrix)):
 				backgroundsum[j][k] = backgroundsum[j][k] + backgroundmatrix[l][j][k]
 	for j in range(len(hists)):
-		print "Looking at file %s: %s" %(SignalFiles[i],hists[j][0][hists[j][0].find("2"):hists[j][0].find("All")])
+		#print "Looking at file %s: %s" %(SignalFiles[i],hists[j][0][hists[j][0].find("2"):hists[j][0].find("All")])
 		events=[]
 		hist=[]
 		for k in range(len(hists[j])):
 			hist.append(gDirectory.Get(hists[j][k]))
 			events.append(hist[k].Integral(LowerBin,UpperBin))
-			print "The number of events in %s is: %0.02f with %.02f background events so the purity is %.02f%%" %(hists[j][k],events[k],backgroundsum[j][k],100*events[k]/(events[k]+backgroundsum[j][k]))
+			#print "The number of events in %s is: %0.02f with %.02f background events so the purity is %.02f%%" %(hists[j][k],events[k],backgroundsum[j][k],100*events[k]/(events[k]+backgroundsum[j][k]))
 		eventmatrix.append(events)
-	print "\n"
-	print "Results Table for %s" %SignalFiles[i]
+	print "\nResults Table for %s" %SignalFiles[i]
 	print "Selection\t\t%s\t%s\t\t%s\t\t%s\t\t\t%s" %(SignalFiles[i],BackgroundFiles[0],BackgroundFiles[1],BackgroundFiles[2],BackgroundFiles[3])
 	for j in range(len(eventmatrix)):
 		if (len(hists[j][0][8:hists[j][0].find("All")])<6):
 			print "%s:\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundmatrix[0][j][2],backgroundmatrix[0][j][3],backgroundmatrix[1][j][2],backgroundmatrix[1][j][3],backgroundmatrix[2][j][2],backgroundmatrix[2][j][3],backgroundmatrix[3][j][2],backgroundmatrix[3][j][3])
 		else:
 			print "%s:\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundmatrix[0][j][2],backgroundmatrix[0][j][3],backgroundmatrix[1][j][2],backgroundmatrix[1][j][3],backgroundmatrix[2][j][2],backgroundmatrix[2][j][3],backgroundmatrix[3][j][2],backgroundmatrix[3][j][3])
-	print "\n"
-	print "Purity Results for %s" %SignalFiles[i]
-	print "Purity Table:\t\tSignal Events\t\t\tBackground Events\t\tPurity"
+	print "\nPurity Results for %s" %SignalFiles[i]
+	print "Purity Table:\t\tSignal Events\t\t\tBackground Events\t\tPurity\t\t\t\tLog Likelihood\t\tSensitivity"
 	for j in range(len(eventmatrix)):
 		if (len(hists[j][0][8:hists[j][0].find("All")])<6):
-			print "%s:\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.02f%% (%.02f%%)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundsum[j][2],backgroundsum[j][3],100*eventmatrix[j][2]/(backgroundsum[j][2]+eventmatrix[j][2]),100*eventmatrix[j][3]/(backgroundsum[j][3]+eventmatrix[j][3]))
+			print "%s:\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.02f%% (%.02f%%)\t\t\t%.03f (%.03f)\t\t%.03f (%.03f)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundsum[j][2],backgroundsum[j][3],100*eventmatrix[j][2]/(backgroundsum[j][2]+eventmatrix[j][2]),100*eventmatrix[j][3]/(backgroundsum[j][3]+eventmatrix[j][3]),eventmatrix[j][2]-(eventmatrix[j][2]+backgroundsum[j][2])*log(1+eventmatrix[j][2]/backgroundsum[j][2]),eventmatrix[j][3]-(eventmatrix[j][3]+backgroundsum[j][3])*log(1+eventmatrix[j][3]/backgroundsum[j][3]),sqrt(-2*(eventmatrix[j][2]-(eventmatrix[j][2]+backgroundsum[j][2])*log(1+eventmatrix[j][2]/backgroundsum[j][2]))),sqrt(-2*(eventmatrix[j][3]-(eventmatrix[j][3]+backgroundsum[j][3])*log(1+eventmatrix[j][3]/backgroundsum[j][3]))))
 		else:
-			print "%s:\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.02f%% (%.02f%%)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundsum[j][2],backgroundsum[j][3],100*eventmatrix[j][2]/(backgroundsum[j][2]+eventmatrix[j][2]),100*eventmatrix[j][3]/(backgroundsum[j][3]+eventmatrix[j][3]))
+			print "%s:\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.02f%% (%.02f%%)\t\t\t%.03f (%.03f)\t\t%.03f (%.03f)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundsum[j][2],backgroundsum[j][3],100*eventmatrix[j][2]/(backgroundsum[j][2]+eventmatrix[j][2]),100*eventmatrix[j][3]/(backgroundsum[j][3]+eventmatrix[j][3]),eventmatrix[j][2]-(eventmatrix[j][2]+backgroundsum[j][2])*log(1+eventmatrix[j][2]/backgroundsum[j][2]),eventmatrix[j][3]-(eventmatrix[j][3]+backgroundsum[j][3])*log(1+eventmatrix[j][3]/backgroundsum[j][3]),sqrt(-2*(eventmatrix[j][2]-(eventmatrix[j][2]+backgroundsum[j][2])*log(1+eventmatrix[j][2]/backgroundsum[j][2]))),sqrt(-2*(eventmatrix[j][3]-(eventmatrix[j][3]+backgroundsum[j][3])*log(1+eventmatrix[j][3]/backgroundsum[j][3]))))
+	print "\n"
 
 print "Done!"
 #import pdb; pdb.set_trace()
