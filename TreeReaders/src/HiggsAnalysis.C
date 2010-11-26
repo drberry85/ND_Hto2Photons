@@ -886,11 +886,39 @@ int main(int argc, char * input[]) {
         //isolation 
         
         if (fabs(currentTree.scEta[0])>2.5 || fabs(currentTree.scEta[1])>2.5) continue;
-        if (!(looseId(currentTree.pt[0],currentTree.ecalRecHitSumEtConeDR04[0],currentTree.hcalTowerSumEtConeDR04[0],currentTree.trkSumPtHollowConeDR04[0],(bool) currentTree.isEB[0],(bool) currentTree.isEE[0],currentTree.sigmaIetaIeta[0],currentTree.hadronicOverEm[0]))) continue;
-        if (!(looseId(currentTree.pt[1],currentTree.ecalRecHitSumEtConeDR04[1],currentTree.hcalTowerSumEtConeDR04[1],currentTree.trkSumPtHollowConeDR04[1],(bool) currentTree.isEB[1],(bool) currentTree.isEE[1],currentTree.sigmaIetaIeta[1],currentTree.hadronicOverEm[1]))) continue;
+        if (!(looseId(currentTree.pt[0],
+		      currentTree.ecalRecHitSumEtConeDR04[0],
+		      currentTree.hcalTowerSumEtConeDR04[0],
+		      currentTree.trkSumPtHollowConeDR04[0],
+		      (bool) currentTree.isEB[0],
+		      (bool) currentTree.isEE[0],
+		      currentTree.sigmaIetaIeta[0],
+		      currentTree.hadronicOverEm[0]))) continue;
 
-        bool convsel1 = convSel(currentTree.nTracks[0],currentTree.convVtxValid[0] ,  currentTree.convVtxChi2Prob[0], currentTree.convDPhiTracksAtVtx[0], currentTree.convpairCotThetaSeparation[0], currentTree.pt[0]/currentTree.convPairMomentumPerp[0]);
-        bool convsel2 = convSel(currentTree.nTracks[1],currentTree.convVtxValid[1] ,  currentTree.convVtxChi2Prob[1], currentTree.convDPhiTracksAtVtx[1], currentTree.convpairCotThetaSeparation[1], currentTree.pt[1]/currentTree.convPairMomentumPerp[1]);
+        if (!(looseId(currentTree.pt[1],
+		      currentTree.ecalRecHitSumEtConeDR04[1],
+		      currentTree.hcalTowerSumEtConeDR04[1],
+		      currentTree.trkSumPtHollowConeDR04[1],
+		      (bool) currentTree.isEB[1],
+		      (bool) currentTree.isEE[1],
+		      currentTree.sigmaIetaIeta[1],
+		      currentTree.hadronicOverEm[1]))) continue;
+
+        bool convsel1 = convSel(currentTree.nTracks[0],
+				currentTree.convVtxValid[0] ,  
+				currentTree.convVtxChi2Prob[0], 
+				currentTree.convDPhiTracksAtVtx[0], 
+				currentTree.convpairCotThetaSeparation[0], 
+				currentTree.pt[0]/currentTree.convPairMomentumPerp[0]);
+
+        bool convsel2 = convSel(currentTree.nTracks[1],
+				currentTree.convVtxValid[1] ,  
+				currentTree.convVtxChi2Prob[1], 
+				currentTree.convDPhiTracksAtVtx[1], 
+				currentTree.convpairCotThetaSeparation[1], 
+				currentTree.pt[1]/currentTree.convPairMomentumPerp[1]);
+
+
         HiggsInWhichDetector = 0;
         if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
         if ((currentTree.isEB[0] && currentTree.isEE[1]) || (currentTree.isEE[0] && currentTree.isEB[1])) HiggsInWhichDetector=1; // at least one photon in endcap
