@@ -181,3 +181,47 @@ int diPhotonCategory ( int c1, int c2) {
   return cate;
   
 }
+
+bool MarcosCut(
+               float pt,
+             float ecalRecHitSumEtConeDR04,
+             float hcalTowerSumEtConeDR04,
+             float trkSumPtHollowConeDR04,
+             bool hasPixelSeed,
+             bool isEB,
+             bool isEE,
+             float sigmaIetaIeta,
+             float hadronicOverEm
+             ) {
+
+  if (!isEB && !isEE) return false;
+  if (hadronicOverEm > 0.02) return false;
+  if (hasPixelSeed) return false;
+  if (ecalRecHitSumEtConeDR04 > 2.0 + 0.006 * pt) return false;
+  if (hcalTowerSumEtConeDR04 > 2.0 + 0.0025 * pt) return false;
+  if (trkSumPtHollowConeDR04 > 1.5 + 0.001 * pt) return false;
+  if (isEB && sigmaIetaIeta > 0.010) return false;
+  if (isEE && sigmaIetaIeta > 0.028) return false;
+
+
+  return true;
+
+}
+
+int MarcosCutCategory(float LeadR9, bool LeadisEB, bool LeadisEE, float SubLeadR9, bool SubLeadisEB, bool SubLeadisEE) {
+
+  int ReturnValue = 5;
+
+  if (LeadR9 > 0.93 && SubLeadR9 > 0.93 && LeadisEB && SubLeadisEB) {
+    ReturnValue = 0;
+  } else if ((LeadR9 < 0.93 || SubLeadR9 < 0.93) && LeadisEB && SubLeadisEB) {
+    ReturnValue = 1;
+  } else if (LeadR9 > 0.93 && SubLeadR9 > 0.93 && (LeadisEE || SubLeadisEE)) {
+    ReturnValue = 2;
+  } else if ((LeadR9 < 0.93 || SubLeadR9 < 0.93) && (LeadisEE || SubLeadisEE)) {
+    ReturnValue = 3;
+  }
+  
+  return ReturnValue;
+
+}
