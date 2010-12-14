@@ -27,9 +27,11 @@ using namespace std;
 
 int main(int argc, char * input[]) {
 
+  bool bar = false;
   bool data = false;
+  bool dataweight = false;
   bool unweighted = false;
-  
+
   //float globalWeight = 29.19;
   float globalWeight = 1000;
   float BranchingFraction = 0;
@@ -71,8 +73,14 @@ int main(int argc, char * input[]) {
   
   // Load Signal
   if (InputArgs.Contains("Data")) {
-    filelist.push_back(pair<string,int> ("Data.root",1));
+    filelist.push_back(pair<string,int> ("Data.root",2));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc4/b/tkolberg/MPAntuples/Oct1_preselOriginalRefitMomentum/data.root",1));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc4/b/tkolberg/MPAntuples/Nov6_V00-00-13/Nov6_V00-00-13.root",1));
+    data=true;
+  }
+  if (InputArgs.Contains("Yousidata")) {
+    filelist.push_back(pair<string,int> ("YousiData.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/YousiData/MPA_Run2010B_Nov5_12831nb.root",1));
     data=true;
   }
   if (InputArgs.Contains("90GeV") || InputArgs.Contains("All")) {
@@ -163,17 +171,23 @@ int main(int argc, char * input[]) {
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1400to1800.root",0.00001270/1097060));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1800toInf.root",0.0000002936/1091360));
   }
-  if ((InputArgs.Contains("EMEnriched") && !(InputArgs.Contains("DoubleEMEnriched"))) || InputArgs.Contains("All")) {
+  if (InputArgs.Contains("EMEnriched") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("EMEnriched.root",3));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/(37169939/0.0104)));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/(71845473/0.065)));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt80to170.root",900000/(8073559/0.155)));
   }
-  if (InputArgs.Contains("DoubleEMEnriched") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
+  if (InputArgs.Contains("Doubleemenriched") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("DoubleEMEnriched.root",1));
     //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",20750000000/(31536145/0.0563)));
     //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",293300000/(10912061/0.239)));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",18700000/(21229315/0.00216)));
+  }
+  if (InputArgs.Contains("Reweighteddoubleemenriched") || InputArgs.Contains("All")) {
+    filelist.push_back(pair<string,int> ("ReweightedDoubleEMEnriched.root",1));
+    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",1.15*20750000000/(31536145/0.0563)));
+    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",1.15*293300000/(10912061/0.239)));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",1.15*18700000/(21229315/0.00216)));
   }
   if (InputArgs.Contains("QCDBCtoE") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
     filelist.push_back(pair<string,int> ("QCDBCtoE.root",3));
@@ -193,8 +207,17 @@ int main(int argc, char * input[]) {
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt25to250.root",12.37/768815));
     filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt250toInf.root",0.000208/790685));
   }
+  if (InputArgs.Contains("Test")) {
+    filelist.push_back(pair<string,int> ("Test.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon120.root",1));
+  }
 
+  if (InputArgs.Contains("dataweight")) {
+    globalWeight = 36.0;
+    dataweight=true;
+  }
   if (InputArgs.Contains("Unweighted")) unweighted=true;
+  if (InputArgs.Contains("Bar")) bar=true;
   if (filesAndWeights.size()==0) {
     cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
     cout << "Exiting Program!!!!" << endl;
@@ -207,6 +230,9 @@ int main(int argc, char * input[]) {
 
     if (unweighted) {
       outfilename = "Unweighted";
+      outfilename += itFilePair->first;
+    } else if (dataweight) {
+      outfilename = "Dataweight";
       outfilename += itFilePair->first;
     } else {
       outfilename = itFilePair->first;
@@ -288,6 +314,33 @@ int main(int argc, char * input[]) {
 
     TH2F* h2_convVtxRvsZBarrel_[2];
 
+    TH1F * hLeadEtMarco;
+    TH1F * hSubLeadEtMarco;
+    TH1F * h_mass_Marco;
+
+    TH1F * hLeadEtMarcoCat[4];
+    TH1F * hSubLeadEtMarcoCat[4];
+    TH1F * h_mass_MarcoCat[4];
+
+    hLeadEtMarco = new TH1F("leadEtMarco_allEcal","Leading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
+    hSubLeadEtMarco = new TH1F("subleadEtMarco_allEcal","Subleading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
+    h_mass_Marco = new TH1F("h_mass_Marco_allEcal","Invariant Mass of Photons with Marco's Cuts; Mass (GeV); Counts",20,100.,200.);
+
+    hLeadEtMarcoCat[0] = new TH1F("leadEtMarco_cat0","Leading Photon Et in Catagory 0, Et (GeV); Counts",30,0.,150.);
+    hLeadEtMarcoCat[1] = new TH1F("leadEtMarco_cat1","Leading Photon Et in Catagory 1, Et (GeV); Counts",30,0.,150.);
+    hLeadEtMarcoCat[2] = new TH1F("leadEtMarco_cat2","Leading Photon Et in Catagory 2, Et (GeV); Counts",30,0.,150.);
+    hLeadEtMarcoCat[3] = new TH1F("leadEtMarco_cat3","Leading Photon Et in Catagory 3, Et (GeV); Counts",30,0.,150.);
+    
+    hSubLeadEtMarcoCat[0] = new TH1F("subleadEtMarco_cat0","SubLeading Photon Et in Catagory 0, Et (GeV); Counts",30,0.,150.);
+    hSubLeadEtMarcoCat[1] = new TH1F("subleadEtMarco_cat1","SubLeading Photon Et in Catagory 1, Et (GeV); Counts",30,0.,150.);
+    hSubLeadEtMarcoCat[2] = new TH1F("subleadEtMarco_cat2","SubLeading Photon Et in Catagory 2, Et (GeV); Counts",30,0.,150.);
+    hSubLeadEtMarcoCat[3] = new TH1F("subleadEtMarco_cat3","SubLeading Photon Et in Catagory 3, Et (GeV); Counts",30,0.,150.);
+
+    h_mass_MarcoCat[0] = new TH1F("h_mass_Marco_cat0","Invariant Mass of Photons in Catagory 0; Mass (GeV); Counts",20,100.,200.);
+    h_mass_MarcoCat[1] = new TH1F("h_mass_Marco_cat1","Invariant Mass of Photons in Catagory 1; Mass (GeV); Counts",20,100.,200.);
+    h_mass_MarcoCat[2] = new TH1F("h_mass_Marco_cat2","Invariant Mass of Photons in Catagory 2; Mass (GeV); Counts",20,100.,200.);
+    h_mass_MarcoCat[3] = new TH1F("h_mass_Marco_cat3","Invariant Mass of Photons in Catagory 3; Mass (GeV); Counts",20,100.,200.);
+    
     hNPhotons[0] = new TH1F("hNPhotonsAll","Num of photons in the event: all candidates",20,-0.5,19.5);
     hNPhotons[1] = new TH1F("hNPhotonsSel","Num of photons in the event: selected candidates",20,-0.5,19.5);
 
@@ -706,25 +759,45 @@ int main(int argc, char * input[]) {
 
       string file = filesAndWeights[itFile].first;
       float weight = filesAndWeights[itFile].second * globalWeight;
+
       if (unweighted) weight=1;
-      if (itFilePair->first=="Data.root") weight=1;
+      if (itFilePair->first=="Data.root" || itFilePair->first=="YousiData.root") weight=1;
       
       TFile * currentFile = new TFile(file.c_str());
       currentFile->cd();
+
       TTree * Analysis = (TTree *) currentFile->Get("NTuples/Analysis");
-      outfile->cd();
-      //cout << "FirstFileNum is " << FirstFileNum << " and itFile is: " << itFile << endl;
-      cout << "Reading the tree in file " << file << endl;
-      mpaReader currentTree(Analysis);
       
+      //cout << "FirstFileNum is " << FirstFileNum << " and itFile is: " << itFile << endl;
+      cout << "\nReading the tree in file " << file << endl;
+
+      mpaReader currentTree(Analysis);
       Long64_t nentries = currentTree.fChain->GetEntries();
 
+      outfile->cd();
+
+      int pct = 0;
+      
       for ( Long64_t i = 0; i < nentries; ++i ) {
         int iLeadDetector = 0;
         int iSubleadDetector = 0;
 
         TVector3 conversionVertex;
 
+        if (i % (nentries/100) == 0 && bar) {
+          if (pct == 100) pct = 99;
+          cout << "\033[100m";
+          cout << "\r[";
+          cout << "\033[42m";
+          for (int ctr = 0; ctr <= pct / 2; ++ctr) cout << "-";
+          cout << "\b>";
+          cout << "\033[100m";
+          for (int ctr = pct / 2; ctr < 49; ++ctr) cout << " ";
+          cout << "]\033[0m";
+          cout << " " << ++pct << "%";
+          cout << flush;
+        }
+        
         currentTree.GetEntry(i);
 
         if (currentTree.nPhotons<2) continue;
@@ -822,6 +895,21 @@ int main(int argc, char * input[]) {
         double tg_thetas = sin_theta/(gamma_b*(cos_theta-beta_b));
         double cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
 
+        if (currentTree.pt[0]>40 && currentTree.pt[1]>30 && InvMass>90 && InvMass<250
+            && MarcosCut(currentTree.pt[0], currentTree.ecalRecHitSumEtConeDR04[0], currentTree.hcalTowerSumEtConeDR04[0], currentTree.trkSumPtHollowConeDR04[0], currentTree.hasPixelSeed[0], currentTree.isEB[0], currentTree.isEE[0], currentTree.sigmaIetaIeta[0], currentTree.hadronicOverEm[0])
+            && MarcosCut(currentTree.pt[1], currentTree.ecalRecHitSumEtConeDR04[1], currentTree.hcalTowerSumEtConeDR04[1], currentTree.trkSumPtHollowConeDR04[1], currentTree.hasPixelSeed[1], currentTree.isEB[1], currentTree.isEE[1], currentTree.sigmaIetaIeta[1], currentTree.hadronicOverEm[1])
+            ) {
+          hLeadEtMarco->Fill(currentTree.pt[0]);
+          hSubLeadEtMarco->Fill(currentTree.pt[1]);
+          h_mass_Marco->Fill(InvMass);
+
+          int MarcosCategory = MarcosCutCategory(currentTree.r9[0], currentTree.isEB[0], currentTree.isEE[0], currentTree.r9[1], currentTree.isEB[1], currentTree.isEE[1]);
+          hLeadEtMarcoCat[MarcosCategory]->Fill(currentTree.pt[0]);
+          hSubLeadEtMarcoCat[MarcosCategory]->Fill(currentTree.pt[1]);
+          h_mass_MarcoCat[MarcosCategory]->Fill(InvMass);
+
+        }
+        
         /// di-photon system before event selection
         int HiggsInWhichDetector = 0;
         if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
@@ -1129,7 +1217,7 @@ int main(int argc, char * input[]) {
         }
         
       }
-      
+
       currentFile->Close();
       delete currentFile;
 
