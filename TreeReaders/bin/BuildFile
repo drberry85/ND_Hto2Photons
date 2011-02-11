@@ -4,5 +4,5 @@
 <use name=root>
 <use name=rootminuit>
 
-<bin name=HiggsAnalysis file=../src/HiggsAnalysis.C>
-</bin>
+<bin name=HiggsAnalysis file=HiggsAnalysis.C> </bin>
+<bin name=HiggsAnalysisSDA file=HiggsAnalysisSDA.C> </bin>
