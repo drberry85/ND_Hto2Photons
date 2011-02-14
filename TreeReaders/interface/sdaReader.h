@@ -39,8 +39,6 @@ public :
   Float_t         pho_e3x3[100];   //[pho_n]
   Float_t         pho_e5x5[100];   //[pho_n]
   Float_t         pho_emaxxtal[100];   //[pho_n]
-  Float_t         pho_genmatcheddr[100];   //[pho_n]
-  Float_t         pho_genmatchedptres[100];   //[pho_n]
   Float_t         pho_hoe[100];   //[pho_n]
   Float_t         pho_h1oe[100];   //[pho_n]
   Float_t         pho_h2oe[100];   //[pho_n]
@@ -210,15 +208,6 @@ public :
   Int_t           vtx_pix_ntks[100];   //[vtx_pix_n]
   Int_t           vtx_pix_tkind[100][200];   //[vtx_pix_n]
   Float_t         vtx_pix_tkweight[100][200];   //[vtx_pix_n]
-  Int_t           vtxcomp_n;
-  Int_t           vtxcomp_lepn[376];   //[vtxcomp_n]
-  Int_t           vtxcomp_pdgid[376][4];   //[vtxcomp_n]
-  Int_t           vtxcomp_lepind[376][4];   //[vtxcomp_n]
-  Bool_t          vtxcomp_klmn_isvalid[376];   //[vtxcomp_n]
-  Float_t         vtxcomp_klmn_x2dof[376];   //[vtxcomp_n]
-  Int_t           vtxcomp_klmn_ndof[376];   //[vtxcomp_n]
-  Float_t         vtxcomp_klmn_x2prob[376];   //[vtxcomp_n]
-  Float_t         vtxcomp_klmn_tk_chi2[376][4];   //[vtxcomp_n]
   Float_t         met_met;
   Float_t         met_phi;
   Float_t         met_met_nocalo;
@@ -493,28 +482,6 @@ public :
   Float_t         ht_4lpt25[1000];   //[ht_4lpt_n]
   Float_t         ht_4lpt35[1000];   //[ht_4lpt_n]
   Float_t         ht_4lpt50[1000];   //[ht_4lpt_n]
-  Int_t           lptgeninfo_n;
-  Int_t           lptgen_n;
-  TClonesArray    *lptgeninfo_p4;
-  TClonesArray    *lptgen_p4;
-  TClonesArray    *lptgen_befrad_p4;
-  Int_t           lptgeninfo_status[100];   //[lptgeninfo_n]
-  Int_t           lptgeninfo_pdgid[100];   //[lptgeninfo_n]
-  Int_t           lptgeninfo_mother[100];   //[lptgeninfo_n]
-  Int_t           lptgen_status[100];   //[lptgen_n]
-  Int_t           lptgen_pdgid[100];   //[lptgen_n]
-  Int_t           lptgen_mother[100];   //[lptgen_n]
-  Int_t           lptgen_motherpdgid[100];   //[lptgen_n]
-  Int_t           lptgen_indrec[100];   //[lptgen_n]
-  Int_t           lptgen_indrecel[100];   //[lptgen_n]
-  Int_t           lptgen_indrecph[100];   //[lptgen_n]
-  Int_t           lptgen_indrecmu[100];   //[lptgen_n]
-  Float_t         lptgen_drmatch[100];   //[lptgen_n]
-  Float_t         lptgen_drmatchel[100];   //[lptgen_n]
-  Float_t         lptgen_drmatchmu[100];   //[lptgen_n]
-  Float_t         lptgen_drmatchph[100];   //[lptgen_n]
-  Int_t           lptgen_indinfo[100];   //[lptgen_n]
-  Int_t           lptgen_historycode[100];   //[lptgen_n]
   Int_t           selector_bits;
   
   // List of branches
@@ -538,8 +505,6 @@ public :
   TBranch        *b_pho_e3x3;   //!
   TBranch        *b_pho_e5x5;   //!
   TBranch        *b_pho_emaxxtal;   //!
-  TBranch        *b_pho_genmatcheddr;   //!
-  TBranch        *b_pho_genmatchedptres;   //!
   TBranch        *b_pho_hoe;   //!
   TBranch        *b_pho_h1oe;   //!
   TBranch        *b_pho_h2oe;   //!
@@ -709,15 +674,6 @@ public :
   TBranch        *b_vtx_pix_ntks;   //!
   TBranch        *b_vtx_pix_tkind;   //!
   TBranch        *b_vtx_pix_tkweight;   //!
-  TBranch        *b_vtxcomp_n;   //!
-  TBranch        *b_vtxcomp_lepn;   //!
-  TBranch        *b_vtxcomp_pdgid;   //!
-  TBranch        *b_vtxcomp_lepind;   //!
-  TBranch        *b_vtxcomp_klmn_isvalid;   //!
-  TBranch        *b_vtxcomp_klmn_x2dof;   //!
-  TBranch        *b_vtxcomp_klmn_ndof;   //!
-  TBranch        *b_vtxcomp_klmn_x2prob;   //!
-  TBranch        *b_vtxcomp_klmn_tk_chi2;   //!
   TBranch        *b_met_met;   //!
   TBranch        *b_met_phi;   //!
   TBranch        *b_met_met_nocalo;   //!
@@ -992,28 +948,6 @@ public :
   TBranch        *b_ht_4lpt25;   //!
   TBranch        *b_ht_4lpt35;   //!
   TBranch        *b_ht_4lpt50;   //!
-  TBranch        *b_lptgeninfo_n;   //!
-  TBranch        *b_lptgen_n;   //!
-  TBranch        *b_lptgeninfo_p4;   //!
-  TBranch        *b_lptgen_p4;   //!
-  TBranch        *b_lptgen_befrad_p4;   //!
-  TBranch        *b_lptgeninfo_status;   //!
-  TBranch        *b_lptgeninfo_pdgid;   //!
-  TBranch        *b_lptgeninfo_mother;   //!
-  TBranch        *b_lptgen_status;   //!
-  TBranch        *b_lptgen_pdgid;   //!
-  TBranch        *b_lptgen_mother;   //!
-  TBranch        *b_lptgen_motherpdgid;   //!
-  TBranch        *b_lptgen_indrec;   //!
-  TBranch        *b_lptgen_indrecel;   //!
-  TBranch        *b_lptgen_indrecph;   //!
-  TBranch        *b_lptgen_indrecmu;   //!
-  TBranch        *b_lptgen_drmatch;   //!
-  TBranch        *b_lptgen_drmatchel;   //!
-  TBranch        *b_lptgen_drmatchmu;   //!
-  TBranch        *b_lptgen_drmatchph;   //!
-  TBranch        *b_lptgen_indinfo;   //!
-  TBranch        *b_lptgen_historycode;   //!
   TBranch        *b_selector_bits;   //!
   
   sdaReader(TFile *currentFile=0);
@@ -1110,9 +1044,6 @@ void sdaReader::Init(TFile *currentFile)
   genjet_mid_p4 = 0;
   lpt_p4 = 0;
   ht_trkvec = 0;
-  lptgeninfo_p4 = 0;
-  lptgen_p4 = 0;
-  lptgen_befrad_p4 = 0;
 
   // Set branch addresses and branch pointers
   if (!tree) return;
@@ -1140,8 +1071,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_e3x3", pho_e3x3, &b_pho_e3x3);
   fChain->SetBranchAddress("pho_e5x5", pho_e5x5, &b_pho_e5x5);
   fChain->SetBranchAddress("pho_emaxxtal", pho_emaxxtal, &b_pho_emaxxtal);
-  fChain->SetBranchAddress("pho_genmatcheddr", pho_genmatcheddr, &b_pho_genmatchedptres);
-  fChain->SetBranchAddress("pho_genmatchedptres", pho_genmatchedptres, &b_pho_genmatchedptres);
   fChain->SetBranchAddress("pho_hoe", pho_hoe, &b_pho_hoe);
   fChain->SetBranchAddress("pho_h1oe", pho_h1oe, &b_pho_h1oe);
   fChain->SetBranchAddress("pho_h2oe", pho_h2oe, &b_pho_h2oe);
@@ -1311,15 +1240,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("vtx_pix_ntks", vtx_pix_ntks, &b_vtx_pix_ntks);
   fChain->SetBranchAddress("vtx_pix_tkind", vtx_pix_tkind, &b_vtx_pix_tkind);
   fChain->SetBranchAddress("vtx_pix_tkweight", vtx_pix_tkweight, &b_vtx_pix_tkweight);
-  fChain->SetBranchAddress("vtxcomp_n", &vtxcomp_n, &b_vtxcomp_n);
-  fChain->SetBranchAddress("vtxcomp_lepn", vtxcomp_lepn, &b_vtxcomp_lepn);
-  fChain->SetBranchAddress("vtxcomp_pdgid", vtxcomp_pdgid, &b_vtxcomp_pdgid);
-  fChain->SetBranchAddress("vtxcomp_lepind", vtxcomp_lepind, &b_vtxcomp_lepind);
-  fChain->SetBranchAddress("vtxcomp_klmn_isvalid", vtxcomp_klmn_isvalid, &b_vtxcomp_klmn_isvalid);
-  fChain->SetBranchAddress("vtxcomp_klmn_x2dof", vtxcomp_klmn_x2dof, &b_vtxcomp_klmn_x2dof);
-  fChain->SetBranchAddress("vtxcomp_klmn_ndof", vtxcomp_klmn_ndof, &b_vtxcomp_klmn_ndof);
-  fChain->SetBranchAddress("vtxcomp_klmn_x2prob", vtxcomp_klmn_x2prob, &b_vtxcomp_klmn_x2prob);
-  fChain->SetBranchAddress("vtxcomp_klmn_tk_chi2", vtxcomp_klmn_tk_chi2, &b_vtxcomp_klmn_tk_chi2);
   fChain->SetBranchAddress("met_met", &met_met, &b_met_met);
   fChain->SetBranchAddress("met_phi", &met_phi, &b_met_phi);
   fChain->SetBranchAddress("met_met_nocalo", &met_met_nocalo, &b_met_met_nocalo);
@@ -1594,28 +1514,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("ht_4lpt25", ht_4lpt25, &b_ht_4lpt25);
   fChain->SetBranchAddress("ht_4lpt35", ht_4lpt35, &b_ht_4lpt35);
   fChain->SetBranchAddress("ht_4lpt50", ht_4lpt50, &b_ht_4lpt50);
-  fChain->SetBranchAddress("lptgeninfo_n", &lptgeninfo_n, &b_lptgeninfo_n);
-  fChain->SetBranchAddress("lptgen_n", &lptgen_n, &b_lptgen_n);
-  fChain->SetBranchAddress("lptgeninfo_p4", &lptgeninfo_p4, &b_lptgeninfo_p4);
-  fChain->SetBranchAddress("lptgen_p4", &lptgen_p4, &b_lptgen_p4);
-  fChain->SetBranchAddress("lptgen_befrad_p4", &lptgen_befrad_p4, &b_lptgen_befrad_p4);
-  fChain->SetBranchAddress("lptgeninfo_status", lptgeninfo_status, &b_lptgeninfo_status);
-  fChain->SetBranchAddress("lptgeninfo_pdgid", lptgeninfo_pdgid, &b_lptgeninfo_pdgid);
-  fChain->SetBranchAddress("lptgeninfo_mother", lptgeninfo_mother, &b_lptgeninfo_mother);
-  fChain->SetBranchAddress("lptgen_status", lptgen_status, &b_lptgen_status);
-  fChain->SetBranchAddress("lptgen_pdgid", lptgen_pdgid, &b_lptgen_pdgid);
-  fChain->SetBranchAddress("lptgen_mother", lptgen_mother, &b_lptgen_mother);
-  fChain->SetBranchAddress("lptgen_motherpdgid", lptgen_motherpdgid, &b_lptgen_motherpdgid);
-  fChain->SetBranchAddress("lptgen_indrec", lptgen_indrec, &b_lptgen_indrec);
-  fChain->SetBranchAddress("lptgen_indrecel", lptgen_indrecel, &b_lptgen_indrecel);
-  fChain->SetBranchAddress("lptgen_indrecph", lptgen_indrecph, &b_lptgen_indrecph);
-  fChain->SetBranchAddress("lptgen_indrecmu", lptgen_indrecmu, &b_lptgen_indrecmu);
-  fChain->SetBranchAddress("lptgen_drmatch", lptgen_drmatch, &b_lptgen_drmatch);
-  fChain->SetBranchAddress("lptgen_drmatchel", lptgen_drmatchel, &b_lptgen_drmatchel);
-  fChain->SetBranchAddress("lptgen_drmatchmu", lptgen_drmatchmu, &b_lptgen_drmatchmu);
-  fChain->SetBranchAddress("lptgen_drmatchph", lptgen_drmatchph, &b_lptgen_drmatchph);
-  fChain->SetBranchAddress("lptgen_indinfo", lptgen_indinfo, &b_lptgen_indinfo);
-  fChain->SetBranchAddress("lptgen_historycode", lptgen_historycode, &b_lptgen_historycode);
   fChain->SetBranchAddress("selector_bits", &selector_bits, &b_selector_bits);
   Notify();
 }
