@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include <utility>
 #include <cstdlib>
 #include <cmath>
@@ -208,11 +209,15 @@ int main(int argc, char * input[]) {
   }
   if (InputArgs.Contains("MPATest")) {
     filelist.push_back(pair<string,int> ("MPATest.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/Higgs130MPA.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",1));
   }
   if (InputArgs.Contains("SDATest")) {
     filelist.push_back(pair<string,int> ("SDATest.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/Higgs130SDA.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130_2_1_l1b.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130_3_1_GMD.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130_4_1_2Xn.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130_5_1_9OK.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130_6_1_VBr.root",1));
   }
 
   if (InputArgs.Contains("dataweight")) {
@@ -864,109 +869,130 @@ int main(int argc, char * input[]) {
         
         if (currentTree.pho_n<1) continue;
 
-        if (convSel(currentTree.pho_conv_ntracks[0], currentTree.pho_conv_validvtx[0], currentTree.pho_conv_chi2_probability[0], currentTree.pho_conv_dphitrksatvtx[0], currentTree.pho_conv_paircotthetasep[0], currentTree.pho_conv_eoverp[0])) {
-          h_phi_conv[0][0]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-          if (currentTree.pho_isEB[0]) h_phi_conv[1][0]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-          if (currentTree.pho_isEE[0]) h_phi_conv[2][0]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-          if (looseId(((TLorentzVector*) currentTree.pho_p4->At(0))->Pt(), currentTree.pho_ecalsumetconedr04[0], currentTree.pho_hcalsumetconedr04[0], currentTree.pho_trksumpthollowconedr04[0], (bool) currentTree.pho_isEB[0], (bool) currentTree.pho_isEE[0], currentTree.pho_sieie[0], currentTree.pho_hoe[0])) {
-            h_phi_conv[0][1]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-            if (currentTree.pho_isEB[0]) h_phi_conv[1][1]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-            if (currentTree.pho_isEE[0]) h_phi_conv[2][1]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-          }
+        map <double, unsigned int> ptindex;
+        unsigned int leadindex = 0;
+        unsigned int subleadindex = 0;
+        double leadpt = -1;
+        double subleadpt = -1;
+        for (unsigned int i = 0; i != (unsigned int) currentTree.pho_n; i++) {
+          ptindex[((TLorentzVector*) currentTree.pho_p4->At(i))->Pt()]=i;
         }
 
+        int count=0;
+        for (map<double,unsigned int>::iterator it_ptindex=ptindex.begin(); it_ptindex!=ptindex.end(); ++it_ptindex) {
+          //cout << "Pt: " << it_ptindex->first << " Index: " << it_ptindex->second << endl;
+          if (count==currentTree.pho_n-1) leadindex=it_ptindex->second;
+          if (count==currentTree.pho_n-1) leadpt=it_ptindex->first;
+          if (count==currentTree.pho_n-2) subleadindex=it_ptindex->second;
+          if (count==currentTree.pho_n-2) subleadpt=it_ptindex->first;
+          count++;
+        }
+        
+        if (leadpt==subleadpt && currentTree.pho_n>1) cout << "Final Lead Index: " << leadindex  << " (" << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << ") Sublead Index: " << subleadindex << " (" << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
+        //cout << "Final Lead Index: " << leadindex  << " (" << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << ") Sublead Index: " << subleadindex << " (" << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
+        
+        if (convSel(currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_validvtx[leadindex], currentTree.pho_conv_chi2_probability[leadindex], currentTree.pho_conv_dphitrksatvtx[leadindex], currentTree.pho_conv_paircotthetasep[leadindex], currentTree.pho_conv_eoverp[leadindex])) {
+          h_phi_conv[0][0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+          if (currentTree.pho_isEB[leadindex]) h_phi_conv[1][0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+          if (currentTree.pho_isEE[leadindex]) h_phi_conv[2][0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+          if (looseId(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt(), currentTree.pho_ecalsumetconedr04[leadindex], currentTree.pho_hcalsumetconedr04[leadindex], currentTree.pho_trksumpthollowconedr04[leadindex], (bool) currentTree.pho_isEB[leadindex], (bool) currentTree.pho_isEE[leadindex], currentTree.pho_sieie[leadindex], currentTree.pho_hoe[leadindex])) {
+            h_phi_conv[0][1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+            if (currentTree.pho_isEB[leadindex]) h_phi_conv[1][1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+            if (currentTree.pho_isEE[leadindex]) h_phi_conv[2][1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+          }
+        }
         if (currentTree.pho_n<2) continue;
-        if (convSel(currentTree.pho_conv_ntracks[1], currentTree.pho_conv_validvtx[1], currentTree.pho_conv_chi2_probability[1], currentTree.pho_conv_dphitrksatvtx[1],currentTree.pho_conv_paircotthetasep[1], currentTree.pho_conv_eoverp[1])) {
-          h_phi_conv[0][0]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-          if (currentTree.pho_isEB[1]) h_phi_conv[1][0]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-          if (currentTree.pho_isEE[1]) h_phi_conv[2][0]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-          if (looseId(((TLorentzVector*) currentTree.pho_p4->At(1))->Pt(), currentTree.pho_ecalsumetconedr04[1], currentTree.pho_hcalsumetconedr04[1], currentTree.pho_trksumpthollowconedr04[1], (bool) currentTree.pho_isEB[1], (bool) currentTree.pho_isEE[1], currentTree.pho_sieie[1], currentTree.pho_hoe[1])) {
-            h_phi_conv[0][1]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-            if (currentTree.pho_isEB[1]) h_phi_conv[1][1]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-            if (currentTree.pho_isEE[1]) h_phi_conv[2][1]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
+        if (convSel(currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_validvtx[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex], currentTree.pho_conv_dphitrksatvtx[subleadindex],currentTree.pho_conv_paircotthetasep[subleadindex], currentTree.pho_conv_eoverp[subleadindex])) {
+          h_phi_conv[0][0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+          if (currentTree.pho_isEB[subleadindex]) h_phi_conv[1][0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+          if (currentTree.pho_isEE[subleadindex]) h_phi_conv[2][0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+          if (looseId(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt(), currentTree.pho_ecalsumetconedr04[subleadindex], currentTree.pho_hcalsumetconedr04[subleadindex], currentTree.pho_trksumpthollowconedr04[subleadindex], (bool) currentTree.pho_isEB[subleadindex], (bool) currentTree.pho_isEE[subleadindex], currentTree.pho_sieie[subleadindex], currentTree.pho_hoe[subleadindex])) {
+            h_phi_conv[0][1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+            if (currentTree.pho_isEB[subleadindex]) h_phi_conv[1][1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+            if (currentTree.pho_isEE[subleadindex]) h_phi_conv[2][1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
           }
         }
         
         //////////////// basic selection
-        if (((TLorentzVector*) currentTree.pho_p4->At(0))->Pt()<20) continue;
-        if (((TLorentzVector*) currentTree.pho_p4->At(1))->Pt()<20) continue;
-        if (fabs(((TVector3*) currentTree.pho_calopos->At(0))->Eta())>2.5 || fabs(((TVector3*) currentTree.pho_calopos->At(1))->Eta())>2.5) continue;
-        if (currentTree.pho_isEBEEGap[0] || currentTree.pho_isEBEEGap[1] ) continue;
+        if (((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()<20) continue;
+        if (((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()<20) continue;
+        if (fabs(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta())>2.5 || fabs(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta())>2.5) continue;
+        if (currentTree.pho_isEBEEGap[leadindex] || currentTree.pho_isEBEEGap[subleadindex] ) continue;
         ////////////////////////////////////
-        if (currentTree.pho_isEB[0]) iLeadDetector=1;
-        if (currentTree.pho_isEE[0]) iLeadDetector=2;
-        if (currentTree.pho_isEB[1]) iSubleadDetector=1;
-        if (currentTree.pho_isEE[1]) iSubleadDetector=2;
+        if (currentTree.pho_isEB[leadindex]) iLeadDetector=1;
+        if (currentTree.pho_isEE[leadindex]) iLeadDetector=2;
+        if (currentTree.pho_isEB[subleadindex]) iSubleadDetector=1;
+        if (currentTree.pho_isEE[subleadindex]) iSubleadDetector=2;
         /////////////////////////
-        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[0], currentTree.pho_r9[0],  currentTree.pho_conv_ntracks[0], currentTree.pho_conv_chi2_probability[0] , ((TLorentzVector*) currentTree.pho_p4->At(0))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(0))->Perp() );
-        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[1], currentTree.pho_r9[1],  currentTree.pho_conv_ntracks[1], currentTree.pho_conv_chi2_probability[1] ,  ((TLorentzVector*) currentTree.pho_p4->At(1))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(1))->Perp() );
+        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_chi2_probability[leadindex] , ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(leadindex))->Perp() );
+        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex] ,  ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(subleadindex))->Perp() );
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
         ////////////////////////////////////
 
-        hLeadEt[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(0))->Et(),weight);
-        hLeadEta[0]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Eta(),weight);
-        hLeadPhi[0]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-        hLeadR9[0][0]->Fill(currentTree.pho_r9[0],weight);
-        hLeadHoE[0][0]->Fill(currentTree.pho_hoe[0],weight);
-        hLeadTrkPtSumSolid03[0][0]->Fill(currentTree.pho_trksumptsolidconedr03[0],weight);
-        hLeadEcalPtSumSolid03[0][0]->Fill(currentTree.pho_ecalsumetconedr03[0],weight);
-        hLeadHcalPtSumSolid03[0][0]->Fill(currentTree.pho_hcalsumetconedr03[0],weight);
-        hLeadSigmaIetaIeta[0][0]->Fill(currentTree.pho_sieie[0],weight);
+        hLeadEt[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
+        hLeadEta[0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta(),weight);
+        hLeadPhi[0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+        hLeadR9[0][0]->Fill(currentTree.pho_r9[leadindex],weight);
+        hLeadHoE[0][0]->Fill(currentTree.pho_hoe[leadindex],weight);
+        hLeadTrkPtSumSolid03[0][0]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
+        hLeadEcalPtSumSolid03[0][0]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
+        hLeadHcalPtSumSolid03[0][0]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
+        hLeadSigmaIetaIeta[0][0]->Fill(currentTree.pho_sieie[leadindex],weight);
         hLeadZPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hLeadDzPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (currentTree.pho_conv_ntracks[0]==2 && currentTree.pho_conv_chi2_probability[0]>0.0005 && (bool) currentTree.pho_isEB[0]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(0))->X(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Z());
+        if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex]) {
+          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
           h2_convVtxRvsZBarrel_[0]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
         
         hNPhotons[0]->Fill(currentTree.pho_n,weight);
 
-        hLeadEt[iLeadDetector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(0))->Et(),weight);
-        hLeadR9[iLeadDetector][0]->Fill(currentTree.pho_r9[0],weight);
-        hLeadHoE[iLeadDetector][0]->Fill(currentTree.pho_hoe[0],weight);
-        hLeadTrkPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_trksumptsolidconedr03[0],weight);
-        hLeadEcalPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_ecalsumetconedr03[0],weight);
-        hLeadHcalPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_hcalsumetconedr03[0],weight);
-        hLeadSigmaIetaIeta[iLeadDetector][0]->Fill(currentTree.pho_sieie[0],weight);
+        hLeadEt[iLeadDetector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
+        hLeadR9[iLeadDetector][0]->Fill(currentTree.pho_r9[leadindex],weight);
+        hLeadHoE[iLeadDetector][0]->Fill(currentTree.pho_hoe[leadindex],weight);
+        hLeadTrkPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
+        hLeadEcalPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
+        hLeadHcalPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
+        hLeadSigmaIetaIeta[iLeadDetector][0]->Fill(currentTree.pho_sieie[leadindex],weight);
         hLeadZPV_[iLeadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hLeadDzPV_[iLeadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
         
-        hSubLeadEt[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(1))->Et(),weight);
-        hSubLeadEta[0]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Eta(),weight);
-        hSubLeadPhi[0]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-        hSubLeadR9[0][0]->Fill(currentTree.pho_r9[1],weight);
-        hSubLeadHoE[0][0]->Fill(currentTree.pho_hoe[1],weight);
-        hSubLeadTrkPtSumSolid03[0][0]->Fill(currentTree.pho_trksumptsolidconedr03[1],weight);
-        hSubLeadEcalPtSumSolid03[0][0]->Fill(currentTree.pho_ecalsumetconedr03[1],weight);
-        hSubLeadHcalPtSumSolid03[0][0]->Fill(currentTree.pho_hcalsumetconedr03[1],weight);
-        hSubLeadSigmaIetaIeta[0][0]->Fill(currentTree.pho_sieie[1],weight);
+        hSubLeadEt[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
+        hSubLeadEta[0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta(),weight);
+        hSubLeadPhi[0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+        hSubLeadR9[0][0]->Fill(currentTree.pho_r9[subleadindex],weight);
+        hSubLeadHoE[0][0]->Fill(currentTree.pho_hoe[subleadindex],weight);
+        hSubLeadTrkPtSumSolid03[0][0]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
+        hSubLeadEcalPtSumSolid03[0][0]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
+        hSubLeadHcalPtSumSolid03[0][0]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
+        hSubLeadSigmaIetaIeta[0][0]->Fill(currentTree.pho_sieie[subleadindex],weight);
         hSubLeadZPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hSubLeadDzPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (currentTree.pho_conv_ntracks[1]==2 && currentTree.pho_conv_chi2_probability[1]>0.0005 && (bool) currentTree.pho_isEB[1]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(0))->X(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Z());
+        if (currentTree.pho_conv_ntracks[subleadindex]==2 && currentTree.pho_conv_chi2_probability[subleadindex]>0.0005 && (bool) currentTree.pho_isEB[subleadindex]) {
+          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
           h2_convVtxRvsZBarrel_[0]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
 
-        /*if (((TLorentzVector*) currentTree.pho_p4->At(1))->Pt()>((TLorentzVector*) currentTree.pho_p4->At(0))->Pt()) {
+        /*if (((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()>((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()) {
           cout << "WARNING! - Tree is not pt sorted!!!!!!!!!" << endl;
-          cout << "LeadPt is " << ((TLorentzVector*) currentTree.pho_p4->At(0))->Pt() << endl;
-          cout << "SubLeadPt is " << ((TLorentzVector*) currentTree.pho_p4->At(1))->Pt() << endl;
+          cout << "LeadPt is " << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << endl;
+          cout << "SubLeadPt is " << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << endl;
         }*/
 
-        hSubLeadEt[iSubleadDetector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(1))->Et(),weight);
-        hSubLeadR9[iSubleadDetector][0]->Fill(currentTree.pho_r9[1],weight);
-        hSubLeadHoE[iSubleadDetector][0]->Fill(currentTree.pho_hoe[1],weight);
-        hSubLeadTrkPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_trksumptsolidconedr03[1],weight);
-        hSubLeadEcalPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_ecalsumetconedr03[1],weight);
-        hSubLeadHcalPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_hcalsumetconedr03[1],weight);
-        hSubLeadSigmaIetaIeta[iSubleadDetector][0]->Fill(currentTree.pho_sieie[1],weight);
+        hSubLeadEt[iSubleadDetector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
+        hSubLeadR9[iSubleadDetector][0]->Fill(currentTree.pho_r9[subleadindex],weight);
+        hSubLeadHoE[iSubleadDetector][0]->Fill(currentTree.pho_hoe[subleadindex],weight);
+        hSubLeadTrkPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
+        hSubLeadEcalPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
+        hSubLeadHcalPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
+        hSubLeadSigmaIetaIeta[iSubleadDetector][0]->Fill(currentTree.pho_sieie[subleadindex],weight);
         hSubLeadZPV_[iSubleadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hSubLeadDzPV_[iSubleadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
         
-        //TLorentzVector VLead( currentTree.momentumX[0],   currentTree.momentumY[0],  currentTree.momentumZ[0], currentTree.energy[0]);
-        //TLorentzVector VSubLead( currentTree.momentumX[1],   currentTree.momentumY[1],  currentTree.momentumZ[1], currentTree.energy[1]);
-        TLorentzVector VLead(*((TLorentzVector*) currentTree.pho_p4->At(0)));
-        TLorentzVector VSubLead(*((TLorentzVector*) currentTree.pho_p4->At(1)));
+        //TLorentzVector VLead( currentTree.momentumX[leadindex],   currentTree.momentumY[leadindex],  currentTree.momentumZ[leadindex], currentTree.energy[leadindex]);
+        //TLorentzVector VSubLead( currentTree.momentumX[subleadindex],   currentTree.momentumY[subleadindex],  currentTree.momentumZ[subleadindex], currentTree.energy[subleadindex]);
+        TLorentzVector VLead(*((TLorentzVector*) currentTree.pho_p4->At(leadindex)));
+        TLorentzVector VSubLead(*((TLorentzVector*) currentTree.pho_p4->At(subleadindex)));
         TLorentzVector VSum=VLead+VSubLead;
         double InvMass=fabs(VSum.M());
 
@@ -984,25 +1010,25 @@ int main(int argc, char * input[]) {
         double tg_thetas = sin_theta/(gamma_b*(cos_theta-beta_b));
         double cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
 
-        if (((TLorentzVector*) currentTree.pho_p4->At(0))->Pt()>40 && ((TLorentzVector*) currentTree.pho_p4->At(1))->Pt()>30 && InvMass>90 && InvMass<250
-            && MarcosCut(((TLorentzVector*) currentTree.pho_p4->At(0))->Pt(), currentTree.pho_ecalsumetconedr04[0], currentTree.pho_hcalsumetconedr04[0], currentTree.pho_trksumpthollowconedr04[0], currentTree.pho_haspixseed[0], currentTree.pho_isEB[0], currentTree.pho_isEE[0], currentTree.pho_sieie[0], currentTree.pho_hoe[0])
-            && MarcosCut(((TLorentzVector*) currentTree.pho_p4->At(1))->Pt(), currentTree.pho_ecalsumetconedr04[1], currentTree.pho_hcalsumetconedr04[1], currentTree.pho_trksumpthollowconedr04[1], currentTree.pho_haspixseed[1], currentTree.pho_isEB[1], currentTree.pho_isEE[1], currentTree.pho_sieie[1], currentTree.pho_hoe[1])
+        if (((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()>40 && ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()>30 && InvMass>90 && InvMass<250
+            && MarcosCut(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt(), currentTree.pho_ecalsumetconedr04[leadindex], currentTree.pho_hcalsumetconedr04[leadindex], currentTree.pho_trksumpthollowconedr04[leadindex], currentTree.pho_haspixseed[leadindex], currentTree.pho_isEB[leadindex], currentTree.pho_isEE[leadindex], currentTree.pho_sieie[leadindex], currentTree.pho_hoe[leadindex])
+            && MarcosCut(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt(), currentTree.pho_ecalsumetconedr04[subleadindex], currentTree.pho_hcalsumetconedr04[subleadindex], currentTree.pho_trksumpthollowconedr04[subleadindex], currentTree.pho_haspixseed[subleadindex], currentTree.pho_isEB[subleadindex], currentTree.pho_isEE[subleadindex], currentTree.pho_sieie[subleadindex], currentTree.pho_hoe[subleadindex])
             ) {
-          hLeadEtMarco->Fill(((TLorentzVector*) currentTree.pho_p4->At(0))->Pt());
-          hSubLeadEtMarco->Fill(((TLorentzVector*) currentTree.pho_p4->At(1))->Pt());
+          hLeadEtMarco->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt());
+          hSubLeadEtMarco->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt());
           h_mass_Marco->Fill(InvMass);
 
-          int MarcosCategory = MarcosCutCategory(currentTree.pho_r9[0], currentTree.pho_isEB[0], currentTree.pho_isEE[0], currentTree.pho_r9[1], currentTree.pho_isEB[1], currentTree.pho_isEE[1]);
-          hLeadEtMarcoCat[MarcosCategory]->Fill(((TLorentzVector*) currentTree.pho_p4->At(0))->Pt());
-          hSubLeadEtMarcoCat[MarcosCategory]->Fill(((TLorentzVector*) currentTree.pho_p4->At(1))->Pt());
+          int MarcosCategory = MarcosCutCategory(currentTree.pho_r9[leadindex], currentTree.pho_isEB[leadindex], currentTree.pho_isEE[leadindex], currentTree.pho_r9[subleadindex], currentTree.pho_isEB[subleadindex], currentTree.pho_isEE[subleadindex]);
+          hLeadEtMarcoCat[MarcosCategory]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt());
+          hSubLeadEtMarcoCat[MarcosCategory]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt());
           h_mass_MarcoCat[MarcosCategory]->Fill(InvMass);
 
         }
         
         /// di-photon system before event selection
         int HiggsInWhichDetector = 0;
-        if (currentTree.pho_isEB[0] && currentTree.pho_isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
-        if ((currentTree.pho_isEB[0] && currentTree.pho_isEE[1]) || (currentTree.pho_isEE[0] && currentTree.pho_isEB[1])) HiggsInWhichDetector=1; // at least one photon in endcap
+        if (currentTree.pho_isEB[leadindex] && currentTree.pho_isEB[subleadindex]) HiggsInWhichDetector=0;  // both photons in barrel 
+        if ((currentTree.pho_isEB[leadindex] && currentTree.pho_isEE[subleadindex]) || (currentTree.pho_isEE[leadindex] && currentTree.pho_isEB[subleadindex])) HiggsInWhichDetector=1; // at least one photon in endcap
 
         h_mass_2gamma[0][HiggsInWhichDetector]->Fill(InvMass,weight);
         h_pt_2gamma[0][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
@@ -1018,7 +1044,7 @@ int main(int argc, char * input[]) {
         h_eta_2gamma[0][HiggsInWhichDetector]->Fill(VSum.Eta(),weight);
         h_phi_2gamma[0][HiggsInWhichDetector]->Fill(VSum.Phi(),weight);
         h_CosThetaStar[0][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
-
+        
         if (  diPhoCategory==1 ) {
           h_mass_2gamma_2gold[0][HiggsInWhichDetector]->Fill(InvMass,weight);
           h_pt_2gamma_2gold[0][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
@@ -1065,140 +1091,142 @@ int main(int argc, char * input[]) {
         }
 
         ///////////////////////////////  Event selection ///////////////////////////////////////
-        if (((TLorentzVector*) currentTree.pho_p4->At(0))->Pt()<40) continue; // leading photon
-        if (((TLorentzVector*) currentTree.pho_p4->At(1))->Pt()<30) continue; // subleading photon
+        if (((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()<40) continue; // leading photon
+        if (((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()<30) continue; // subleading photon
         //isolation 
         
-        if (fabs(((TVector3*) currentTree.pho_calopos->At(0))->Eta())>2.5 || fabs(((TVector3*) currentTree.pho_calopos->At(1))->Eta())>2.5) continue;
-        if (!(looseId(((TLorentzVector*) currentTree.pho_p4->At(0))->Pt(),
-		      currentTree.pho_ecalsumetconedr04[0],
-		      currentTree.pho_hcalsumetconedr04[0],
-		      currentTree.pho_trksumpthollowconedr04[0],
-		      (bool) currentTree.pho_isEB[0],
-		      (bool) currentTree.pho_isEE[0],
-		      currentTree.pho_sieie[0],
-		      currentTree.pho_hoe[0]))) continue;
+        if (fabs(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta())>2.5 || fabs(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta())>2.5) continue;
+        if (!(looseId(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt(),
+		      currentTree.pho_ecalsumetconedr04[leadindex],
+		      currentTree.pho_hcalsumetconedr04[leadindex],
+		      currentTree.pho_trksumpthollowconedr04[leadindex],
+		      (bool) currentTree.pho_isEB[leadindex],
+		      (bool) currentTree.pho_isEE[leadindex],
+		      currentTree.pho_sieie[leadindex],
+		      currentTree.pho_hoe[leadindex]))) continue;
 
-        if (!(looseId(((TLorentzVector*) currentTree.pho_p4->At(1))->Pt(),
-		      currentTree.pho_ecalsumetconedr04[1],
-		      currentTree.pho_hcalsumetconedr04[1],
-		      currentTree.pho_trksumpthollowconedr04[1],
-		      (bool) currentTree.pho_isEB[1],
-		      (bool) currentTree.pho_isEE[1],
-		      currentTree.pho_sieie[1],
-		      currentTree.pho_hoe[1]))) continue;
+        if (!(looseId(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt(),
+		      currentTree.pho_ecalsumetconedr04[subleadindex],
+		      currentTree.pho_hcalsumetconedr04[subleadindex],
+		      currentTree.pho_trksumpthollowconedr04[subleadindex],
+		      (bool) currentTree.pho_isEB[subleadindex],
+		      (bool) currentTree.pho_isEE[subleadindex],
+		      currentTree.pho_sieie[subleadindex],
+		      currentTree.pho_hoe[subleadindex]))) continue;
 
-        bool convsel1 = convSel(currentTree.pho_conv_ntracks[0],
-				currentTree.pho_conv_validvtx[0] ,  
-				currentTree.pho_conv_chi2_probability[0], 
-				currentTree.pho_conv_dphitrksatvtx[0], 
-				currentTree.pho_conv_paircotthetasep[0], 
-				((TLorentzVector*) currentTree.pho_p4->At(0))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(0))->Perp());
+        bool convsel1 = convSel(currentTree.pho_conv_ntracks[leadindex],
+				currentTree.pho_conv_validvtx[leadindex] ,  
+				currentTree.pho_conv_chi2_probability[leadindex], 
+				currentTree.pho_conv_dphitrksatvtx[leadindex], 
+				currentTree.pho_conv_paircotthetasep[leadindex], 
+				((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(leadindex))->Perp());
 
-        bool convsel2 = convSel(currentTree.pho_conv_ntracks[1],
-				currentTree.pho_conv_validvtx[1] ,  
-				currentTree.pho_conv_chi2_probability[1], 
-				currentTree.pho_conv_dphitrksatvtx[1], 
-				currentTree.pho_conv_paircotthetasep[1], 
-				((TLorentzVector*) currentTree.pho_p4->At(1))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(1))->Perp());
+        bool convsel2 = convSel(currentTree.pho_conv_ntracks[subleadindex],
+				currentTree.pho_conv_validvtx[subleadindex] ,  
+				currentTree.pho_conv_chi2_probability[subleadindex], 
+				currentTree.pho_conv_dphitrksatvtx[subleadindex], 
+				currentTree.pho_conv_paircotthetasep[subleadindex], 
+				((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(subleadindex))->Perp());
 
         HiggsInWhichDetector = 0;
-        if (currentTree.pho_isEB[0] && currentTree.pho_isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
-        if ((currentTree.pho_isEB[0] && currentTree.pho_isEE[1]) || (currentTree.pho_isEE[0] && currentTree.pho_isEB[1])) HiggsInWhichDetector=1; // at least one photon in endcap
+        if (currentTree.pho_isEB[leadindex] && currentTree.pho_isEB[subleadindex]) HiggsInWhichDetector=0;  // both photons in barrel 
+        if ((currentTree.pho_isEB[leadindex] && currentTree.pho_isEE[subleadindex]) || (currentTree.pho_isEE[leadindex] && currentTree.pho_isEB[subleadindex])) HiggsInWhichDetector=1; // at least one photon in endcap
 
-        hLeadEt[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(0))->Et(),weight);
-        hLeadEta[1]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Eta(),weight);
-        hLeadPhi[1]->Fill(((TVector3*) currentTree.pho_calopos->At(0))->Phi(),weight);
-        hLeadR9[0][1]->Fill(currentTree.pho_r9[0],weight);
-        hLeadHoE[0][1]->Fill(currentTree.pho_hoe[0],weight);
-        hLeadTrkPtSumSolid03[0][1]->Fill(currentTree.pho_trksumptsolidconedr03[0],weight);
-        hLeadEcalPtSumSolid03[0][1]->Fill(currentTree.pho_ecalsumetconedr03[0],weight);
-        hLeadHcalPtSumSolid03[0][1]->Fill(currentTree.pho_hcalsumetconedr03[0],weight);
-        hLeadSigmaIetaIeta[0][1]->Fill(currentTree.pho_sieie[0],weight);
+        hLeadEt[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
+        hLeadEta[1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta(),weight);
+        hLeadPhi[1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+        hLeadR9[0][1]->Fill(currentTree.pho_r9[leadindex],weight);
+        hLeadHoE[0][1]->Fill(currentTree.pho_hoe[leadindex],weight);
+        hLeadTrkPtSumSolid03[0][1]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
+        hLeadEcalPtSumSolid03[0][1]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
+        hLeadHcalPtSumSolid03[0][1]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
+        hLeadSigmaIetaIeta[0][1]->Fill(currentTree.pho_sieie[leadindex],weight);
         hLeadZPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hLeadDzPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (currentTree.pho_conv_ntracks[0]==2 && currentTree.pho_conv_chi2_probability[0]>0.0005 && (bool) currentTree.pho_isEB[0]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(0))->X(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Z());
+
+        if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex]) {
+          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
           h2_convVtxRvsZBarrel_[1]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
 
-        hSubLeadEt[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(1))->Et(),weight);
-        hSubLeadEta[1]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Eta(),weight);
-        hSubLeadPhi[1]->Fill(((TVector3*) currentTree.pho_calopos->At(1))->Phi(),weight);
-        hSubLeadR9[0][1]->Fill(currentTree.pho_r9[1],weight);
-        hSubLeadHoE[0][1]->Fill(currentTree.pho_hoe[1],weight);
-        hSubLeadTrkPtSumSolid03[0][1]->Fill(currentTree.pho_trksumptsolidconedr03[1],weight);
-        hSubLeadEcalPtSumSolid03[0][1]->Fill(currentTree.pho_ecalsumetconedr03[1],weight);
-        hSubLeadHcalPtSumSolid03[0][1]->Fill(currentTree.pho_hcalsumetconedr03[1],weight);
-        hSubLeadSigmaIetaIeta[0][1]->Fill(currentTree.pho_sieie[1],weight);
+        hSubLeadEt[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
+        hSubLeadEta[1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta(),weight);
+        hSubLeadPhi[1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+        hSubLeadR9[0][1]->Fill(currentTree.pho_r9[subleadindex],weight);
+        hSubLeadHoE[0][1]->Fill(currentTree.pho_hoe[subleadindex],weight);
+        hSubLeadTrkPtSumSolid03[0][1]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
+        hSubLeadEcalPtSumSolid03[0][1]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
+        hSubLeadHcalPtSumSolid03[0][1]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
+        hSubLeadSigmaIetaIeta[0][1]->Fill(currentTree.pho_sieie[subleadindex],weight);
         hSubLeadZPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hSubLeadDzPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (currentTree.pho_conv_ntracks[1]==2 && currentTree.pho_conv_chi2_probability[1]>0.0005 && (bool) currentTree.pho_isEB[1]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(0))->X(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(0))->Z());
+
+        if (currentTree.pho_conv_ntracks[subleadindex]==2 && currentTree.pho_conv_chi2_probability[subleadindex]>0.0005 && (bool) currentTree.pho_isEB[subleadindex]) {
+          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
           h2_convVtxRvsZBarrel_[1]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
 
         hNPhotons[1]->Fill(currentTree.pho_n,weight);
 
-        hLeadEt[iLeadDetector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(0))->Et(),weight);
-        hLeadR9[iLeadDetector][1]->Fill(currentTree.pho_r9[0],weight);
-        hLeadHoE[iLeadDetector][1]->Fill(currentTree.pho_hoe[0],weight);
-        hLeadTrkPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_trksumptsolidconedr03[0],weight);
-        hLeadEcalPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_ecalsumetconedr03[0],weight);
-        hLeadHcalPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_hcalsumetconedr03[0],weight);
-        hLeadSigmaIetaIeta[iLeadDetector][1]->Fill(currentTree.pho_sieie[0],weight);
+        hLeadEt[iLeadDetector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
+        hLeadR9[iLeadDetector][1]->Fill(currentTree.pho_r9[leadindex],weight);
+        hLeadHoE[iLeadDetector][1]->Fill(currentTree.pho_hoe[leadindex],weight);
+        hLeadTrkPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
+        hLeadEcalPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
+        hLeadHcalPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
+        hLeadSigmaIetaIeta[iLeadDetector][1]->Fill(currentTree.pho_sieie[leadindex],weight);
         hLeadZPV_[iLeadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hLeadDzPV_[iLeadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
 
-        hSubLeadEt[iSubleadDetector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(1))->Et(),weight);
-        hSubLeadR9[iSubleadDetector][1]->Fill(currentTree.pho_r9[1],weight);
-        hSubLeadHoE[iSubleadDetector][1]->Fill(currentTree.pho_hoe[1],weight);
-        hSubLeadTrkPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_trksumptsolidconedr03[1],weight);
-        hSubLeadEcalPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_ecalsumetconedr03[1],weight);
-        hSubLeadHcalPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_hcalsumetconedr03[1],weight);
-        hSubLeadSigmaIetaIeta[iSubleadDetector][1]->Fill(currentTree.pho_sieie[1],weight);
+        hSubLeadEt[iSubleadDetector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
+        hSubLeadR9[iSubleadDetector][1]->Fill(currentTree.pho_r9[subleadindex],weight);
+        hSubLeadHoE[iSubleadDetector][1]->Fill(currentTree.pho_hoe[subleadindex],weight);
+        hSubLeadTrkPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
+        hSubLeadEcalPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
+        hSubLeadHcalPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
+        hSubLeadSigmaIetaIeta[iSubleadDetector][1]->Fill(currentTree.pho_sieie[subleadindex],weight);
         hSubLeadZPV_[iSubleadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
         hSubLeadDzPV_[iSubleadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
 
         if ( convsel1 )
-          h2_convVtxRvsZBarrel_[1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),sqrt(((TVector3*) currentTree.vtx_std_xyz->At(0))->X()*((TVector3*) currentTree.vtx_std_xyz->At(0))->X()+((TVector3*) currentTree.vtx_std_xyz->At(0))->Y()*((TVector3*) currentTree.vtx_std_xyz->At(0))->Y()));
+          h2_convVtxRvsZBarrel_[1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z(),sqrt(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()+((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()));
         if ( convsel2 )
-          h2_convVtxRvsZBarrel_[1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),sqrt(((TVector3*) currentTree.vtx_std_xyz->At(0))->X()*((TVector3*) currentTree.vtx_std_xyz->At(0))->X()+((TVector3*) currentTree.vtx_std_xyz->At(0))->Y()*((TVector3*) currentTree.vtx_std_xyz->At(0))->Y()));
+          h2_convVtxRvsZBarrel_[1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z(),sqrt(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()+((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()));
 
 
         if (  leadPhoCategory==0) 
-          h_lead_r9_cat0[iLeadDetector]->Fill (currentTree.pho_r9[0],weight);
+          h_lead_r9_cat0[iLeadDetector]->Fill (currentTree.pho_r9[leadindex],weight);
         if (  subleadPhoCategory==0) 
-          h_sublead_r9_cat0[iSubleadDetector]->Fill (currentTree.pho_r9[1],weight);
+          h_sublead_r9_cat0[iSubleadDetector]->Fill (currentTree.pho_r9[subleadindex],weight);
 
 
         if (  leadPhoCategory==1) 
-          h_lead_r9_cat1[iLeadDetector]->Fill (currentTree.pho_r9[0],weight);
+          h_lead_r9_cat1[iLeadDetector]->Fill (currentTree.pho_r9[leadindex],weight);
         if (  subleadPhoCategory==1) 
-          h_sublead_r9_cat1[iSubleadDetector]->Fill (currentTree.pho_r9[1],weight);
+          h_sublead_r9_cat1[iSubleadDetector]->Fill (currentTree.pho_r9[subleadindex],weight);
 
 
         if (  leadPhoCategory==2) 
-          h_lead_r9_cat2[iLeadDetector]->Fill (currentTree.pho_r9[0],weight);
+          h_lead_r9_cat2[iLeadDetector]->Fill (currentTree.pho_r9[leadindex],weight);
         if (  subleadPhoCategory==2) 
-          h_sublead_r9_cat2[iSubleadDetector]->Fill (currentTree.pho_r9[1],weight);
+          h_sublead_r9_cat2[iSubleadDetector]->Fill (currentTree.pho_r9[subleadindex],weight);
 
         if (  leadPhoCategory==3) 
-          h_lead_r9_cat3[iLeadDetector]->Fill (currentTree.pho_r9[0],weight);
+          h_lead_r9_cat3[iLeadDetector]->Fill (currentTree.pho_r9[leadindex],weight);
         if (  subleadPhoCategory==3) 
-          h_sublead_r9_cat3[iSubleadDetector]->Fill (currentTree.pho_r9[1],weight);
+          h_sublead_r9_cat3[iSubleadDetector]->Fill (currentTree.pho_r9[subleadindex],weight);
 
 
         if (  leadPhoCategory==4) 
-          h_lead_r9_cat4[iLeadDetector]->Fill (currentTree.pho_r9[0],weight);
+          h_lead_r9_cat4[iLeadDetector]->Fill (currentTree.pho_r9[leadindex],weight);
         if (  subleadPhoCategory==4) 
-          h_sublead_r9_cat4[iSubleadDetector]->Fill (currentTree.pho_r9[1],weight);
+          h_sublead_r9_cat4[iSubleadDetector]->Fill (currentTree.pho_r9[subleadindex],weight);
         
         // calculate invariant mass
-        //VLead = TLorentzVector( currentTree.momentumX[0],   currentTree.momentumY[0],  currentTree.momentumZ[0], currentTree.energy[0]);
-        //VSubLead = TLorentzVector( currentTree.momentumX[1],   currentTree.momentumY[1],  currentTree.momentumZ[1], currentTree.energy[1]);
-        VLead = TLorentzVector(*((TLorentzVector*) currentTree.pho_p4->At(0)));
-        VSubLead = TLorentzVector(*((TLorentzVector*) currentTree.pho_p4->At(1)));
+        //VLead = TLorentzVector( currentTree.momentumX[leadindex],   currentTree.momentumY[leadindex],  currentTree.momentumZ[leadindex], currentTree.energy[leadindex]);
+        //VSubLead = TLorentzVector( currentTree.momentumX[subleadindex],   currentTree.momentumY[subleadindex],  currentTree.momentumZ[subleadindex], currentTree.energy[subleadindex]);
+        VLead = TLorentzVector(*((TLorentzVector*) currentTree.pho_p4->At(leadindex)));
+        VSubLead = TLorentzVector(*((TLorentzVector*) currentTree.pho_p4->At(subleadindex)));
         VSum=VLead+VSubLead;
         InvMass=fabs(VSum.M());
 
@@ -1217,8 +1245,8 @@ int main(int argc, char * input[]) {
         cos_thetastar= 1.0/sqrt(1.0+tg_thetas*tg_thetas);
 
         HiggsInWhichDetector = 0;
-        if (currentTree.pho_isEB[0] && currentTree.pho_isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
-        if ((currentTree.pho_isEB[0] && currentTree.pho_isEE[1]) || (currentTree.pho_isEE[0] && currentTree.pho_isEB[1])) HiggsInWhichDetector=1; // at least one photon in endcap
+        if (currentTree.pho_isEB[leadindex] && currentTree.pho_isEB[subleadindex]) HiggsInWhichDetector=0;  // both photons in barrel 
+        if ((currentTree.pho_isEB[leadindex] && currentTree.pho_isEE[subleadindex]) || (currentTree.pho_isEE[leadindex] && currentTree.pho_isEB[subleadindex])) HiggsInWhichDetector=1; // at least one photon in endcap
 
         // all photon categories together 
         h_mass_2gamma[1][HiggsInWhichDetector]->Fill(InvMass,weight);
@@ -1270,9 +1298,8 @@ int main(int argc, char * input[]) {
           h_CosThetaStar_leftover[1][HiggsInWhichDetector]->Fill(cos_thetastar,weight);
 
         }
-
         //GenMatching
-        if (!data && currentTree.pho_genmatcheddr[0]<0.15 && currentTree.pho_genmatcheddr[1]) {
+        if (!data) {
 
           // all photon categories together 
           h_mass_2gamma[2][HiggsInWhichDetector]->Fill(InvMass,weight);
@@ -1328,7 +1355,6 @@ int main(int argc, char * input[]) {
         }
         
       }
-
       currentFile->Close();
       delete currentFile;
 
