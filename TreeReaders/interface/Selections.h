@@ -1,3 +1,4 @@
+
 bool spikeSel(
               bool isEB, bool isEE,
               int seedSeverity,
@@ -8,18 +9,21 @@ bool spikeSel(
 }
 
 bool preselection(
-                  float pt,
-                  float eta,
-                  float scEta,
-                  float hadronicOverEm
+                  float leadpt,
+                  float subleadpt,
+                  float leadeta,
+                  float subleadeta,
+                  bool leadEBEEGap,
+                  bool subleadEBEEGap
                   ) {
     
-  if (pt < 21.) return false;
-  if (fabs(eta) > 2.5) return false;
-  if (fabs(scEta) > 1.4442 && fabs(scEta) < 1.566) return false;
-  if (hadronicOverEm > 0.05) return false;
+  bool FilterResult = true;
 
-  return true;
+  if (leadpt<20 || subleadpt<20) FilterResult=false;
+  if (abs(leadeta)>2.5 || abs(subleadeta)>2.5) FilterResult=false;
+  if (leadEBEEGap || subleadEBEEGap) FilterResult=false;
+  
+  return FilterResult;
 }
 
 bool looseId(
@@ -140,12 +144,12 @@ bool convSel(
 }
 
 
-int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt ) {
+int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt) {
   
   int cate=0;
   if ( r9>0.93 && !pixMatch ) {
     cate=1; // golden
-  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3 ) {
+  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3) {
     cate=2; // good reconstructed conversion
   } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob <=0.0005 ) {
     cate=3; // poor reconstructed conversions
