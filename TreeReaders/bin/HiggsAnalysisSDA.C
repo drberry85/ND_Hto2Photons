@@ -23,7 +23,17 @@
 
 #include "ND_Hto2Photons/TreeReaders/interface/sdaReader.h"
 #include "ND_Hto2Photons/TreeReaders/interface/Selections.h"
+
+#include "ND_Hto2Photons/TreeReaders/interface/HistoContainer.cc"
+
 using namespace std;
+
+bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
+int DetectorPosition(sdaReader *currentTree, unsigned int index);
+string MakeFileName(string filename, bool unweighted, bool dataweight);
+void ProgressBar(int &percent);
+void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, bool &isData);
+void PrintWeights();
 
 int main(int argc, char * input[]) {
 
@@ -34,7 +44,6 @@ int main(int argc, char * input[]) {
 
   //float globalWeight = 29.19;
   float globalWeight = 1000;
-  float BranchingFraction = 0;
 
   int FirstFileNum = 0;
   
@@ -44,178 +53,9 @@ int main(int argc, char * input[]) {
   TString InputArgs(input[1]);
   //cout << "Mass is: " << Mass << endl;
 
-  //Print Weights
-  const int nMassPoints=3;
-  const int nProdProcess=3;
-  double br[nMassPoints];
-  br[0]= 0.001939;
-  br[1]= 0.002219;
-  br[2]= 0.001363;
-  double SignalXSec[nMassPoints][nProdProcess];
-  double SignalW[nMassPoints][nProdProcess];
-  SignalXSec[0][0]=20.493;
-  SignalXSec[0][1]=1.4405;
-  SignalXSec[0][2]=1.4421;
-  SignalXSec[1][0]=17.173;
-  SignalXSec[1][1]=1.3062;
-  SignalXSec[1][2]=1.0921;
-  SignalXSec[2][0]=10.863;
-  SignalXSec[2][1]=0.9868;
-  SignalXSec[2][2]=0.5515;
-
-  for ( int j=0; j<nProdProcess; j++ ) {
-    for ( int i=0; i<nMassPoints; i++ ) {
-      SignalW[i][j] = br[i]*SignalXSec[i][j];
-      cout << " Process " << j << " Mass Point "<< i << " Weight " <<
-        SignalW[i][j] << endl;
-    }
-  }
+  //PrintWeights();
+  MakeFilesAndWeights(InputArgs, filesAndWeights, filelist, data);
   
-  // Load Signal
-  if (InputArgs.Contains("Data")) {
-    filelist.push_back(pair<string,int> ("Data.root",2));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc4/b/tkolberg/MPAntuples/Oct1_preselOriginalRefitMomentum/data.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc4/b/tkolberg/MPAntuples/Nov6_V00-00-13/Nov6_V00-00-13.root",1));
-    data=true;
-  }
-  if (InputArgs.Contains("Yousidata")) {
-    filelist.push_back(pair<string,int> ("YousiData.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/YousiData/MPA_Run2010B_Nov5_12831nb.root",1));
-    data=true;
-  }
-  if (InputArgs.Contains("90GeV") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.000726;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis90GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon90.root",34.145*BranchingFraction/98996));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF90.root",1.7801*BranchingFraction/108813));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ90.root",3.1880*BranchingFraction/88000));
-    cout << "Warning Weights Not Correct!!!!!" << endl;
-  }
-  if (InputArgs.Contains("95GeV") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.00108;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis95GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon95.root",31.886*BranchingFraction/83986));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF95.root",1.6956*BranchingFraction/109579));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ95.root",2.9226*BranchingFraction/110000));
-    cout << "Warning Weights Not Correct!!!!!" << endl;
-  }
-  if (InputArgs.Contains("100GeV") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.00140;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis100GeV.root",2));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF100.root",1.5929*BranchingFraction/109826));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ100.root",1.9366*BranchingFraction/110000));
-    cout << "Warning Weights Not Correct!!!!!" << endl;
-    cout << "Warning no Gluon Fusion Samples!!!!!" << endl;
-  }
-  if (InputArgs.Contains("105GeV") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.001755;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis105GeV.root",2));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF105.root",1.5138*BranchingFraction/109835));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ105.root",1.6674*BranchingFraction/110000));
-    cout << "Warning no Gluon Fusion Samples!!!!!" << endl;
-  }
-  if (InputArgs.Contains("110GeV") || InputArgs.Contains("Signal") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.001939;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis110GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon110.root",20.493*BranchingFraction/109994));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF110.root",1.4405*BranchingFraction/105974));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ110.root",1.4421*BranchingFraction/110000));
-  }
-  if (InputArgs.Contains("115GeV") || InputArgs.Contains("Signal") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.002101;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon115.root",18.735*BranchingFraction/109991));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF115.root",1.3712*BranchingFraction/109834));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ115.root",1.2524*BranchingFraction/110000));
-  }
-  if (InputArgs.Contains("120GeV") || InputArgs.Contains("Signal") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.002219;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon120.root",17.173*BranchingFraction/106151));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF120.root",1.3062*BranchingFraction/109848));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ120.root",1.0921*BranchingFraction/110000));
-  }
-  if (InputArgs.Contains("130GeV") || InputArgs.Contains("Signal") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.002240;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",14.579*BranchingFraction/109991));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF130.root",1.1866*BranchingFraction/109848));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ130.root",0.8395*BranchingFraction/110000));
-  }
-  if (InputArgs.Contains("140GeV") || InputArgs.Contains("Signal") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.001929;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis140GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon140.root",12.525*BranchingFraction/109991));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF140.root",1.0811*BranchingFraction/109842));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ140.root",0.6539*BranchingFraction/110000));
-  }
-  if (InputArgs.Contains("150GeV") || InputArgs.Contains("Signal") || InputArgs.Contains("All")) {
-    BranchingFraction = 0.001363;
-    filelist.push_back(pair<string,int> ("HiggsAnalysis150GeV.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon150.root",10.863*BranchingFraction/43500));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF150.root",0.9868*BranchingFraction/50000));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ150.root",0.5155*BranchingFraction/48000));
-  }
-  if (InputArgs.Contains("PhotonPlusJet") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("PhotonPlusJet.root",11));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet0to15.root",84200000.0/1057100));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet15to30.root",171700.0/1025840));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet30to50.root",16690.0/1025480));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet50to80.root",2722.0/1024608));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet80to120.root",447.2/1048215));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet120to170.root",84.17/1023361));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet170to300.root",22.64/1089000));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet300to470.root",1.493/1076926));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet470to800.root",0.1323/1093499));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet800to1400.root",0.003481/1092742));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1400to1800.root",0.00001270/1097060));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1800toInf.root",0.0000002936/1091360));
-  }
-  if (InputArgs.Contains("EMEnriched") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("EMEnriched.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/(37169939/0.0104)));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/(71845473/0.065)));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt80to170.root",900000/(8073559/0.155)));
-  }
-  if (InputArgs.Contains("Doubleemenriched") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("DoubleEMEnriched.root",1));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",20750000000/(31536145/0.0563)));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",293300000/(10912061/0.239)));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",18700000/(21229315/0.00216)));
-  }
-  if (InputArgs.Contains("Reweighteddoubleemenriched") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("ReweightedDoubleEMEnriched.root",1));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",1.15*20750000000/(31536145/0.0563)));
-    //filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",1.15*293300000/(10912061/0.239)));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",1.15*18700000/(21229315/0.00216)));
-  }
-  if (InputArgs.Contains("QCDBCtoE") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("QCDBCtoE.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt20to30.root",236000000/(2243439/0.00056)));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt30to80.root",59480000/(1995502/0.00230)));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt80to170.root",900000/(1043390/0.0104)));
-  }
-  if (InputArgs.Contains("Born") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("Born.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt10to25.root",236.4/523270));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt25to250.root",22.37/536230));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt250toInf.root",0.008072/541900));
-  }
-  if (InputArgs.Contains("Box") || InputArgs.Contains("Background") || InputArgs.Contains("All")) {
-    filelist.push_back(pair<string,int> ("Box.root",3));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt10to25.root",358.2/792710));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt25to250.root",12.37/768815));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt250toInf.root",0.000208/790685));
-  }
-  if (InputArgs.Contains("MPATest")) {
-    filelist.push_back(pair<string,int> ("MPATest.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",1));
-  }
-  if (InputArgs.Contains("SDATest")) {
-    filelist.push_back(pair<string,int> ("SDATest.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/hgg_reduced.root",1));
-  }
-
   if (InputArgs.Contains("dataweight")) {
     globalWeight = 36.0;
     dataweight=true;
@@ -230,17 +70,7 @@ int main(int argc, char * input[]) {
   
   for (vector<pair<string, int> >::iterator itFilePair = filelist.begin(); itFilePair != filelist.end(); ++itFilePair) {
 
-    string outfilename = "";
-
-    if (unweighted) {
-      outfilename = "Unweighted";
-      outfilename += itFilePair->first;
-    } else if (dataweight) {
-      outfilename = "Dataweight";
-      outfilename += itFilePair->first;
-    } else {
-      outfilename = itFilePair->first;
-    }
+    string outfilename = MakeFileName(itFilePair->first, unweighted, dataweight);
     
     TFile* outfile = new TFile(outfilename.c_str(),"RECREATE");
     outfile->cd();
@@ -311,6 +141,11 @@ int main(int argc, char * input[]) {
     TH1D* h_phi_2gamma_1goodconv_newvertex[3][2];
     TH1D* h_CosThetaStar_1goodconv_newvertex[3][2];
 
+    TH1D* h_mass_2gamma_1goodconv_40[3][2];
+    TH1D* h_mass_2gamma_1goodconv_50[3][2];
+    TH1D* h_mass_2gamma_1goodconv_60[3][2];
+    TH1D* h_mass_2gamma_1goodconv_70[3][2];
+    
     TH1D* h_mass_2gamma_1goodconv_simvertex[3][2];
     TH1D* h_pt_2gamma_1goodconv_simvertex[3][2];
     TH1D* h_pz_2gamma_1goodconv_simvertex[3][2];
@@ -784,6 +619,34 @@ int main(int argc, char * input[]) {
     h_eta_2gamma_1goodconv_simvertex[2][1]         = new TH1D("h_eta_2gamma1goodconvMatchedEEsimvertex","Di-Photon #eta with sim vertex;#eta(2#gamma) matched endcap candidates with one conversion", 160, -8.0, 8.0);
     h_phi_2gamma_1goodconv_simvertex[2][1]         = new TH1D("h_phi_2gamma1goodconvMatchedEEsimvertex","Di-Photon #phi with sim vertex;#phi(2#gamma) matched endcap candidates with one conversion", 64, -3.2, 3.2);
     h_CosThetaStar_1goodconv_simvertex[2][1]       = new TH1D("h_CosThetaStar1goodconvMatchedEEsimvertex","cos#theta^{*} with sim vertex;cos#theta^{*} matched endcap candidates with one conversion", 60, 0., 1.);
+
+    h_mass_2gamma_1goodconv_40[0][0]        = new TH1D("h_mass_2gamma1goodconvAllEB40", "Di-photon invariant mass with an R cut of 40cm;M_{#gamma#gamma} (GeV) all barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_40[0][1]        = new TH1D("h_mass_2gamma1goodconvAllEE40", "Di-photon invariant mass with an R cut of 40cm;M_{#gamma#gamma} (GeV) all endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_40[1][0]        = new TH1D("h_mass_2gamma1goodconvSelEB40", "Di-photon invariant mass with an R cut of 40cm;M_{#gamma#gamma} (GeV) selected barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_40[1][1]        = new TH1D("h_mass_2gamma1goodconvSelEE40", "Di-photon invariant mass with an R cut of 40cm;M_{#gamma#gamma} (GeV) selected endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_40[2][0]        = new TH1D("h_mass_2gamma1goodconvMatchedEB40", "Di-photon invariant mass with an R cut of 40cm;M_{#gamma#gamma} (GeV) matched barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_40[2][1]        = new TH1D("h_mass_2gamma1goodconvMatchedEE40", "Di-photon invariant mass with an R cut of 40cm;M_{#gamma#gamma} (GeV) matched endcap candidates with one conversion", 80, 80.0, 160.0);
+
+    h_mass_2gamma_1goodconv_50[0][0]        = new TH1D("h_mass_2gamma1goodconvAllEB50", "Di-photon invariant mass with an R cut of 50cm;M_{#gamma#gamma} (GeV) all barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_50[0][1]        = new TH1D("h_mass_2gamma1goodconvAllEE50", "Di-photon invariant mass with an R cut of 50cm;M_{#gamma#gamma} (GeV) all endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_50[1][0]        = new TH1D("h_mass_2gamma1goodconvSelEB50", "Di-photon invariant mass with an R cut of 50cm;M_{#gamma#gamma} (GeV) selected barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_50[1][1]        = new TH1D("h_mass_2gamma1goodconvSelEE50", "Di-photon invariant mass with an R cut of 50cm;M_{#gamma#gamma} (GeV) selected endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_50[2][0]        = new TH1D("h_mass_2gamma1goodconvMatchedEB50", "Di-photon invariant mass with an R cut of 50cm;M_{#gamma#gamma} (GeV) matched barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_50[2][1]        = new TH1D("h_mass_2gamma1goodconvMatchedEE50", "Di-photon invariant mass with an R cut of 50cm;M_{#gamma#gamma} (GeV) matched endcap candidates with one conversion", 80, 80.0, 160.0);
+
+    h_mass_2gamma_1goodconv_60[0][0]        = new TH1D("h_mass_2gamma1goodconvAllEB60", "Di-photon invariant mass with an R cut of 60cm;M_{#gamma#gamma} (GeV) all barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_60[0][1]        = new TH1D("h_mass_2gamma1goodconvAllEE60", "Di-photon invariant mass with an R cut of 60cm;M_{#gamma#gamma} (GeV) all endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_60[1][0]        = new TH1D("h_mass_2gamma1goodconvSelEB60", "Di-photon invariant mass with an R cut of 60cm;M_{#gamma#gamma} (GeV) selected barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_60[1][1]        = new TH1D("h_mass_2gamma1goodconvSelEE60", "Di-photon invariant mass with an R cut of 60cm;M_{#gamma#gamma} (GeV) selected endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_60[2][0]        = new TH1D("h_mass_2gamma1goodconvMatchedEB60", "Di-photon invariant mass with an R cut of 60cm;M_{#gamma#gamma} (GeV) matched barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_60[2][1]        = new TH1D("h_mass_2gamma1goodconvMatchedEE60", "Di-photon invariant mass with an R cut of 60cm;M_{#gamma#gamma} (GeV) matched endcap candidates with one conversion", 80, 80.0, 160.0);
+
+    h_mass_2gamma_1goodconv_70[0][0]        = new TH1D("h_mass_2gamma1goodconvAllEB70", "Di-photon invariant mass with an R cut of 70cm;M_{#gamma#gamma} (GeV) all barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_70[0][1]        = new TH1D("h_mass_2gamma1goodconvAllEE70", "Di-photon invariant mass with an R cut of 70cm;M_{#gamma#gamma} (GeV) all endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_70[1][0]        = new TH1D("h_mass_2gamma1goodconvSelEB70", "Di-photon invariant mass with an R cut of 70cm;M_{#gamma#gamma} (GeV) selected barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_70[1][1]        = new TH1D("h_mass_2gamma1goodconvSelEE70", "Di-photon invariant mass with an R cut of 70cm;M_{#gamma#gamma} (GeV) selected endcap candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_70[2][0]        = new TH1D("h_mass_2gamma1goodconvMatchedEB70", "Di-photon invariant mass with an R cut of 70cm;M_{#gamma#gamma} (GeV) matched barrel candidates with one conversion", 80, 80.0, 160.0);
+    h_mass_2gamma_1goodconv_70[2][1]        = new TH1D("h_mass_2gamma1goodconvMatchedEE70", "Di-photon invariant mass with an R cut of 70cm;M_{#gamma#gamma} (GeV) matched endcap candidates with one conversion", 80, 80.0, 160.0);
     
     h_mass_2gamma_1poorconv[0][0]        = new TH1D("h_mass_2gamma1poorconvAllEB", "Di-photon invariant mass ;M_{#gamma#gamma} (GeV) all barrel candidates with one conversion", 80, 80.0, 160.0);
     h_pt_2gamma_1poorconv[0][0]          = new TH1D("h_pt_2gamma1poorconvAllEB","Di-photon P_{T} ;PT_{2#gamma} (GeV) all barrel candidates with one conversion", 200, 0., 200.0);
@@ -1009,85 +872,80 @@ int main(int argc, char * input[]) {
 
       outfile->cd();
 
-      int pct = 0;
+      int percent = 0;
       
-      for ( Long64_t i = 0; i < nentries; ++i ) {
+      for ( Long64_t i = 0; i < nentries; i++ ) {
+
         int iLeadDetector = 0;
         int iSubleadDetector = 0;
 
         TVector3 conversionVertex;
 
         if (i % (nentries/100) == 0 && bar) {
-          if (pct == 100) pct = 99;
-          cout << "\033[100m";
-          cout << "\r[";
-          cout << "\033[42m";
-          for (int ctr = 0; ctr <= pct / 2; ++ctr) cout << "-";
-          cout << "\b>";
-          cout << "\033[100m";
-          for (int ctr = pct / 2; ctr < 49; ++ctr) cout << " ";
-          cout << "]\033[0m";
-          cout << " " << ++pct << "%";
-          cout << flush;
+          if (percent == 100) percent = 99;
+          ProgressBar(percent);
         }
 
         currentTree.GetEntry(i);
 
-        hZVertex->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z());
-        hZSimVertex->Fill(((TVector3*) currentTree.simvtx->At(0))->Z());
+        TVector3 SimVertex = *((TVector3*) currentTree.simvtx->At(0));
+        vector<TVector3> PrimaryVertex;
+        vector<TVector3> ConversionVertex;
+        vector<TVector3> ConversionPairMomentum;
+        vector<TVector3> Photonxyz;
+        vector<TLorentzVector> Photonp4;
+
+        for (unsigned int j=0; j!=(unsigned int) currentTree.vtx_std_xyz->GetSize(); j++) PrimaryVertex.push_back(*((TVector3*) currentTree.vtx_std_xyz->At(j)));
+        
+        hZVertex->Fill(PrimaryVertex[0].Z());
+        hZSimVertex->Fill(SimVertex.Z());
 
         if (currentTree.pho_n<1) continue;
 
         map <double, unsigned int> ptindex;
-        unsigned int leadindex = 0;
-        unsigned int subleadindex = 0;
+        for (unsigned int j=0; j!=(unsigned int) currentTree.pho_n; j++) {
+          ConversionVertex.push_back(*((TVector3*) currentTree.pho_conv_vtx->At(j)));
+          ConversionPairMomentum.push_back(*((TVector3*) currentTree.pho_conv_pair_momentum->At(j)));
+          Photonxyz.push_back(*((TVector3*) currentTree.pho_calopos->At(j)));
+          Photonp4.push_back(*((TLorentzVector*) currentTree.pho_p4->At(j)));
+          ptindex[Photonp4[j].Pt()]=j;
+        }
+
         double leadpt = -1;
         double subleadpt = -1;
-        for (unsigned int i = 0; i != (unsigned int) currentTree.pho_n; i++) {
-          ptindex[((TLorentzVector*) currentTree.pho_p4->At(i))->Pt()]=i;
-        }
+        unsigned int leadindex = 0;
+        unsigned int subleadindex = 0;
 
-        int count=0;
-        for (map<double,unsigned int>::iterator it_ptindex=ptindex.begin(); it_ptindex!=ptindex.end(); ++it_ptindex) {
-          //cout << "Pt: " << it_ptindex->first << " Index: " << it_ptindex->second << endl;
-          if (count==currentTree.pho_n-1) leadindex=it_ptindex->second;
-          if (count==currentTree.pho_n-1) leadpt=it_ptindex->first;
-          if (count==currentTree.pho_n-2) subleadindex=it_ptindex->second;
-          if (count==currentTree.pho_n-2) subleadpt=it_ptindex->first;
-          count++;
-        }
+        bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
 
-        if (leadpt<=subleadpt && currentTree.pho_n>1) cout << "Final Lead Index: " << leadindex  << " (" << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << ") Sublead Index: " << subleadindex << " (" << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
-        //cout << "Final Lead Index: " << leadindex  << " (" << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << ") Sublead Index: " << subleadindex << " (" << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
+        if (!sorted) cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
+        //cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
         hNVertices->Fill(currentTree.vtx_std_xyz->GetSize());
         hNSimVertices->Fill(currentTree.simvtx->GetSize());
 
         //////////////// basic selection
-        if (((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()<20) continue;
-        if (((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()<20) continue;
-        if (fabs(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta())>2.5 || fabs(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta())>2.5) continue;
-        if (currentTree.pho_isEBEEGap[leadindex] || currentTree.pho_isEBEEGap[subleadindex] ) continue;
+        if (!preselection(Photonp4[leadindex].Pt(), Photonp4[subleadindex].Pt(), Photonxyz[leadindex].Eta(), Photonxyz[subleadindex].Eta(), currentTree.pho_isEBEEGap[leadindex], currentTree.pho_isEBEEGap[subleadindex])) continue;
+
         ////////////////////////////////////
-        if (currentTree.pho_isEB[leadindex]) iLeadDetector=1;
-        if (currentTree.pho_isEE[leadindex]) iLeadDetector=2;
-        if (currentTree.pho_isEB[subleadindex]) iSubleadDetector=1;
-        if (currentTree.pho_isEE[subleadindex]) iSubleadDetector=2;
+        iLeadDetector = DetectorPosition(&currentTree, leadindex);
+        iSubleadDetector = DetectorPosition(&currentTree, subleadindex);
+
         /////////////////////////
-        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_chi2_probability[leadindex] , ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(leadindex))->Perp() );
-        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex] ,  ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(subleadindex))->Perp() );
+        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_chi2_probability[leadindex] , Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp());
+        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex] ,  Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp());
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
         ////////////////////////////////////
 
         unsigned int convindex = 0;
-        if (diPhoCategory==2 || diPhoCategory==4) {
+        if (leadPhoCategory==2 || subleadPhoCategory==2) {
           if (!currentTree.pho_isEB[convindex]) continue;
           if (currentTree.pho_conv_validvtx[subleadindex]) convindex=subleadindex;
           if (currentTree.pho_conv_validvtx[leadindex]) convindex=leadindex;
+          convr->Fill(ConversionVertex[convindex].Perp());
+          convrdZ->Fill(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),ConversionVertex[convindex].Perp());
           hZconv->Fill(currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
-          hZconvError->Fill(((TVector3*) currentTree.simvtx->At(0))->Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
-          hZError->Fill(((TVector3*) currentTree.simvtx->At(0))->Z()-((TVector3*) currentTree.vtx_std_xyz->At(0))->Z());
-          convr->Fill(((TVector3*) currentTree.pho_conv_vtx->At(convindex))->Perp());
-          convrdZ->Fill(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),((TVector3*) currentTree.pho_conv_vtx->At(convindex))->Perp());
+          hZconvError->Fill(SimVertex.Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          hZError->Fill(SimVertex.Z()-PrimaryVertex[0].Z());
         }
 
         for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
@@ -1096,87 +954,87 @@ int main(int argc, char * input[]) {
           if (currentTree.pho_isEB[j]) detector=1;
           if (currentTree.pho_isEE[j]) detector=2;
 
-          h_phi_conv[0][0]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Phi());
-          h_eta_conv[0][0]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Eta());
-          h_pt_conv[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(j))->Pt());
-          h_z_conv[0][0]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->z());
-          h_r_conv[0][0]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->Perp());
+          h_phi_conv[0][0]->Fill(Photonxyz[j].Phi());
+          h_eta_conv[0][0]->Fill(Photonxyz[j].Eta());
+          h_pt_conv[0][0]->Fill(Photonp4[j].Pt());
+          h_z_conv[0][0]->Fill(ConversionVertex[j].z());
+          h_r_conv[0][0]->Fill(ConversionVertex[j].Perp());
 
-          h_phi_conv[detector][0]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Phi());
-          h_eta_conv[detector][0]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Eta());
-          h_pt_conv[detector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(j))->Pt());
-          h_z_conv[detector][0]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->z());
-          h_r_conv[detector][0]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->Perp());
+          h_phi_conv[detector][0]->Fill(Photonxyz[j].Phi());
+          h_eta_conv[detector][0]->Fill(Photonxyz[j].Eta());
+          h_pt_conv[detector][0]->Fill(Photonp4[j].Pt());
+          h_z_conv[detector][0]->Fill(ConversionVertex[j].z());
+          h_r_conv[detector][0]->Fill(ConversionVertex[j].Perp());
         }
 
-        hLeadEt[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
-        hLeadEta[0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta(),weight);
-        hLeadPhi[0]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+        hLeadEt[0][0]->Fill(Photonp4[leadindex].Et(),weight);
+        hLeadEta[0]->Fill(Photonxyz[leadindex].Eta(),weight);
+        hLeadPhi[0]->Fill(Photonxyz[leadindex].Phi(),weight);
         hLeadR9[0][0]->Fill(currentTree.pho_r9[leadindex],weight);
         hLeadHoE[0][0]->Fill(currentTree.pho_hoe[leadindex],weight);
         hLeadTrkPtSumSolid03[0][0]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
         hLeadEcalPtSumSolid03[0][0]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
         hLeadHcalPtSumSolid03[0][0]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
         hLeadSigmaIetaIeta[0][0]->Fill(currentTree.pho_sieie[leadindex],weight);
-        hLeadZPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hLeadDzPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[0][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hLeadZPV_[0][0]->Fill(PrimaryVertex[0].Z(),weight);
+        hLeadDzPV_[0][0]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[0][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-SimVertex.Z(),weight);
         if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
+          conversionVertex.SetXYZ(ConversionVertex[leadindex].X(),ConversionVertex[leadindex].Y(),ConversionVertex[leadindex].Z());
           h2_convVtxRvsZBarrel_[0]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
         
         hNPhotons[0]->Fill(currentTree.pho_n,weight);
 
-        hLeadEt[iLeadDetector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
+        hLeadEt[iLeadDetector][0]->Fill(Photonp4[leadindex].Et(),weight);
         hLeadR9[iLeadDetector][0]->Fill(currentTree.pho_r9[leadindex],weight);
         hLeadHoE[iLeadDetector][0]->Fill(currentTree.pho_hoe[leadindex],weight);
         hLeadTrkPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
         hLeadEcalPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
         hLeadHcalPtSumSolid03[iLeadDetector][0]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
         hLeadSigmaIetaIeta[iLeadDetector][0]->Fill(currentTree.pho_sieie[leadindex],weight);
-        hLeadZPV_[iLeadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hLeadDzPV_[iLeadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[iLeadDetector][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hLeadZPV_[iLeadDetector][0]->Fill(PrimaryVertex[0].Z(),weight);
+        hLeadDzPV_[iLeadDetector][0]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[iLeadDetector][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-SimVertex.Z(),weight);
 
-        hSubLeadEt[0][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
-        hSubLeadEta[0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta(),weight);
-        hSubLeadPhi[0]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+        hSubLeadEt[0][0]->Fill(Photonp4[subleadindex].Et(),weight);
+        hSubLeadEta[0]->Fill(Photonxyz[subleadindex].Eta(),weight);
+        hSubLeadPhi[0]->Fill(Photonxyz[subleadindex].Phi(),weight);
         hSubLeadR9[0][0]->Fill(currentTree.pho_r9[subleadindex],weight);
         hSubLeadHoE[0][0]->Fill(currentTree.pho_hoe[subleadindex],weight);
         hSubLeadTrkPtSumSolid03[0][0]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
         hSubLeadEcalPtSumSolid03[0][0]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
         hSubLeadHcalPtSumSolid03[0][0]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
         hSubLeadSigmaIetaIeta[0][0]->Fill(currentTree.pho_sieie[subleadindex],weight);
-        hSubLeadZPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hSubLeadDzPV_[0][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[0][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hSubLeadZPV_[0][0]->Fill(PrimaryVertex[0].Z(),weight);
+        hSubLeadDzPV_[0][0]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[0][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-SimVertex.Z(),weight);
         if (currentTree.pho_conv_ntracks[subleadindex]==2 && currentTree.pho_conv_chi2_probability[subleadindex]>0.0005 && (bool) currentTree.pho_isEB[subleadindex]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
+          conversionVertex.SetXYZ(ConversionVertex[leadindex].X(),ConversionVertex[leadindex].Y(),ConversionVertex[leadindex].Z());
           h2_convVtxRvsZBarrel_[0]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
 
-        /*if (((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()>((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()) {
+        /*if (Photonp4[subleadindex].Pt()>Photonp4[leadindex].Pt()) {
           cout << "WARNING! - Tree is not pt sorted!!!!!!!!!" << endl;
-          cout << "LeadPt is " << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << endl;
-          cout << "SubLeadPt is " << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << endl;
+          cout << "LeadPt is " << Photonp4[leadindex].Pt() << endl;
+          cout << "SubLeadPt is " << Photonp4[subleadindex].Pt() << endl;
         }*/
 
-        hSubLeadEt[iSubleadDetector][0]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
+        hSubLeadEt[iSubleadDetector][0]->Fill(Photonp4[subleadindex].Et(),weight);
         hSubLeadR9[iSubleadDetector][0]->Fill(currentTree.pho_r9[subleadindex],weight);
         hSubLeadHoE[iSubleadDetector][0]->Fill(currentTree.pho_hoe[subleadindex],weight);
         hSubLeadTrkPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
         hSubLeadEcalPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
         hSubLeadHcalPtSumSolid03[iSubleadDetector][0]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
         hSubLeadSigmaIetaIeta[iSubleadDetector][0]->Fill(currentTree.pho_sieie[subleadindex],weight);
-        hSubLeadZPV_[iSubleadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hSubLeadDzPV_[iSubleadDetector][0]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[iSubleadDetector][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hSubLeadZPV_[iSubleadDetector][0]->Fill(PrimaryVertex[0].Z(),weight);
+        hSubLeadDzPV_[iSubleadDetector][0]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[iSubleadDetector][0]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-SimVertex.Z(),weight);
 
         //TLorentzVector VLead( currentTree.momentumX[leadindex],   currentTree.momentumY[leadindex],  currentTree.momentumZ[leadindex], currentTree.energy[leadindex]);
         //TLorentzVector VSubLead( currentTree.momentumX[subleadindex],   currentTree.momentumY[subleadindex],  currentTree.momentumZ[subleadindex], currentTree.energy[subleadindex]);
-        TLorentzVector VLead(*((TLorentzVector*) currentTree.pho_p4->At(leadindex)));
-        TLorentzVector VSubLead(*((TLorentzVector*) currentTree.pho_p4->At(subleadindex)));
+        TLorentzVector VLead(Photonp4[leadindex]);
+        TLorentzVector VSubLead(Photonp4[subleadindex]);
         TLorentzVector VSum=VLead+VSubLead;
         double InvMass=fabs(VSum.M());
 
@@ -1247,28 +1105,28 @@ int main(int argc, char * input[]) {
         double cos_theta_simvertex = 0;
         double tg_thetas_simvertex = 0;
         double cos_thetastar_simvertex = 0;
-        
+
         //With Sim Vertex
         TLorentzVector VLead_simvertex(0,0,0,0);
         TLorentzVector VSubLead_simvertex(0,0,0,0);
         
         if (diPhoCategory==2) {
 
-          leadtheta_newvertex = atan2(((TVector3*) currentTree.pho_calopos->At(leadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(leadindex))->Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          leadtheta_newvertex = atan2(Photonxyz[leadindex].Perp(),Photonxyz[leadindex].Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
           leadeta_newvertex = -log(tan(leadtheta_newvertex/2));
-          leadpt_newvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E()*sin(leadtheta_newvertex));
+          leadpt_newvertex = fabs(Photonp4[leadindex].E()*sin(leadtheta_newvertex));
 
-          //cout "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << endl;
+          //cout "Lorentz Theta: " << Photonxyz[leadindex].Theta() << " Lorentz Eta: " << Photonxyz[leadindex].Eta() << " Lorentz Pt: " << Photonp4[leadindex].Pt() << endl;
           //cout "My Theta:      " << leadtheta_newvertex << " My Eta       " << leadeta_newvertex << " My Pt      " << leadpt_newvertex << endl;
         
-          subleadtheta_newvertex =  atan2(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(subleadindex))->Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          subleadtheta_newvertex =  atan2(Photonxyz[subleadindex].Perp(),Photonxyz[subleadindex].Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
           subleadeta_newvertex = -log(tan(subleadtheta_newvertex/2));
-          subleadpt_newvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E()*sin(subleadtheta_newvertex));
-          //cout << "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << endl;
+          subleadpt_newvertex = fabs(Photonp4[subleadindex].E()*sin(subleadtheta_newvertex));
+          //cout << "Lorentz Theta: " << Photonxyz[subleadindex].Theta() << " Lorentz Eta: " << Photonxyz[subleadindex].Eta() << " Lorentz Pt: " << Photonp4[subleadindex].Pt() << endl;
           //cout << "My Theta:      " << subleadtheta_newvertex << " My Eta       " << subleadeta_newvertex << " My Pt      " << subleadpt_newvertex << endl;
       
-          VLead_newvertex.SetPtEtaPhiE(leadpt_newvertex,leadeta_newvertex,((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E());
-          VSubLead_newvertex.SetPtEtaPhiE(subleadpt_newvertex,subleadeta_newvertex,((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E());
+          VLead_newvertex.SetPtEtaPhiE(leadpt_newvertex,leadeta_newvertex,Photonxyz[leadindex].Phi(),Photonp4[leadindex].E());
+          VSubLead_newvertex.SetPtEtaPhiE(subleadpt_newvertex,subleadeta_newvertex,Photonxyz[subleadindex].Phi(),Photonp4[subleadindex].E());
           //cout << "LeadPt: " << VLead.Pt() << " LeadEta: " << VLead.Eta() << " LeadPhi: " << VLead.Phi() << " LeadE: " << VLead.E() << endl;
           //cout << "MyLeadPt: " << VLead_newvertex.Pt() << " MyLeadEta: " << VLead_newvertex.Eta() << " MyLeadPhi: " << VLead_newvertex.Phi() << " MyLeadE: " << VLead_newvertex.E() << endl;
           //cout << "SubLeadPt: " << VSubLead.Pt() << " SubLeadEta: " << VSubLead.Eta() << " SubLeadPhi: " << VSubLead.Phi() << " SubLeadE: " << VSubLead.E() << endl;
@@ -1290,21 +1148,21 @@ int main(int argc, char * input[]) {
           tg_thetas_newvertex = sin_theta_newvertex/(gamma_b_newvertex*(cos_theta_newvertex-beta_b_newvertex));
           cos_thetastar_newvertex= 1.0/sqrt(1.0+tg_thetas_newvertex*tg_thetas_newvertex);
 
-          leadtheta_simvertex = atan2(((TVector3*) currentTree.pho_calopos->At(leadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(leadindex))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z());
+          leadtheta_simvertex = atan2(Photonxyz[leadindex].Perp(),Photonxyz[leadindex].Z()-SimVertex.Z());
           leadeta_simvertex = -log(tan(leadtheta_simvertex/2));
-          leadpt_simvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E()*sin(leadtheta_simvertex));
+          leadpt_simvertex = fabs(Photonp4[leadindex].E()*sin(leadtheta_simvertex));
 
-          //cout "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << endl;
+          //cout "Lorentz Theta: " << Photonxyz[leadindex].Theta() << " Lorentz Eta: " << Photonxyz[leadindex].Eta() << " Lorentz Pt: " << Photonp4[leadindex].Pt() << endl;
           //cout "My Theta:      " << leadtheta_simvertex << " My Eta       " << leadeta_simvertex << " My Pt      " << leadpt_simvertex << endl;
         
-          subleadtheta_simvertex =  atan2(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(subleadindex))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z());
+          subleadtheta_simvertex =  atan2(Photonxyz[subleadindex].Perp(),Photonxyz[subleadindex].Z()-SimVertex.Z());
           subleadeta_simvertex = -log(tan(subleadtheta_simvertex/2));
-          subleadpt_simvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E()*sin(subleadtheta_simvertex));
-          //cout << "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << endl;
+          subleadpt_simvertex = fabs(Photonp4[subleadindex].E()*sin(subleadtheta_simvertex));
+          //cout << "Lorentz Theta: " << Photonxyz[subleadindex].Theta() << " Lorentz Eta: " << Photonxyz[subleadindex].Eta() << " Lorentz Pt: " << Photonp4[subleadindex].Pt() << endl;
           //cout << "My Theta:      " << subleadtheta_simvertex << " My Eta       " << subleadeta_simvertex << " My Pt      " << subleadpt_simvertex << endl;
       
-          VLead_simvertex.SetPtEtaPhiE(leadpt_simvertex,leadeta_simvertex,((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E());
-          VSubLead_simvertex.SetPtEtaPhiE(subleadpt_simvertex,subleadeta_simvertex,((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E());
+          VLead_simvertex.SetPtEtaPhiE(leadpt_simvertex,leadeta_simvertex,Photonxyz[leadindex].Phi(),Photonp4[leadindex].E());
+          VSubLead_simvertex.SetPtEtaPhiE(subleadpt_simvertex,subleadeta_simvertex,Photonxyz[subleadindex].Phi(),Photonp4[subleadindex].E());
           //cout << "LeadPt: " << VLead.Pt() << " LeadEta: " << VLead.Eta() << " LeadPhi: " << VLead.Phi() << " LeadE: " << VLead.E() << endl;
           //cout << "MyLeadPt: " << VLead_simvertex.Pt() << " MyLeadEta: " << VLead_simvertex.Eta() << " MyLeadPhi: " << VLead_simvertex.Phi() << " MyLeadE: " << VLead_simvertex.E() << endl;
           //cout << "SubLeadPt: " << VSubLead.Pt() << " SubLeadEta: " << VSubLead.Eta() << " SubLeadPhi: " << VSubLead.Phi() << " SubLeadE: " << VSubLead.E() << endl;
@@ -1327,21 +1185,21 @@ int main(int argc, char * input[]) {
           cos_thetastar_simvertex= 1.0/sqrt(1.0+tg_thetas_simvertex*tg_thetas_simvertex);
         }
         
-        if (((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()>40 && ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()>30 && InvMass>90 && InvMass<250
-            && MarcosCut(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt(), currentTree.pho_ecalsumetconedr04[leadindex], currentTree.pho_hcalsumetconedr04[leadindex], currentTree.pho_trksumpthollowconedr04[leadindex], currentTree.pho_haspixseed[leadindex], currentTree.pho_isEB[leadindex], currentTree.pho_isEE[leadindex], currentTree.pho_sieie[leadindex], currentTree.pho_hoe[leadindex])
-            && MarcosCut(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt(), currentTree.pho_ecalsumetconedr04[subleadindex], currentTree.pho_hcalsumetconedr04[subleadindex], currentTree.pho_trksumpthollowconedr04[subleadindex], currentTree.pho_haspixseed[subleadindex], currentTree.pho_isEB[subleadindex], currentTree.pho_isEE[subleadindex], currentTree.pho_sieie[subleadindex], currentTree.pho_hoe[subleadindex])
+        if (Photonp4[leadindex].Pt()>40 && Photonp4[subleadindex].Pt()>30 && InvMass>90 && InvMass<250
+            && MarcosCut(Photonp4[leadindex].Pt(), currentTree.pho_ecalsumetconedr04[leadindex], currentTree.pho_hcalsumetconedr04[leadindex], currentTree.pho_trksumpthollowconedr04[leadindex], currentTree.pho_haspixseed[leadindex], currentTree.pho_isEB[leadindex], currentTree.pho_isEE[leadindex], currentTree.pho_sieie[leadindex], currentTree.pho_hoe[leadindex])
+            && MarcosCut(Photonp4[subleadindex].Pt(), currentTree.pho_ecalsumetconedr04[subleadindex], currentTree.pho_hcalsumetconedr04[subleadindex], currentTree.pho_trksumpthollowconedr04[subleadindex], currentTree.pho_haspixseed[subleadindex], currentTree.pho_isEB[subleadindex], currentTree.pho_isEE[subleadindex], currentTree.pho_sieie[subleadindex], currentTree.pho_hoe[subleadindex])
             ) {
-          hLeadEtMarco->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt());
-          hSubLeadEtMarco->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt());
+          hLeadEtMarco->Fill(Photonp4[leadindex].Pt());
+          hSubLeadEtMarco->Fill(Photonp4[subleadindex].Pt());
           h_mass_Marco->Fill(InvMass);
 
           int MarcosCategory = MarcosCutCategory(currentTree.pho_r9[leadindex], currentTree.pho_isEB[leadindex], currentTree.pho_isEE[leadindex], currentTree.pho_r9[subleadindex], currentTree.pho_isEB[subleadindex], currentTree.pho_isEE[subleadindex]);
-          hLeadEtMarcoCat[MarcosCategory]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt());
-          hSubLeadEtMarcoCat[MarcosCategory]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt());
+          hLeadEtMarcoCat[MarcosCategory]->Fill(Photonp4[leadindex].Pt());
+          hSubLeadEtMarcoCat[MarcosCategory]->Fill(Photonp4[subleadindex].Pt());
           h_mass_MarcoCat[MarcosCategory]->Fill(InvMass);
 
         }
-        
+
         /// di-photon system before event selection
         int HiggsInWhichDetector = 0;
         if (currentTree.pho_isEB[leadindex] && currentTree.pho_isEB[subleadindex]) HiggsInWhichDetector=0;  // both photons in barrel 
@@ -1393,6 +1251,11 @@ int main(int argc, char * input[]) {
           h_phi_2gamma_1goodconv_simvertex[0][HiggsInWhichDetector]->Fill(VSum_simvertex.Phi(),weight);
           h_CosThetaStar_1goodconv_simvertex[0][HiggsInWhichDetector]->Fill(cos_thetastar_simvertex,weight);
 
+          if (ConversionVertex[convindex].Perp()<70) h_mass_2gamma_1goodconv_70[0][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          if (ConversionVertex[convindex].Perp()<60) h_mass_2gamma_1goodconv_60[0][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          if (ConversionVertex[convindex].Perp()<50) h_mass_2gamma_1goodconv_50[0][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          if (ConversionVertex[convindex].Perp()<40) h_mass_2gamma_1goodconv_40[0][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          
         } else if ( diPhoCategory==3 ) {
 
           h_mass_2gamma_1poorconv[0][HiggsInWhichDetector]->Fill(InvMass,weight);
@@ -1423,12 +1286,12 @@ int main(int argc, char * input[]) {
         }
 
         ///////////////////////////////  Event selection ///////////////////////////////////////
-        if (((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()<40) continue; // leading photon
-        if (((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()<30) continue; // subleading photon
+        if (Photonp4[leadindex].Pt()<40) continue; // leading photon
+        if (Photonp4[subleadindex].Pt()<30) continue; // subleading photon
         //isolation 
         
-        if (fabs(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta())>2.5 || fabs(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta())>2.5) continue;
-        if (!(looseId(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt(),
+        if (fabs(Photonxyz[leadindex].Eta())>2.5 || fabs(Photonxyz[subleadindex].Eta())>2.5) continue;
+        if (!(looseId(Photonp4[leadindex].Pt(),
 		      currentTree.pho_ecalsumetconedr04[leadindex],
 		      currentTree.pho_hcalsumetconedr04[leadindex],
 		      currentTree.pho_trksumpthollowconedr04[leadindex],
@@ -1437,7 +1300,7 @@ int main(int argc, char * input[]) {
 		      currentTree.pho_sieie[leadindex],
 		      currentTree.pho_hoe[leadindex]))) continue;
 
-        if (!(looseId(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt(),
+        if (!(looseId(Photonp4[subleadindex].Pt(),
 		      currentTree.pho_ecalsumetconedr04[subleadindex],
 		      currentTree.pho_hcalsumetconedr04[subleadindex],
 		      currentTree.pho_trksumpthollowconedr04[subleadindex],
@@ -1451,14 +1314,14 @@ int main(int argc, char * input[]) {
 				currentTree.pho_conv_chi2_probability[leadindex], 
 				currentTree.pho_conv_dphitrksatvtx[leadindex], 
 				currentTree.pho_conv_paircotthetasep[leadindex], 
-				((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(leadindex))->Perp());
+				Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp());
 
         bool convsel2 = convSel(currentTree.pho_conv_ntracks[subleadindex],
 				currentTree.pho_conv_validvtx[subleadindex] ,  
 				currentTree.pho_conv_chi2_probability[subleadindex], 
 				currentTree.pho_conv_dphitrksatvtx[subleadindex], 
 				currentTree.pho_conv_paircotthetasep[subleadindex], 
-				((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt()/((TVector3*) currentTree.pho_conv_pair_momentum->At(subleadindex))->Perp());
+				Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp());
 
         HiggsInWhichDetector = 0;
         if (currentTree.pho_isEB[leadindex] && currentTree.pho_isEB[subleadindex]) HiggsInWhichDetector=0;  // both photons in barrel 
@@ -1470,84 +1333,84 @@ int main(int argc, char * input[]) {
           if (currentTree.pho_isEB[j]) detector=1;
           if (currentTree.pho_isEE[j]) detector=2;
           
-          h_phi_conv[0][1]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Phi());
-          h_eta_conv[0][1]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Eta());
-          h_pt_conv[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(j))->Pt());
-          h_z_conv[0][1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->z());
-          h_r_conv[0][1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->Perp());
+          h_phi_conv[0][1]->Fill(Photonxyz[j].Phi());
+          h_eta_conv[0][1]->Fill(Photonxyz[j].Eta());
+          h_pt_conv[0][1]->Fill(Photonp4[j].Pt());
+          h_z_conv[0][1]->Fill(ConversionVertex[j].z());
+          h_r_conv[0][1]->Fill(ConversionVertex[j].Perp());
 
-          h_phi_conv[detector][1]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Phi());
-          h_eta_conv[detector][1]->Fill(((TVector3*) currentTree.pho_calopos->At(j))->Eta());
-          h_pt_conv[detector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(j))->Pt());
-          h_z_conv[detector][1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->z());
-          h_r_conv[detector][1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(j))->Perp());
+          h_phi_conv[detector][1]->Fill(Photonxyz[j].Phi());
+          h_eta_conv[detector][1]->Fill(Photonxyz[j].Eta());
+          h_pt_conv[detector][1]->Fill(Photonp4[j].Pt());
+          h_z_conv[detector][1]->Fill(ConversionVertex[j].z());
+          h_r_conv[detector][1]->Fill(ConversionVertex[j].Perp());
         }
 
         
-        hLeadEt[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
-        hLeadEta[1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta(),weight);
-        hLeadPhi[1]->Fill(((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),weight);
+        hLeadEt[0][1]->Fill(Photonp4[leadindex].Et(),weight);
+        hLeadEta[1]->Fill(Photonxyz[leadindex].Eta(),weight);
+        hLeadPhi[1]->Fill(Photonxyz[leadindex].Phi(),weight);
         hLeadR9[0][1]->Fill(currentTree.pho_r9[leadindex],weight);
         hLeadHoE[0][1]->Fill(currentTree.pho_hoe[leadindex],weight);
         hLeadTrkPtSumSolid03[0][1]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
         hLeadEcalPtSumSolid03[0][1]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
         hLeadHcalPtSumSolid03[0][1]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
         hLeadSigmaIetaIeta[0][1]->Fill(currentTree.pho_sieie[leadindex],weight);
-        hLeadZPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hLeadDzPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[0][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hLeadZPV_[0][1]->Fill(PrimaryVertex[0].Z(),weight);
+        hLeadDzPV_[0][1]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[0][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-SimVertex.Z(),weight);
 
         if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
+          conversionVertex.SetXYZ(ConversionVertex[leadindex].X(),ConversionVertex[leadindex].Y(),ConversionVertex[leadindex].Z());
           h2_convVtxRvsZBarrel_[1]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
 
-        hSubLeadEt[0][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
-        hSubLeadEta[1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta(),weight);
-        hSubLeadPhi[1]->Fill(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),weight);
+        hSubLeadEt[0][1]->Fill(Photonp4[subleadindex].Et(),weight);
+        hSubLeadEta[1]->Fill(Photonxyz[subleadindex].Eta(),weight);
+        hSubLeadPhi[1]->Fill(Photonxyz[subleadindex].Phi(),weight);
         hSubLeadR9[0][1]->Fill(currentTree.pho_r9[subleadindex],weight);
         hSubLeadHoE[0][1]->Fill(currentTree.pho_hoe[subleadindex],weight);
         hSubLeadTrkPtSumSolid03[0][1]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
         hSubLeadEcalPtSumSolid03[0][1]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
         hSubLeadHcalPtSumSolid03[0][1]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
         hSubLeadSigmaIetaIeta[0][1]->Fill(currentTree.pho_sieie[subleadindex],weight);
-        hSubLeadZPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hSubLeadDzPV_[0][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[0][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hSubLeadZPV_[0][1]->Fill(PrimaryVertex[0].Z(),weight);
+        hSubLeadDzPV_[0][1]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[0][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-SimVertex.Z(),weight);
         
         if (currentTree.pho_conv_ntracks[subleadindex]==2 && currentTree.pho_conv_chi2_probability[subleadindex]>0.0005 && (bool) currentTree.pho_isEB[subleadindex]) {
-          conversionVertex.SetXYZ(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y(),((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z());
+          conversionVertex.SetXYZ(ConversionVertex[leadindex].X(),ConversionVertex[leadindex].Y(),ConversionVertex[leadindex].Z());
           h2_convVtxRvsZBarrel_[1]->Fill(conversionVertex.z(),conversionVertex.Perp(),weight);
         }
 
         hNPhotons[1]->Fill(currentTree.pho_n,weight);
 
-        hLeadEt[iLeadDetector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Et(),weight);
+        hLeadEt[iLeadDetector][1]->Fill(Photonp4[leadindex].Et(),weight);
         hLeadR9[iLeadDetector][1]->Fill(currentTree.pho_r9[leadindex],weight);
         hLeadHoE[iLeadDetector][1]->Fill(currentTree.pho_hoe[leadindex],weight);
         hLeadTrkPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_trksumptsolidconedr03[leadindex],weight);
         hLeadEcalPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_ecalsumetconedr03[leadindex],weight);
         hLeadHcalPtSumSolid03[iLeadDetector][1]->Fill(currentTree.pho_hcalsumetconedr03[leadindex],weight);
         hLeadSigmaIetaIeta[iLeadDetector][1]->Fill(currentTree.pho_sieie[leadindex],weight);
-        hLeadZPV_[iLeadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hLeadDzPV_[iLeadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[iLeadDetector][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hLeadZPV_[iLeadDetector][1]->Fill(PrimaryVertex[0].Z(),weight);
+        hLeadDzPV_[iLeadDetector][1]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==leadindex && leadPhoCategory==2) hLeadDzPVconv[iLeadDetector][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[leadindex]-SimVertex.Z(),weight);
         
-        hSubLeadEt[iSubleadDetector][1]->Fill(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Et(),weight);
+        hSubLeadEt[iSubleadDetector][1]->Fill(Photonp4[subleadindex].Et(),weight);
         hSubLeadR9[iSubleadDetector][1]->Fill(currentTree.pho_r9[subleadindex],weight);
         hSubLeadHoE[iSubleadDetector][1]->Fill(currentTree.pho_hoe[subleadindex],weight);
         hSubLeadTrkPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_trksumptsolidconedr03[subleadindex],weight);
         hSubLeadEcalPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_ecalsumetconedr03[subleadindex],weight);
         hSubLeadHcalPtSumSolid03[iSubleadDetector][1]->Fill(currentTree.pho_hcalsumetconedr03[subleadindex],weight);
         hSubLeadSigmaIetaIeta[iSubleadDetector][1]->Fill(currentTree.pho_sieie[subleadindex],weight);
-        hSubLeadZPV_[iSubleadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z(),weight);
-        hSubLeadDzPV_[iSubleadDetector][1]->Fill(((TVector3*) currentTree.vtx_std_xyz->At(0))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
-        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[iSubleadDetector][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-((TVector3*) currentTree.simvtx->At(0))->Z(),weight);
+        hSubLeadZPV_[iSubleadDetector][1]->Fill(PrimaryVertex[0].Z(),weight);
+        hSubLeadDzPV_[iSubleadDetector][1]->Fill(PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+        if (convindex==subleadindex && subleadPhoCategory==2) hSubLeadDzPVconv[iSubleadDetector][1]->Fill(currentTree.pho_conv_zofprimvtxfromtrks[subleadindex]-SimVertex.Z(),weight);
         
         if ( convsel1 )
-          h2_convVtxRvsZBarrel_[1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z(),sqrt(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()+((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()));
+          h2_convVtxRvsZBarrel_[1]->Fill(ConversionVertex[leadindex].Z(),sqrt(ConversionVertex[leadindex].X()*ConversionVertex[leadindex].X()+ConversionVertex[leadindex].Y()*ConversionVertex[leadindex].Y()));
         if ( convsel2 )
-          h2_convVtxRvsZBarrel_[1]->Fill(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Z(),sqrt(((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->X()+((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()*((TVector3*) currentTree.pho_conv_vtx->At(leadindex))->Y()));
+          h2_convVtxRvsZBarrel_[1]->Fill(ConversionVertex[leadindex].Z(),sqrt(ConversionVertex[leadindex].X()*ConversionVertex[leadindex].X()+ConversionVertex[leadindex].Y()*ConversionVertex[leadindex].Y()));
 
 
         if (  leadPhoCategory==0) 
@@ -1581,8 +1444,8 @@ int main(int argc, char * input[]) {
         // calculate invariant mass
         //VLead = TLorentzVector( currentTree.momentumX[leadindex],   currentTree.momentumY[leadindex],  currentTree.momentumZ[leadindex], currentTree.energy[leadindex]);
         //VSubLead = TLorentzVector( currentTree.momentumX[subleadindex],   currentTree.momentumY[subleadindex],  currentTree.momentumZ[subleadindex], currentTree.energy[subleadindex]);
-        VLead = TLorentzVector(*((TLorentzVector*) currentTree.pho_p4->At(leadindex)));
-        VSubLead = TLorentzVector(*((TLorentzVector*) currentTree.pho_p4->At(subleadindex)));
+        VLead = TLorentzVector(Photonp4[leadindex]);
+        VSubLead = TLorentzVector(Photonp4[subleadindex]);
         VSum=VLead+VSubLead;
         InvMass=fabs(VSum.M());
 
@@ -1602,21 +1465,21 @@ int main(int argc, char * input[]) {
 
         if (diPhoCategory==2) {
 
-          leadtheta_newvertex = atan2(((TVector3*) currentTree.pho_calopos->At(leadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(leadindex))->Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          leadtheta_newvertex = atan2(Photonxyz[leadindex].Perp(),Photonxyz[leadindex].Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
           leadeta_newvertex = -log(tan(leadtheta_newvertex/2));
-          leadpt_newvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E()*sin(leadtheta_newvertex));
+          leadpt_newvertex = fabs(Photonp4[leadindex].E()*sin(leadtheta_newvertex));
 
-          //cout "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << endl;
+          //cout "Lorentz Theta: " << Photonxyz[leadindex].Theta() << " Lorentz Eta: " << Photonxyz[leadindex].Eta() << " Lorentz Pt: " << Photonp4[leadindex].Pt() << endl;
           //cout "My Theta:      " << leadtheta_newvertex << " My Eta       " << leadeta_newvertex << " My Pt      " << leadpt_newvertex << endl;
         
-          subleadtheta_newvertex =  atan2(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(subleadindex))->Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          subleadtheta_newvertex =  atan2(Photonxyz[subleadindex].Perp(),Photonxyz[subleadindex].Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
           subleadeta_newvertex = -log(tan(subleadtheta_newvertex/2));
-          subleadpt_newvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E()*sin(subleadtheta_newvertex));
-          //cout << "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << endl;
+          subleadpt_newvertex = fabs(Photonp4[subleadindex].E()*sin(subleadtheta_newvertex));
+          //cout << "Lorentz Theta: " << Photonxyz[subleadindex].Theta() << " Lorentz Eta: " << Photonxyz[subleadindex].Eta() << " Lorentz Pt: " << Photonp4[subleadindex].Pt() << endl;
           //cout << "My Theta:      " << subleadtheta_newvertex << " My Eta       " << subleadeta_newvertex << " My Pt      " << subleadpt_newvertex << endl;
       
-          VLead_newvertex.SetPtEtaPhiE(leadpt_newvertex,leadeta_newvertex,((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E());
-          VSubLead_newvertex.SetPtEtaPhiE(subleadpt_newvertex,subleadeta_newvertex,((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E());
+          VLead_newvertex.SetPtEtaPhiE(leadpt_newvertex,leadeta_newvertex,Photonxyz[leadindex].Phi(),Photonp4[leadindex].E());
+          VSubLead_newvertex.SetPtEtaPhiE(subleadpt_newvertex,subleadeta_newvertex,Photonxyz[subleadindex].Phi(),Photonp4[subleadindex].E());
           //cout << "LeadPt: " << VLead.Pt() << " LeadEta: " << VLead.Eta() << " LeadPhi: " << VLead.Phi() << " LeadE: " << VLead.E() << endl;
           //cout << "MyLeadPt: " << VLead_newvertex.Pt() << " MyLeadEta: " << VLead_newvertex.Eta() << " MyLeadPhi: " << VLead_newvertex.Phi() << " MyLeadE: " << VLead_newvertex.E() << endl;
           //cout << "SubLeadPt: " << VSubLead.Pt() << " SubLeadEta: " << VSubLead.Eta() << " SubLeadPhi: " << VSubLead.Phi() << " SubLeadE: " << VSubLead.E() << endl;
@@ -1638,21 +1501,21 @@ int main(int argc, char * input[]) {
           tg_thetas_newvertex = sin_theta_newvertex/(gamma_b_newvertex*(cos_theta_newvertex-beta_b_newvertex));
           cos_thetastar_newvertex= 1.0/sqrt(1.0+tg_thetas_newvertex*tg_thetas_newvertex);
 
-          leadtheta_simvertex = atan2(((TVector3*) currentTree.pho_calopos->At(leadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(leadindex))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z());
+          leadtheta_simvertex = atan2(Photonxyz[leadindex].Perp(),Photonxyz[leadindex].Z()-SimVertex.Z());
           leadeta_simvertex = -log(tan(leadtheta_simvertex/2));
-          leadpt_simvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E()*sin(leadtheta_simvertex));
+          leadpt_simvertex = fabs(Photonp4[leadindex].E()*sin(leadtheta_simvertex));
 
-          //cout "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(leadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(leadindex))->Pt() << endl;
+          //cout "Lorentz Theta: " << Photonxyz[leadindex].Theta() << " Lorentz Eta: " << Photonxyz[leadindex].Eta() << " Lorentz Pt: " << Photonp4[leadindex].Pt() << endl;
           //cout "My Theta:      " << leadtheta_simvertex << " My Eta       " << leadeta_simvertex << " My Pt      " << leadpt_simvertex << endl;
         
-          subleadtheta_simvertex =  atan2(((TVector3*) currentTree.pho_calopos->At(subleadindex))->Perp(),((TVector3*) currentTree.pho_calopos->At(subleadindex))->Z()-((TVector3*) currentTree.simvtx->At(0))->Z());
+          subleadtheta_simvertex =  atan2(Photonxyz[subleadindex].Perp(),Photonxyz[subleadindex].Z()-SimVertex.Z());
           subleadeta_simvertex = -log(tan(subleadtheta_simvertex/2));
-          subleadpt_simvertex = fabs(((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E()*sin(subleadtheta_simvertex));
-          //cout << "Lorentz Theta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Theta() << " Lorentz Eta: " << ((TVector3*) currentTree.pho_calopos->At(subleadindex))->Eta() << " Lorentz Pt: " << ((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->Pt() << endl;
+          subleadpt_simvertex = fabs(Photonp4[subleadindex].E()*sin(subleadtheta_simvertex));
+          //cout << "Lorentz Theta: " << Photonxyz[subleadindex].Theta() << " Lorentz Eta: " << Photonxyz[subleadindex].Eta() << " Lorentz Pt: " << Photonp4[subleadindex].Pt() << endl;
           //cout << "My Theta:      " << subleadtheta_simvertex << " My Eta       " << subleadeta_simvertex << " My Pt      " << subleadpt_simvertex << endl;
       
-          VLead_simvertex.SetPtEtaPhiE(leadpt_simvertex,leadeta_simvertex,((TVector3*) currentTree.pho_calopos->At(leadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(leadindex))->E());
-          VSubLead_simvertex.SetPtEtaPhiE(subleadpt_simvertex,subleadeta_simvertex,((TVector3*) currentTree.pho_calopos->At(subleadindex))->Phi(),((TLorentzVector*) currentTree.pho_p4->At(subleadindex))->E());
+          VLead_simvertex.SetPtEtaPhiE(leadpt_simvertex,leadeta_simvertex,Photonxyz[leadindex].Phi(),Photonp4[leadindex].E());
+          VSubLead_simvertex.SetPtEtaPhiE(subleadpt_simvertex,subleadeta_simvertex,Photonxyz[subleadindex].Phi(),Photonp4[subleadindex].E());
           //cout << "LeadPt: " << VLead.Pt() << " LeadEta: " << VLead.Eta() << " LeadPhi: " << VLead.Phi() << " LeadE: " << VLead.E() << endl;
           //cout << "MyLeadPt: " << VLead_simvertex.Pt() << " MyLeadEta: " << VLead_simvertex.Eta() << " MyLeadPhi: " << VLead_simvertex.Phi() << " MyLeadE: " << VLead_simvertex.E() << endl;
           //cout << "SubLeadPt: " << VSubLead.Pt() << " SubLeadEta: " << VSubLead.Eta() << " SubLeadPhi: " << VSubLead.Phi() << " SubLeadE: " << VSubLead.E() << endl;
@@ -1716,6 +1579,11 @@ int main(int argc, char * input[]) {
           h_eta_2gamma_1goodconv_simvertex[1][HiggsInWhichDetector]->Fill(VSum_simvertex.Eta(),weight);
           h_phi_2gamma_1goodconv_simvertex[1][HiggsInWhichDetector]->Fill(VSum_simvertex.Phi(),weight);
           h_CosThetaStar_1goodconv_simvertex[1][HiggsInWhichDetector]->Fill(cos_thetastar_simvertex,weight);
+
+          if (ConversionVertex[convindex].Perp()<70) h_mass_2gamma_1goodconv_70[1][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          if (ConversionVertex[convindex].Perp()<60) h_mass_2gamma_1goodconv_60[1][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          if (ConversionVertex[convindex].Perp()<50) h_mass_2gamma_1goodconv_50[1][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+          if (ConversionVertex[convindex].Perp()<40) h_mass_2gamma_1goodconv_40[1][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
 
         } else if ( diPhoCategory==3 ) {
           h_mass_2gamma_1poorconv[1][HiggsInWhichDetector]->Fill(InvMass,weight);
@@ -1784,6 +1652,11 @@ int main(int argc, char * input[]) {
             h_phi_2gamma_1goodconv_simvertex[2][HiggsInWhichDetector]->Fill(VSum_simvertex.Phi(),weight);
             h_CosThetaStar_1goodconv_simvertex[2][HiggsInWhichDetector]->Fill(cos_thetastar_simvertex,weight);
 
+            if (ConversionVertex[convindex].Perp()<70) h_mass_2gamma_1goodconv_70[2][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+            if (ConversionVertex[convindex].Perp()<60) h_mass_2gamma_1goodconv_60[2][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+            if (ConversionVertex[convindex].Perp()<50) h_mass_2gamma_1goodconv_50[2][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+            if (ConversionVertex[convindex].Perp()<40) h_mass_2gamma_1goodconv_40[2][HiggsInWhichDetector]->Fill(InvMass_newvertex,weight);
+
           } else if ( diPhoCategory==3 ) {
             h_mass_2gamma_1poorconv[2][HiggsInWhichDetector]->Fill(InvMass,weight);
             h_pt_2gamma_1poorconv[2][HiggsInWhichDetector]->Fill(VSum.Pt(),weight);
@@ -1825,3 +1698,246 @@ int main(int argc, char * input[]) {
     FirstFileNum+=itFilePair->second;
   }
 }
+
+bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex) {
+
+  int count=0;
+  for (map<double,unsigned int>::iterator it_ptindex=ptindex.begin(); it_ptindex!=ptindex.end(); ++it_ptindex) {
+    //cout << "Pt: " << it_ptindex->first << " Index: " << it_ptindex->second << endl;
+    if (count==NumPhotons-1) leadindex=it_ptindex->second;
+    if (count==NumPhotons-1) leadpt=it_ptindex->first;
+    if (count==NumPhotons-2) subleadindex=it_ptindex->second;
+    if (count==NumPhotons-2) subleadpt=it_ptindex->first;
+    count++;
+  }
+
+  if (leadpt<=subleadpt) {
+    return false;
+  } else {
+    return true;
+  }
+  
+}
+
+
+int DetectorPosition(sdaReader *currentTree, unsigned int index) {
+
+  int ReturnValue=0;
+  if (currentTree->pho_isEB[index]) ReturnValue=1;
+  if (currentTree->pho_isEE[index]) ReturnValue=2;
+  return ReturnValue;
+ 
+}
+
+void ProgressBar(int &percent) {
+  cout << "\033[100m";
+  cout << "\r[";
+  cout << "\033[42m";
+  for (int ctr = 0; ctr <= percent / 2; ++ctr) cout << "-";
+  cout << "\b>";
+  cout << "\033[100m";
+  for (int ctr = percent / 2; ctr < 49; ++ctr) cout << " ";
+  cout << "]\033[0m";
+  cout << " " << ++percent << "%";
+  cout << flush;
+}
+
+string MakeFileName(string filename, bool unweighted, bool dataweight) {
+
+  string outfilename = "";
+  
+  if (unweighted) {
+      outfilename = "Unweighted";
+      outfilename += filename;
+    } else if (dataweight) {
+      outfilename = "Dataweight";
+      outfilename += filename;
+    } else {
+      outfilename = filename;
+    }
+
+  return outfilename;
+  
+}
+
+void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, bool &isData) {
+
+  float BranchingFraction = 0;
+
+  if (inputstring.Contains("Data")) {
+    inputfilelist.push_back(pair<string,int> ("Data.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc4/b/tkolberg/MPAntuples/Oct1_preselOriginalRefitMomentum/data.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc4/b/tkolberg/MPAntuples/Nov6_V00-00-13/Nov6_V00-00-13.root",1));
+    isData=true;
+  }
+  if (inputstring.Contains("Yousidata")) {
+    inputfilelist.push_back(pair<string,int> ("YousiData.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/YousiData/MPA_Run2010B_Nov5_12831nb.root",1));
+    isData=true;
+  }
+  if (inputstring.Contains("90GeV") || inputstring.Contains("All")) {
+    BranchingFraction = 0.000726;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis90GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon90.root",34.145*BranchingFraction/98996));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF90.root",1.7801*BranchingFraction/108813));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ90.root",3.1880*BranchingFraction/88000));
+    cout << "Warning Weights Not Correct!!!!!" << endl;
+  }
+  if (inputstring.Contains("95GeV") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00108;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis95GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon95.root",31.886*BranchingFraction/83986));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF95.root",1.6956*BranchingFraction/109579));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ95.root",2.9226*BranchingFraction/110000));
+    cout << "Warning Weights Not Correct!!!!!" << endl;
+  }
+  if (inputstring.Contains("100GeV") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00140;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis100GeV.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF100.root",1.5929*BranchingFraction/109826));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ100.root",1.9366*BranchingFraction/110000));
+    cout << "Warning Weights Not Correct!!!!!" << endl;
+    cout << "Warning no Gluon Fusion Samples!!!!!" << endl;
+  }
+  if (inputstring.Contains("105GeV") || inputstring.Contains("All")) {
+    BranchingFraction = 0.001755;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis105GeV.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF105.root",1.5138*BranchingFraction/109835));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ105.root",1.6674*BranchingFraction/110000));
+    cout << "Warning no Gluon Fusion Samples!!!!!" << endl;
+  }
+  if (inputstring.Contains("110GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.001939;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis110GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon110.root",20.493*BranchingFraction/109994));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF110.root",1.4405*BranchingFraction/105974));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ110.root",1.4421*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("115GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.002101;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon115.root",18.735*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF115.root",1.3712*BranchingFraction/109834));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ115.root",1.2524*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("120GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.002219;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon120.root",17.173*BranchingFraction/106151));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF120.root",1.3062*BranchingFraction/109848));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ120.root",1.0921*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("130GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.002240;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",14.579*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF130.root",1.1866*BranchingFraction/109848));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ130.root",0.8395*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("140GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.001929;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis140GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon140.root",12.525*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF140.root",1.0811*BranchingFraction/109842));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ140.root",0.6539*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("150GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.001363;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis150GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon150.root",10.863*BranchingFraction/43500));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF150.root",0.9868*BranchingFraction/50000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ150.root",0.5155*BranchingFraction/48000));
+  }
+  if (inputstring.Contains("PhotonPlusJet") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("PhotonPlusJet.root",11));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet0to15.root",84200000.0/1057100));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet15to30.root",171700.0/1025840));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet30to50.root",16690.0/1025480));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet50to80.root",2722.0/1024608));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet80to120.root",447.2/1048215));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet120to170.root",84.17/1023361));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet170to300.root",22.64/1089000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet300to470.root",1.493/1076926));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet470to800.root",0.1323/1093499));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet800to1400.root",0.003481/1092742));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1400to1800.root",0.00001270/1097060));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1800toInf.root",0.0000002936/1091360));
+  }
+  if (inputstring.Contains("EMEnriched") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("EMEnriched.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/(37169939/0.0104)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/(71845473/0.065)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt80to170.root",900000/(8073559/0.155)));
+  }
+  if (inputstring.Contains("Doubleemenriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("DoubleEMEnriched.root",1));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",20750000000/(31536145/0.0563)));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",293300000/(10912061/0.239)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",18700000/(21229315/0.00216)));
+  }
+  if (inputstring.Contains("Reweighteddoubleemenriched") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("ReweightedDoubleEMEnriched.root",1));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",1.15*20750000000/(31536145/0.0563)));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",1.15*293300000/(10912061/0.239)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",1.15*18700000/(21229315/0.00216)));
+  }
+  if (inputstring.Contains("QCDBCtoE") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("QCDBCtoE.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt20to30.root",236000000/(2243439/0.00056)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt30to80.root",59480000/(1995502/0.00230)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt80to170.root",900000/(1043390/0.0104)));
+  }
+  if (inputstring.Contains("Born") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("Born.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt10to25.root",236.4/523270));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt25to250.root",22.37/536230));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt250toInf.root",0.008072/541900));
+  }
+  if (inputstring.Contains("Box") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("Box.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt10to25.root",358.2/792710));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt25to250.root",12.37/768815));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt250toInf.root",0.000208/790685));
+  }
+  if (inputstring.Contains("MPATest")) {
+    inputfilelist.push_back(pair<string,int> ("MPATest.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",1));
+  }
+  if (inputstring.Contains("SDATest")) {
+    inputfilelist.push_back(pair<string,int> ("SDATest.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/hgg_reduced.root",1));
+  }
+
+}
+
+void PrintWeights() {
+
+  //Print Weights
+  const int nMassPoints=3;
+  const int nProdProcess=3;
+  double br[nMassPoints];
+  br[0]= 0.001939;
+  br[1]= 0.002219;
+  br[2]= 0.001363;
+  double SignalXSec[nMassPoints][nProdProcess];
+  double SignalW[nMassPoints][nProdProcess];
+  SignalXSec[0][0]=20.493;
+  SignalXSec[0][1]=1.4405;
+  SignalXSec[0][2]=1.4421;
+  SignalXSec[1][0]=17.173;
+  SignalXSec[1][1]=1.3062;
+  SignalXSec[1][2]=1.0921;
+  SignalXSec[2][0]=10.863;
+  SignalXSec[2][1]=0.9868;
+  SignalXSec[2][2]=0.5515;
+
+  for ( int j=0; j<nProdProcess; j++ ) {
+    for ( int i=0; i<nMassPoints; i++ ) {
+      SignalW[i][j] = br[i]*SignalXSec[i][j];
+      cout << " Process " << j << " Mass Point "<< i << " Weight " <<
+        SignalW[i][j] << endl;
+    }
+  }
+
+}
+
