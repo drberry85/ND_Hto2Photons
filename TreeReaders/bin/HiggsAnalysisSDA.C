@@ -33,6 +33,7 @@ using namespace std;
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
 unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
+double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
 string HiggsDetectorPosition(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 string DetectorPosition(sdaReader *currentTree, unsigned int index);
 string MakeFileName(string filename, bool unweighted, bool dataweight);
@@ -136,6 +137,7 @@ int main(int argc, char * input[]) {
         vector<TVector3> PrimaryVertex;
         vector<TVector3> ConversionVertex;
         vector<TVector3> ConversionPairMomentum;
+        vector<TVector3> ConversionRefittedPairMomentum;
         vector<TVector3> Photonxyz;
         vector<TLorentzVector> Photonp4;
 
@@ -154,6 +156,7 @@ int main(int argc, char * input[]) {
           ConversionVertex.push_back(*((TVector3*) currentTree.pho_conv_vtx->At(j)));
           ConversionPairMomentum.push_back(*((TVector3*) currentTree.pho_conv_pair_momentum->At(j)));
           Photonxyz.push_back(*((TVector3*) currentTree.pho_calopos->At(j)));
+          ConversionRefittedPairMomentum.push_back(*((TVector3*) currentTree.pho_conv_refitted_momentum->At(j)));
           Photonp4.push_back(*((TLorentzVector*) currentTree.pho_p4->At(j)));
           ptindex[Photonp4[j].Pt()]=j;
         }
@@ -205,6 +208,15 @@ int main(int argc, char * input[]) {
 
           histoContainer->Fill("ZconvErrorNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
           histoContainer->Fill("ZErrorNear",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+
+          TVector3 myBeamSpot(0,0,0);
+          double NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
+          histoContainer->Fill("NewZconvBarrel", NewZ, weight);
+          histoContainer->Fill("NewZconvErrorBarrel", NewZ-SimVertex.Z(), weight);
+          myBeamSpot.SetXYZ(PrimaryVertex[0].x(),PrimaryVertex[0].y(),0);
+          NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
+          histoContainer->Fill("NewZPVconvBarrel", NewZ, weight);
+          histoContainer->Fill("NewZPVconvErrorBarrel", NewZ-SimVertex.Z(), weight);
         }
 
         TVector3 NearVertex = PrimaryVertex[nearvertexindex];
@@ -439,6 +451,14 @@ double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum) {
 
 }
 
+double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot) {
+
+  double dz = (vtx.z()-myBeamSpot.z()) - ((vtx.x()-myBeamSpot.x())*mom.x()+(vtx.y()-myBeamSpot.y())*mom.y())/mom.Perp() * mom.z()/mom.Perp();
+  return dz + myBeamSpot.z();
+  
+}
+
+
 string HiggsDetectorPosition(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex) {
 
   string ReturnValue = "";
@@ -567,6 +587,12 @@ void BookHistograms(HistoContainer *histoContainer) {
     histoContainer->Add("convrdZEndcap","Distance between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Endcap;Z of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 100, 0, 100);
     histoContainer->Add("convetadZEndcap","#eta of the conversion versus #deltaZ of the Primary Vertex from the Conversion and the Sim Vertex: Endcap;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
     histoContainer->Add("convdZPrimarydZEndcap","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Endcap;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
+
+    histoContainer->Add("NewZconvBarrel","Josh's Z of Primary Vertex from Conversion (0,0,0): Barrel;Z (cm); Counts",100,-20,20);
+    histoContainer->Add("NewZconvErrorBarrel","Distance between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (0,0,0): Barrel;Z (cm); Counts",100,-1,1);
+
+    histoContainer->Add("NewZPVconvBarrel","Josh's Z of Primary Vertex from Conversion (PV): Barrel;Z (cm); Counts",100,-20,20);
+    histoContainer->Add("NewZPVconvErrorBarrel","Distance between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (PV): Barrel;Z (cm); Counts",100,-1,1);
 
     histoContainer->Add("leadEtMarco_allEcal","Leading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
     histoContainer->Add("subleadEtMarco_allEcal","Subleading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
@@ -906,91 +932,64 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/YousiData/MPA_Run2010B_Nov5_12831nb.root",1));
     isData=true;
   }
+  if (inputstring.Contains("115GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.002101;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH115.root",18.735*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF115.root",1.3712*BranchingFraction/109848));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH115.root",1.2524*BranchingFraction/110000));
+  }
   if (inputstring.Contains("120GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
     inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon120.root",17.173*BranchingFraction/106151));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF120.root",1.3062*BranchingFraction/109848));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ120.root",1.0921*BranchingFraction/110000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH120.root",17.173*BranchingFraction/109992));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF120.root",1.3062*BranchingFraction/109842));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
   }
   if (inputstring.Contains("130GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002240;
     inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",14.579*BranchingFraction/109991));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF130.root",1.1866*BranchingFraction/109848));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ130.root",0.8395*BranchingFraction/110000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130.root",14.579*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/108813));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
   }
-  if (inputstring.Contains("140GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+  if (inputstring.Contains("120Pileup") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.002219;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120Pileup.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG120.root",17.173*BranchingFraction/109991));
+  }
+  if (inputstring.Contains("130PileUp") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.002240;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130Pileup.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG130.root",14.579*BranchingFraction/109991));
+  }
+  if (inputstring.Contains("140PileUp") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.001929;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis140GeV.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon140.root",12.525*BranchingFraction/109991));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF140.root",1.0811*BranchingFraction/109842));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ140.root",0.6539*BranchingFraction/110000));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis140Pileup.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/Pileup398/SDA/GluGluToHToGG140.root",12.525*BranchingFraction/109991));
   }
-  if (inputstring.Contains("150GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
-    BranchingFraction = 0.001363;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis150GeV.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon150.root",10.863*BranchingFraction/43500));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsVBF150.root",0.9868*BranchingFraction/50000));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsQQ150.root",0.5155*BranchingFraction/48000));
+  if (inputstring.Contains("PJetEMEnriched") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("EMEnriched.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GJet_Pt-20_doubleEMEnriched.root",18700000/(21301935/0.00216)));
   }
-  if (inputstring.Contains("PhotonPlusJet") || inputstring.Contains("Background") || inputstring.Contains("All")) {
-    inputfilelist.push_back(pair<string,int> ("PhotonPlusJet.root",11));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet0to15.root",84200000.0/1057100));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet15to30.root",171700.0/1025840));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet30to50.root",16690.0/1025480));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet50to80.root",2722.0/1024608));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet80to120.root",447.2/1048215));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet120to170.root",84.17/1023361));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet170to300.root",22.64/1089000));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet300to470.root",1.493/1076926));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet470to800.root",0.1323/1093499));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet800to1400.root",0.003481/1092742));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1400to1800.root",0.00001270/1097060));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_PhotonPlusJet1800toInf.root",0.0000002936/1091360));
-  }
-  if (inputstring.Contains("EMEnriched") || inputstring.Contains("All")) {
-    inputfilelist.push_back(pair<string,int> ("EMEnriched.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt20to30.root",236000000/(37169939/0.0104)));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt30to80.root",59480000/(71845473/0.065)));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_EMEnrichedpt80to170.root",900000/(8073559/0.155)));
-  }
-  if (inputstring.Contains("Doubleemenriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+  if (inputstring.Contains("QCDEMenriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("DoubleEMEnriched.root",1));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",20750000000/(31536145/0.0563)));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",293300000/(10912061/0.239)));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",18700000/(21229315/0.00216)));
-  }
-  if (inputstring.Contains("Reweighteddoubleemenriched") || inputstring.Contains("All")) {
-    inputfilelist.push_back(pair<string,int> ("ReweightedDoubleEMEnriched.root",1));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt10to20.root",1.15*20750000000/(31536145/0.0563)));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt20.root",1.15*293300000/(10912061/0.239)));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDDoubleEMEnrichedpt40.root",1.15*18700000/(21229315/0.00216)));
-  }
-  if (inputstring.Contains("QCDBCtoE") || inputstring.Contains("Background") || inputstring.Contains("All")) {
-    inputfilelist.push_back(pair<string,int> ("QCDBCtoE.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt20to30.root",236000000/(2243439/0.00056)));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt30to80.root",59480000/(1995502/0.00230)));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_QCDBCtoEpt80to170.root",900000/(1043390/0.0104)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/QCD_Pt-40_doubleEMEnriched.root",77100/(1182075/0.0064)));
   }
   if (inputstring.Contains("Born") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("Born.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt10to25.root",236.4/523270));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt25to250.root",22.37/536230));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBorn_Pt250toInf.root",0.008072/541900));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Born10to25.root",236.4/522865));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Born25to250.root",22.37/537445));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Born250toInf.root",0.008072/546355));
   }
   if (inputstring.Contains("Box") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("Box.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt10to25.root",358.2/792710));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt25to250.root",12.37/768815));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Background/MPA_DiPhotonBox_Pt250toInf.root",0.000208/790685));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box10to25.root",358.2/797975));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box25to250.root",12.37/777725));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box250toInf.root",0.000208/789470));
   }
-  if (inputstring.Contains("MPATest")) {
-    inputfilelist.push_back(pair<string,int> ("MPATest.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",1));
-  }
-  if (inputstring.Contains("SDATest")) {
-    inputfilelist.push_back(pair<string,int> ("SDATest.root",1));
+  if (inputstring.Contains("Test")) {
+    inputfilelist.push_back(pair<string,int> ("Test.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/hgg_reduced.root",1));
   }
 
