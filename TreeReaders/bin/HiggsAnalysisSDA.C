@@ -38,7 +38,7 @@ double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairM
 string HiggsDetectorPosition(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 string DetectorPosition(sdaReader *currentTree, unsigned int index);
 string MakeFileName(string filename, bool unweighted, bool dataweight);
-TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float deltaz);
+TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float newz);
 void BookConversionPlots(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookHistograms(HistoContainer *histoContainer);
 void BookFourHists(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
@@ -281,21 +281,21 @@ int main(int argc, char * input[]) {
         
         if (diPhoCategory==2) {
 
-          VLead_newvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], PrimaryVertex[0].Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
-          VSubLead_newvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], PrimaryVertex[0].Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          VLead_newvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          VSubLead_newvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
           VSum_newvertex=VLead_newvertex+VSubLead_newvertex;
           InvMass_newvertex=fabs(VSum_newvertex.M());
           cos_thetastar_newvertex= CosThetaStar(VLead_newvertex,VSum_newvertex);
 
           if (!data) {
-            VLead_simvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], PrimaryVertex[0].Z()-SimVertex.Z());
-            VSubLead_simvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], PrimaryVertex[0].Z()-SimVertex.Z());
+            VLead_simvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], SimVertex.Z());
+            VSubLead_simvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], SimVertex.Z());
             VSum_simvertex=VLead_simvertex+VSubLead_simvertex;
             InvMass_simvertex=fabs(VSum_simvertex.M());
             cos_thetastar_simvertex= CosThetaStar(VLead_simvertex,VSum_simvertex);
           }
-          VLead_nearvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], PrimaryVertex[0].Z()-NearVertex.Z());
-          VSubLead_nearvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], PrimaryVertex[0].Z()-NearVertex.Z());
+          VLead_nearvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], NearVertex.Z());
+          VSubLead_nearvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], NearVertex.Z());
           VSum_nearvertex=VLead_nearvertex+VSubLead_nearvertex;
           InvMass_nearvertex=fabs(VSum_nearvertex.M());
           cos_thetastar_nearvertex= CosThetaStar(VLead_nearvertex,VSum_nearvertex);
@@ -541,10 +541,10 @@ string MakeFileName(string filename, bool unweighted, bool dataweight) {
   
 }
 
-TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float deltaz) {
+TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float newz) {
 
   TLorentzVector Return4Vector(0,0,0,0);
-  double theta = atan2(xyz.Perp(),xyz.Z()-deltaz);
+  double theta = atan2(xyz.Perp(),xyz.Z()-newz);
   double eta = -log(tan(theta/2));
   double pt = fabs(p4.E()*sin(theta));
 
