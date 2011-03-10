@@ -209,7 +209,7 @@ int main(int argc, char * input[]) {
   }
   if (InputArgs.Contains("MPATest")) {
     filelist.push_back(pair<string,int> ("MPATest.root",1));
-    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/Higgs130MPA.root",1));
+    filesAndWeights.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/MPA/Signal/MPA_HiggsGluon130.root",1));
   }
 
   if (InputArgs.Contains("dataweight")) {
@@ -863,7 +863,7 @@ int main(int argc, char * input[]) {
         
         if (currentTree.nPhotons<1) continue;
 
-        if (convSel(currentTree.nTracks[0], currentTree.convVtxValid[0], currentTree.convVtxChi2Prob[0], currentTree.convDPhiTracksAtVtx[0], currentTree.convpairCotThetaSeparation[0], currentTree.convEoverP[0])) {
+        if (convSel(currentTree.nTracks[0], currentTree.convVtxValid[0], currentTree.convVtxChi2Prob[0], currentTree.convDPhiTracksAtVtx[0], currentTree.convpairCotThetaSeparation[0], currentTree.convEoverP[0], currentTree.convVtxR[0])) {
           h_phi_conv[0][0]->Fill(currentTree.phi[0],weight);
           if (currentTree.isEB[0]) h_phi_conv[1][0]->Fill(currentTree.phi[0],weight);
           if (currentTree.isEE[0]) h_phi_conv[2][0]->Fill(currentTree.phi[0],weight);
@@ -875,7 +875,7 @@ int main(int argc, char * input[]) {
         }
 
         if (currentTree.nPhotons<2) continue;
-        if (convSel(currentTree.nTracks[1], currentTree.convVtxValid[1], currentTree.convVtxChi2Prob[1], currentTree.convDPhiTracksAtVtx[1], currentTree.convpairCotThetaSeparation[1], currentTree.convEoverP[1])) {
+        if (convSel(currentTree.nTracks[1], currentTree.convVtxValid[1], currentTree.convVtxChi2Prob[1], currentTree.convDPhiTracksAtVtx[1], currentTree.convpairCotThetaSeparation[1], currentTree.convEoverP[1], currentTree.convVtxR[1])) {
           h_phi_conv[0][0]->Fill(currentTree.phi[1],weight);
           if (currentTree.isEB[1]) h_phi_conv[1][0]->Fill(currentTree.phi[1],weight);
           if (currentTree.isEE[1]) h_phi_conv[2][0]->Fill(currentTree.phi[1],weight);
@@ -897,8 +897,8 @@ int main(int argc, char * input[]) {
         if (currentTree.isEB[1]) iSubleadDetector=1;
         if (currentTree.isEE[1]) iSubleadDetector=2;
         /////////////////////////
-        int leadPhoCategory = photonCategory ( currentTree.hasPixelSeed[0], currentTree.r9[0],  currentTree.nTracks[0], currentTree.convVtxChi2Prob[0] , currentTree.pt[0]/currentTree.convPairMomentumPerp[0] );
-        int subleadPhoCategory = photonCategory (currentTree.hasPixelSeed[1], currentTree.r9[1],  currentTree.nTracks[1], currentTree.convVtxChi2Prob[1] ,  currentTree.pt[1]/currentTree.convPairMomentumPerp[1]  );
+        int leadPhoCategory = photonCategory ( currentTree.hasPixelSeed[0], currentTree.r9[0],  currentTree.nTracks[0], currentTree.convVtxChi2Prob[0] , currentTree.pt[0]/currentTree.convPairMomentumPerp[0], currentTree.convVtxR[0]);
+        int subleadPhoCategory = photonCategory (currentTree.hasPixelSeed[1], currentTree.r9[1],  currentTree.nTracks[1], currentTree.convVtxChi2Prob[1] ,  currentTree.pt[1]/currentTree.convPairMomentumPerp[1], currentTree.convVtxR[1]);
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
         ////////////////////////////////////
         
@@ -1090,14 +1090,16 @@ int main(int argc, char * input[]) {
 				currentTree.convVtxChi2Prob[0], 
 				currentTree.convDPhiTracksAtVtx[0], 
 				currentTree.convpairCotThetaSeparation[0], 
-				currentTree.pt[0]/currentTree.convPairMomentumPerp[0]);
+                currentTree.pt[0]/currentTree.convPairMomentumPerp[0],
+                currentTree.convVtxR[0]);
 
         bool convsel2 = convSel(currentTree.nTracks[1],
 				currentTree.convVtxValid[1] ,  
 				currentTree.convVtxChi2Prob[1], 
 				currentTree.convDPhiTracksAtVtx[1], 
 				currentTree.convpairCotThetaSeparation[1], 
-				currentTree.pt[1]/currentTree.convPairMomentumPerp[1]);
+                currentTree.pt[1]/currentTree.convPairMomentumPerp[1],
+                currentTree.convVtxR[1]);
 
         HiggsInWhichDetector = 0;
         if (currentTree.isEB[0] && currentTree.isEB[1]) HiggsInWhichDetector=0;  // both photons in barrel 
