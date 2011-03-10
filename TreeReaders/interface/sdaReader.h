@@ -210,7 +210,7 @@ void sdaReader::Init(TFile *currentFile)
   pho_conv_vertexcorrected_p4 = 0;
   vtx_std_xyz = 0;
   simvtx = 0;
-
+  
   // Set branch addresses and branch pointers
   if (!tree) return;
   fChain = tree;
@@ -289,7 +289,8 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_conv_refitted_momentum", &pho_conv_refitted_momentum, &b_pho_conv_refitted_momentum);
   fChain->SetBranchAddress("pho_conv_vertexcorrected_p4", &pho_conv_vertexcorrected_p4, &b_pho_conv_vertexcorrected_p4);
   fChain->SetBranchAddress("vtx_std_xyz", &vtx_std_xyz, &b_vtx_std_xyz);
-  fChain->SetBranchAddress("simvtx", &simvtx, &b_simvtx);
+  if (fChain->FindLeaf("simvtx")!=NULL) fChain->SetBranchAddress("simvtx", &simvtx, &b_simvtx);
+  if (fChain->FindLeaf("gp_vtx")!=NULL) fChain->SetBranchAddress("gp_vtx", &simvtx, &b_simvtx);
   
   Notify();
 }
