@@ -128,12 +128,14 @@ bool convSel(
              float convVtxChi2Prob,
              float convDPhiTracksAtVtx,
              float convpairCotThetaSeparation,
-             float EoP
+             float EoP,
+             float R
               ) {
 
   if (nTracks != 2) return false;
   if (!convVtxValid) return false;
   if (convVtxChi2Prob < 0.0005) return false;
+  if (R>60) return false;
   //if (fabs(convDPhiTracksAtVtx) > 0.2) return false;
   //if (fabs(convpairCotThetaSeparation) > 0.3) return false;
   //if (EoP > 3.) return false;
@@ -144,7 +146,7 @@ bool convSel(
 }
 
 
-int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt) {
+int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt, float R) {
   
   int cate=0;
   if ( r9>0.93 && !pixMatch ) {
