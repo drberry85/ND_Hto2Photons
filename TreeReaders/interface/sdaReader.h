@@ -19,6 +19,7 @@ public :
   Int_t           fCurrent; //!current Tree number in a TChain
 
   // Declaration of leaf types
+  TClonesArray    *sc_p4;
   Int_t           pho_n;
   Int_t           pho_isEB[100];   //[pho_n]
   Int_t           pho_isEE[100];   //[pho_n]
@@ -95,6 +96,7 @@ public :
   TClonesArray    *simvtx;
   
   // List of branches
+  TBranch        *b_sc_p4;
   TBranch        *b_pho_n;   //!
   TBranch        *b_pho_isEB;   //!
   TBranch        *b_pho_isEE;   //!
@@ -202,6 +204,7 @@ void sdaReader::Init(TFile *currentFile)
   TTree * tree = (TTree *) currentFile->Get("event");
   
   // Set object pointer
+  sc_p4 = 0;
   pho_p4 = 0;
   pho_calopos = 0;
   pho_conv_vtx = 0;
@@ -216,6 +219,7 @@ void sdaReader::Init(TFile *currentFile)
   fChain = tree;
   fCurrent = -1;
   fChain->SetMakeClass(1);
+  fChain->SetBranchAddress("sc_p4", &sc_p4, &b_sc_p4);
   fChain->SetBranchAddress("pho_n", &pho_n, &b_pho_n);
   fChain->SetBranchAddress("pho_isEB", pho_isEB, &b_pho_isEB);
   fChain->SetBranchAddress("pho_isEE", pho_isEE, &b_pho_isEE);
