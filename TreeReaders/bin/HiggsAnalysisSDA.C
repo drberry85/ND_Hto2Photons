@@ -175,6 +175,8 @@ int main(int argc, char * input[]) {
         double subleadpt = -1;
         unsigned int leadindex = 0;
         unsigned int subleadindex = 0;
+        float scEnergy=-999;
+
 
         bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
         
@@ -190,6 +192,7 @@ int main(int argc, char * input[]) {
         unsigned int convindex = getconvindex(&currentTree,leadindex,subleadindex);
         unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
         unsigned int nearvertexindex = 0;
+	scEnergy = SuperClusterp4[convscindex].E();
 
         string iLeadDetector = DetectorPosition(&currentTree, leadindex);
         string iSubleadDetector = DetectorPosition(&currentTree, subleadindex);
@@ -360,12 +363,15 @@ int main(int argc, char * input[]) {
 		      currentTree.pho_sieie[subleadindex],
 		      currentTree.pho_hoe[subleadindex]))) continue;
 
+	float EoP = scEnergy/ConversionRefittedPairMomentum[convindex].Mag();
+
         bool convsel1 = convSel(currentTree.pho_conv_ntracks[leadindex],
 				currentTree.pho_conv_validvtx[leadindex] ,  
 				currentTree.pho_conv_chi2_probability[leadindex], 
 				currentTree.pho_conv_dphitrksatvtx[leadindex], 
 				currentTree.pho_conv_paircotthetasep[leadindex], 
-                Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp(),
+				//                Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp(),
+				EoP,
                 ConversionVertex[leadindex].Perp());
 
         bool convsel2 = convSel(currentTree.pho_conv_ntracks[subleadindex],
@@ -373,7 +379,8 @@ int main(int argc, char * input[]) {
 				currentTree.pho_conv_chi2_probability[subleadindex], 
 				currentTree.pho_conv_dphitrksatvtx[subleadindex], 
 				currentTree.pho_conv_paircotthetasep[subleadindex], 
-                Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp(),
+				// Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp(),
+				EoP,
                 ConversionVertex[subleadindex].Perp());
 
         histoContainer->Fill("NPhotonsSel",currentTree.pho_n,weight);
