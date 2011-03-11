@@ -39,6 +39,13 @@ void HistoContainer::Add(string name, int binsx, float xmin, float xmax,
   hp[name] = temp;
 } 
 
+void HistoContainer::Add(string name, string title, int binsx, float xmin, float xmax,
+			 float ymin, float ymax) {
+		       
+  TProfile temp(name.c_str(), title.c_str(), binsx, xmin, xmax, ymin, ymax);
+  hp[name] = temp;
+}
+
 void HistoContainer::Fill(string name, float value) {
 
   std::map<string, TH1F>::const_iterator it = h1.find(name);
@@ -78,6 +85,12 @@ void HistoContainer::Fill(string name, float valuex, float valuey, float weight)
   std::map<string, TH2F>::const_iterator it2 = h2.find(name);
   if (it2 != h2.end()) {
     h2[name].Fill(valuex, valuey, weight);
+    return;
+  }
+
+  std::map<string, TProfile>::const_iterator itp = hp.find(name);
+  if (itp != hp.end()) {
+    hp[name].Fill(valuex, valuey, weight);
     return;
   }
   
@@ -128,7 +141,13 @@ void HistoContainer::Fill(string name, string addon, float valuex, float valuey,
     h2[name].Fill(valuex, valuey, weight);
     return;
   }
-  
+
+  std::map<string, TProfile>::const_iterator itp = hp.find(name);
+  if (itp != hp.end()) {
+    hp[name].Fill(valuex, valuey, weight);
+    return;
+  }
+
   std::cerr << "ERROR !: histogram " << name << " is nor a TH2F" << std::endl;
 }
 

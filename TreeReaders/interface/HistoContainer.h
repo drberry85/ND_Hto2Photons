@@ -18,6 +18,7 @@ class HistoContainer {
   void Add(string, int, float, float, int, float, float);
   void Add(string, string, int, float, float, int, float, float);
   void Add(string, int, float, float, float, float);
+  void Add(string, string, int, float, float, float, float);
 
   void Fill(string, float);
   void Fill(string, float, float);
