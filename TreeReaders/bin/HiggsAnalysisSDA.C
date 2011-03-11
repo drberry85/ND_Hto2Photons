@@ -188,6 +188,7 @@ int main(int argc, char * input[]) {
 
         ////////////////////////////////////
         unsigned int convindex = getconvindex(&currentTree,leadindex,subleadindex);
+        unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
         unsigned int nearvertexindex = 0;
 
         string iLeadDetector = DetectorPosition(&currentTree, leadindex);
@@ -204,8 +205,7 @@ int main(int argc, char * input[]) {
         if (leadPhoCategory==2 || subleadPhoCategory==2) {
           if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
           histoContainer->Fill("convetadZallEcal",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
-          unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
-          //histoContainer->Fill("convEoPAll",SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
+          histoContainer->Fill("convEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
           histoContainer->Fill("convr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
           histoContainer->Fill("Zconv",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex],weight);
           if (!data) {
@@ -383,7 +383,7 @@ int main(int argc, char * input[]) {
         FillPhotonHists(&currentTree, histoContainer, string("sublead"), subleadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
 
         if (leadPhoCategory==2 || subleadPhoCategory==2) {
-          histoContainer->Fill("convEoPSel",currentTree.pho_conv_eoverp[convindex],weight);
+          histoContainer->Fill("convEoPSel",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
           if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
         }
         
@@ -617,10 +617,9 @@ void BookHistograms(HistoContainer *histoContainer) {
     //histoContainer->Add("convr","R of conversion; R (cm); Counts",100,0,100);
     BookRCutsdZPlots(histoContainer,"ZconvdZ");
 
-    histoContainer->Add("convEoPAll","E over P of Conversion; E over P; Counts",100,0,3);
-    histoContainer->Add("convEoPSel","E over P of Conversion; E over P; Counts",100,0,3);
-
     BookBarrelAndEndcap(histoContainer,"convr","R of conversion; R (cm): region; Counts",100,0,100);
+    BookBarrelAndEndcap(histoContainer,"convEoPAll","E over P of Conversion; E over P; Counts",100,0,3);
+    BookBarrelAndEndcap(histoContainer,"convEoPSel","E over P of Conversion; E over P; Counts",100,0,3);
     BookBarrelAndEndcap(histoContainer,"Zconv","Z of Primary Vertex from Conversion: region;Z (cm); Counts",100,-20,20);
     BookBarrelAndEndcap(histoContainer,"ZconvdZ","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-1,1);
     BookBarrelAndEndcap(histoContainer,"ZconvdZNearest","#deltaZ between the Z of the Conversion and the nearest vertex: region;Z (cm); Counts",100,-1,1);
@@ -632,16 +631,6 @@ void BookHistograms(HistoContainer *histoContainer) {
     BookBarrelAndEndcap(histoContainer,"RefittedZconv","Z of Primary Vertex from Refitted Conversion: region;Z (cm); Counts",100,-20,20);
     BookBarrelAndEndcap(histoContainer,"RefittedZconvdZ","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-1,1);
     
-//     histoContainer->Add("ZconvBarrel","Z of Primary Vertex from Conversion: Barrel;Z (cm); Counts",100,-20,20);
-//     histoContainer->Add("ZconvdZBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
-//     histoContainer->Add("ZconvdZNearestBarrel","#deltaZ between the Z of the Conversion and the nearest vertex: Barrel;Z (cm); Counts",100,-1,1);
-//     histoContainer->Add("ZdZNearBarrel","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
-
-//     histoContainer->Add("ZconvEndcap","Z of Primary Vertex from Conversion: Endcap;Z (cm); Counts",100,-20,20);
-//     histoContainer->Add("ZconvdZEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: Endcap;Z (cm); Counts",100,-1,1);
-//     histoContainer->Add("ZconvdZNearestEndcap","#deltaZ between the Z of the Conversion and the nearest vertex: Endcap;Z (cm); Counts",100,-1,1);
-//     histoContainer->Add("ZdZNearEndcap","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: Endcap;Z (cm); Counts",100,-1,1);
-
     histoContainer->Add("convetadZallEcal","#eta of the conversion versus #deltaZ of the Primary Vertex from the Conversion and the Sim Vertex;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
     
     histoContainer->Add("convrdZBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Barrel;#deltaZ of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 0, 100);
@@ -649,15 +638,6 @@ void BookHistograms(HistoContainer *histoContainer) {
      
     histoContainer->Add("convrdZEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Endcap;#deltaZ of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 0, 100);
     histoContainer->Add("convdZPrimaryEndcap","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Endcap;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
-
-//     histoContainer->Add("NewZconvBarrel","Josh's Z of Primary Vertex from Conversion (0,0,0): Barrel;Z (cm); Counts",100,-20,20);
-//     histoContainer->Add("NewZconvdZBarrel","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (0,0,0): Barrel;Z (cm); Counts",100,-1,1);
-
-//     histoContainer->Add("NewZPVconvBarrel","Josh's Z of Primary Vertex from Conversion (PV): Barrel;Z (cm); Counts",100,-20,20);
-//     histoContainer->Add("NewZPVconvdZBarrel","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (PV): Barrel;Z (cm); Counts",100,-1,1);
-
-//     histoContainer->Add("RefittedZconvBarrel","Z of Primary Vertex from Refitted Conversion: Barrel;Z (cm); Counts",100,-20,20);
-//     histoContainer->Add("RefittedZconvdZBarrel","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
 
     histoContainer->Add("leadEtMarco_allEcal","Leading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
     histoContainer->Add("subleadEtMarco_allEcal","Subleading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
@@ -1045,24 +1025,24 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
   }
   if (inputstring.Contains("115GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002101;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",3));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH115.root",18.735*BranchingFraction/109991));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF115.root",1.3712*BranchingFraction/109848));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH115.root",1.2524*BranchingFraction/110000));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF115.root",1.3712*BranchingFraction/109848));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH115.root",1.2524*BranchingFraction/110000));
   }
   if (inputstring.Contains("120GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",3));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH120.root",17.173*BranchingFraction/109992));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF120.root",1.3062*BranchingFraction/109842));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF120.root",1.3062*BranchingFraction/109842));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
   }
   if (inputstring.Contains("130GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002240;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",3));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130.root",14.579*BranchingFraction/109991));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/108813));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/108813));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
   }
   if (inputstring.Contains("120Pileup") || inputstring.Contains("pileup") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
