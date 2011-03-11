@@ -40,6 +40,7 @@ string DetectorPosition(sdaReader *currentTree, unsigned int index);
 string MakeFileName(string filename, bool unweighted, bool dataweight);
 TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float newz);
 void BookConversionPlots(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
+void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookHistograms(HistoContainer *histoContainer);
 void BookFourHists(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookMassPlots(HistoContainer *histoContainer, TString histname);
@@ -63,6 +64,7 @@ int main(int argc, char * input[]) {
   bool data = false;
   bool dataweight = false;
   bool unweighted = false;
+  double RCut = 99999;
   //float globalWeight = 29.19;
   float globalWeight = 1000;
 
@@ -83,6 +85,7 @@ int main(int argc, char * input[]) {
   }
   if (InputArgs.Contains("Unweighted")) unweighted=true;
   if (InputArgs.Contains("Bar")) bar=true;
+  if (InputArgs.Contains("RCut")) RCut=40;
   if (filesAndWeights.size()==0) {
     cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
     cout << "Exiting Program!!!!" << endl;
@@ -143,21 +146,22 @@ int main(int argc, char * input[]) {
         vector<TVector3> ConversionRefittedPairMomentum;
         vector<TVector3> Photonxyz;
         vector<TLorentzVector> Photonp4;
+        vector<TLorentzVector> SuperClusterp4;
 
         for (unsigned int j=0; j!=(unsigned int) currentTree.vtx_std_xyz->GetSize(); j++) PrimaryVertex.push_back(*((TVector3*) currentTree.vtx_std_xyz->At(j)));
         
         histoContainer->Fill("ZVertex",PrimaryVertex[0].Z(),weight);
         if (!data) {
           histoContainer->Fill("ZSimVertex",SimVertex.Z(),weight);
-          histoContainer->Fill("ZError",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
-          histoContainer->Fill("ZErrorZoom",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
-          for (unsigned int j=0; j<PrimaryVertex.size(); j++) histoContainer->Fill("ZErrorAll",PrimaryVertex[j].Z()-SimVertex.Z(),weight);
+          histoContainer->Fill("ZdZ",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
+          histoContainer->Fill("ZdZZoom",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
+          for (unsigned int j=0; j<PrimaryVertex.size(); j++) histoContainer->Fill("ZdZAll",PrimaryVertex[j].Z()-SimVertex.Z(),weight);
         }
         
         if (currentTree.pho_n<1) continue;
 
         map <double, unsigned int> ptindex;
-        for (unsigned int j=0; j!=(unsigned int) currentTree.pho_n; j++) {
+        for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
           ConversionVertex.push_back(*((TVector3*) currentTree.pho_conv_vtx->At(j)));
           ConversionPairMomentum.push_back(*((TVector3*) currentTree.pho_conv_pair_momentum->At(j)));
           Photonxyz.push_back(*((TVector3*) currentTree.pho_calopos->At(j)));
@@ -165,6 +169,7 @@ int main(int argc, char * input[]) {
           Photonp4.push_back(*((TLorentzVector*) currentTree.pho_p4->At(j)));
           ptindex[Photonp4[j].Pt()]=j;
         }
+        for (unsigned int j=0; j<(unsigned int) currentTree.sc_p4->GetSize(); j++) SuperClusterp4.push_back(*((TLorentzVector*) currentTree.sc_p4->At(j)));
 
         double leadpt = -1;
         double subleadpt = -1;
@@ -172,7 +177,6 @@ int main(int argc, char * input[]) {
         unsigned int subleadindex = 0;
 
         bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
-        double RCut = 40;
         
         if (!sorted) cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
         //cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
@@ -194,20 +198,20 @@ int main(int argc, char * input[]) {
         int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_chi2_probability[leadindex] , Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp(), ConversionVertex[leadindex].Perp());
         int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex] ,  Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp(), ConversionVertex[subleadindex].Perp());
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
+        if (leadPhoCategory==2 && ConversionVertex[convindex].Perp()>RCut) leadPhoCategory=3;
+        if (subleadPhoCategory==2 && ConversionVertex[convindex].Perp()>RCut) subleadPhoCategory=3;
         ////////////////////////////////////
-
         if (leadPhoCategory==2 || subleadPhoCategory==2) {
           if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
-          if (!currentTree.pho_isEB[convindex]) continue;
-          if (ConversionVertex[convindex].Perp()>RCut) continue;
-          histoContainer->Fill("convEoPAll",currentTree.pho_conv_eoverp[convindex],weight);
-          histoContainer->Fill("convr",ConversionVertex[convindex].Perp(),weight);
+          histoContainer->Fill("convetadZallEcal",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+          unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
+          //histoContainer->Fill("convEoPAll",SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
+          histoContainer->Fill("convr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
           histoContainer->Fill("Zconv",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex],weight);
           if (!data) {
             histoContainer->Fill("convrdZ",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),ConversionVertex[convindex].Perp(),weight);
-            histoContainer->Fill("convetadZ",iConvDetector,Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
-            histoContainer->Fill("convdZPrimarydZ",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),PrimaryVertex[0].Z()-SimVertex.Z(),weight);
-            histoContainer->Fill("ZconvError",iConvDetector,SimVertex.Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex],weight);
+            histoContainer->Fill("convdZPrimary",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+            histoContainer->Fill("ZconvdZ",iConvDetector,SimVertex.Z()-currentTree.pho_conv_zofprimvtxfromtrks[convindex],weight);
           }
           float deltaz = 100000;
           for (unsigned int j=0; j<PrimaryVertex.size(); j++) {
@@ -217,21 +221,21 @@ int main(int argc, char * input[]) {
             }
           }
 
-          if (ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("ZconvErrorNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
-          if (!data && ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("ZErrorNear",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+          histoContainer->Fill("ZconvdZNearest",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
+          if (!data) histoContainer->Fill("ZdZNear",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
 
           double RefittedZ = FindRefittedZ(ConversionVertex[convindex], ConversionRefittedPairMomentum[convindex]);
-          if (ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("RefittedZconvBarrel", RefittedZ, weight);
-          if (!data && ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("RefittedZconvErrorBarrel", RefittedZ-SimVertex.Z(), weight);
+          histoContainer->Fill("RefittedZconv",iConvDetector, RefittedZ, weight);
+          if (!data) histoContainer->Fill("RefittedZconvdZ",iConvDetector, RefittedZ-SimVertex.Z(), weight);
           
           TVector3 myBeamSpot(0,0,0);
           double NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
-          if (ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("NewZconvBarrel", NewZ, weight);
-          if (!data && ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("NewZconvErrorBarrel", NewZ-SimVertex.Z(), weight);
+          histoContainer->Fill("NewZconv",iConvDetector, NewZ, weight);
+          if (!data) histoContainer->Fill("NewZconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
           myBeamSpot.SetXYZ(PrimaryVertex[0].x(),PrimaryVertex[0].y(),0);
           NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
-          if (ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("NewZPVconvBarrel", NewZ, weight);
-          if (!data && ConversionVertex[convindex].Perp()<RCut) histoContainer->Fill("NewZPVconvErrorBarrel", NewZ-SimVertex.Z(), weight);
+          histoContainer->Fill("NewZPVconv",iConvDetector, NewZ, weight);
+          if (!data) histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
         }
 
         TVector3 NearVertex = PrimaryVertex[nearvertexindex];
@@ -325,8 +329,8 @@ int main(int argc, char * input[]) {
         /// di-photon system before event selection
         string HiggsInWhichDetector = HiggsDetectorPosition(&currentTree, leadindex, subleadindex);
         FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
-        if (diPhoCategory==2) FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
-        if (diPhoCategory==2 && ConversionVertex[convindex].Perp()<RCut) {
+        if (diPhoCategory==2) {
+          FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
@@ -394,8 +398,8 @@ int main(int argc, char * input[]) {
         FillCatHists(&currentTree, histoContainer, weight, leadindex, subleadindex, leadPhoCategory, subleadPhoCategory);
 
         FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
-        if (diPhoCategory==2) FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
-        if (diPhoCategory==2 && ConversionVertex[convindex].Perp()<RCut) {
+        if (diPhoCategory==2) {
+          FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
@@ -405,8 +409,8 @@ int main(int argc, char * input[]) {
         if (!data) {
           selection="Matched";
           FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
-          if (diPhoCategory==2) FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
-          if (diPhoCategory==2 && ConversionVertex[convindex].Perp()<RCut) {
+          if (diPhoCategory==2) {
+            FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
             if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
@@ -573,6 +577,17 @@ void BookConversionPlots(HistoContainer *histoContainer, TString histname, TStri
   }
 }
 
+void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
+  TString Regions[2] = {"Barrel","Endcap"};
+  for (int i=0; i<2; i++) {
+    TString histnametemp = histname;
+    TString histtitletemp = histtitle;
+    histnametemp += Regions[i];
+    histtitletemp.ReplaceAll("region",Regions[i]);
+    histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),bins,lowerlimit,upperlimit);
+  }
+}
+
 void BookFourHists(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
   
   for (int i=0; i<4; i++) {
@@ -595,42 +610,54 @@ void BookHistograms(HistoContainer *histoContainer) {
     histoContainer->Add("ZVertex","Z of Primary Vertex;Z (cm); Counts",100,-20,20);
     histoContainer->Add("ZSimVertex","Z of Simulated Vertex;Z (com); Counts",100,-20,20);
     
-    histoContainer->Add("ZError","Distance between the Z of the Primary Vertex and the Sim Vertex;Z (cm); Counts",100,-1,1);
-    histoContainer->Add("ZErrorZoom","Distance between the Z of the Primary Vertex and the Sim Vertex: Zoom;Z (cm); Counts",100,-0.02,0.02);
-    histoContainer->Add("ZErrorAll","Distance between the Z of the all vertecies and the Sim Vertex;Z (cm); Counts",100,-1,1);
+    histoContainer->Add("ZdZ","#deltaZ between the Z of the Primary Vertex and the Sim Vertex;Z (cm); Counts",100,-1,1);
+    histoContainer->Add("ZdZZoom","#deltaZ between the Z of the Primary Vertex and the Sim Vertex: Zoom;Z (cm); Counts",100,-0.02,0.02);
+    histoContainer->Add("ZdZAll","#deltaZ between the Z of the all vertecies and the Sim Vertex;Z (cm); Counts",100,-1,1);
 
-    histoContainer->Add("convr","R of conversion; R (cm); Counts",100,0,100);
-    BookRCutsdZPlots(histoContainer,"ZconvError");
+    //histoContainer->Add("convr","R of conversion; R (cm); Counts",100,0,100);
+    BookRCutsdZPlots(histoContainer,"ZconvdZ");
 
     histoContainer->Add("convEoPAll","E over P of Conversion; E over P; Counts",100,0,3);
     histoContainer->Add("convEoPSel","E over P of Conversion; E over P; Counts",100,0,3);
+
+    BookBarrelAndEndcap(histoContainer,"convr","R of conversion; R (cm): region; Counts",100,0,100);
+    BookBarrelAndEndcap(histoContainer,"Zconv","Z of Primary Vertex from Conversion: region;Z (cm); Counts",100,-20,20);
+    BookBarrelAndEndcap(histoContainer,"ZconvdZ","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-1,1);
+    BookBarrelAndEndcap(histoContainer,"ZconvdZNearest","#deltaZ between the Z of the Conversion and the nearest vertex: region;Z (cm); Counts",100,-1,1);
+    BookBarrelAndEndcap(histoContainer,"ZdZNear","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: region;Z (cm); Counts",100,-1,1);
+    BookBarrelAndEndcap(histoContainer,"NewZconv","Josh's Z of Primary Vertex from Conversion (0,0,0): region;Z (cm); Counts",100,-20,20);
+    BookBarrelAndEndcap(histoContainer,"NewZconvdZ","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (0,0,0): region;Z (cm); Counts",100,-1,1);
+    BookBarrelAndEndcap(histoContainer,"NewZPVconv","Josh's Z of Primary Vertex from Conversion (PV): region;Z (cm); Counts",100,-20,20);
+    BookBarrelAndEndcap(histoContainer,"NewZPVconvdZ","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (PV): region;Z (cm); Counts",100,-1,1);
+    BookBarrelAndEndcap(histoContainer,"RefittedZconv","Z of Primary Vertex from Refitted Conversion: region;Z (cm); Counts",100,-20,20);
+    BookBarrelAndEndcap(histoContainer,"RefittedZconvdZ","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-1,1);
     
-    histoContainer->Add("ZconvBarrel","Z of Primary Vertex from Conversion: Barrel;Z (cm); Counts",100,-20,20);
-    histoContainer->Add("ZconvErrorBarrel","Distance between the Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
-    histoContainer->Add("ZconvErrorNearestBarrel","Distance between the Z of the Conversion and the nearest vertex: Barrel;Z (cm); Counts",100,-1,1);
-    histoContainer->Add("ZErrorNearBarrel","Distance between the Z of the vertex nearest the conversion Z position and the Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("ZconvBarrel","Z of Primary Vertex from Conversion: Barrel;Z (cm); Counts",100,-20,20);
+//     histoContainer->Add("ZconvdZBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("ZconvdZNearestBarrel","#deltaZ between the Z of the Conversion and the nearest vertex: Barrel;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("ZdZNearBarrel","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
 
-    histoContainer->Add("ZconvEndcap","Z of Primary Vertex from Conversion: Endcap;Z (cm); Counts",100,-20,20);
-    histoContainer->Add("ZconvErrorEndcap","Distance between the Z of the Primary Vertex from Conversion and Sim Vertex: Endcap;Z (cm); Counts",100,-1,1);
-    histoContainer->Add("ZconvErrorNearestEndcap","Distance between the Z of the Conversion and the nearest vertex: Endcap;Z (cm); Counts",100,-1,1);
-    histoContainer->Add("ZErrorNearEndcap","Distance between the Z of the vertex nearest the conversion Z position and the Sim Vertex: Endcap;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("ZconvEndcap","Z of Primary Vertex from Conversion: Endcap;Z (cm); Counts",100,-20,20);
+//     histoContainer->Add("ZconvdZEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: Endcap;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("ZconvdZNearestEndcap","#deltaZ between the Z of the Conversion and the nearest vertex: Endcap;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("ZdZNearEndcap","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: Endcap;Z (cm); Counts",100,-1,1);
+
+    histoContainer->Add("convetadZallEcal","#eta of the conversion versus #deltaZ of the Primary Vertex from the Conversion and the Sim Vertex;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
     
-    histoContainer->Add("convrdZBarrel","Distance between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Barrel;Z of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 100, 0, 100);
-    histoContainer->Add("convetadZBarrel","#eta of the conversion versus #deltaZ of the Primary Vertex from the Conversion and the Sim Vertex: Barrel;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
-    histoContainer->Add("convdZPrimarydZBarrel","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Barrel;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
+    histoContainer->Add("convrdZBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Barrel;#deltaZ of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 0, 100);
+    histoContainer->Add("convdZPrimaryBarrel","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Barrel;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
+     
+    histoContainer->Add("convrdZEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Endcap;#deltaZ of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 0, 100);
+    histoContainer->Add("convdZPrimaryEndcap","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Endcap;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
 
-    histoContainer->Add("convrdZEndcap","Distance between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Endcap;Z of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 100, 0, 100);
-    histoContainer->Add("convetadZEndcap","#eta of the conversion versus #deltaZ of the Primary Vertex from the Conversion and the Sim Vertex: Endcap;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
-    histoContainer->Add("convdZPrimarydZEndcap","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Endcap;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
+//     histoContainer->Add("NewZconvBarrel","Josh's Z of Primary Vertex from Conversion (0,0,0): Barrel;Z (cm); Counts",100,-20,20);
+//     histoContainer->Add("NewZconvdZBarrel","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (0,0,0): Barrel;Z (cm); Counts",100,-1,1);
 
-    histoContainer->Add("NewZconvBarrel","Josh's Z of Primary Vertex from Conversion (0,0,0): Barrel;Z (cm); Counts",100,-20,20);
-    histoContainer->Add("NewZconvErrorBarrel","Distance between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (0,0,0): Barrel;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("NewZPVconvBarrel","Josh's Z of Primary Vertex from Conversion (PV): Barrel;Z (cm); Counts",100,-20,20);
+//     histoContainer->Add("NewZPVconvdZBarrel","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (PV): Barrel;Z (cm); Counts",100,-1,1);
 
-    histoContainer->Add("NewZPVconvBarrel","Josh's Z of Primary Vertex from Conversion (PV): Barrel;Z (cm); Counts",100,-20,20);
-    histoContainer->Add("NewZPVconvErrorBarrel","Distance between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (PV): Barrel;Z (cm); Counts",100,-1,1);
-
-    histoContainer->Add("RefittedZconvBarrel","Z of Primary Vertex from Refitted Conversion: Barrel;Z (cm); Counts",100,-20,20);
-    histoContainer->Add("RefittedZconvErrorBarrel","Distance between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
+//     histoContainer->Add("RefittedZconvBarrel","Z of Primary Vertex from Refitted Conversion: Barrel;Z (cm); Counts",100,-20,20);
+//     histoContainer->Add("RefittedZconvdZBarrel","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;Z (cm); Counts",100,-1,1);
 
     histoContainer->Add("leadEtMarco_allEcal","Leading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
     histoContainer->Add("subleadEtMarco_allEcal","Subleading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
@@ -913,10 +940,10 @@ void FillMassHists(HistoContainer *histoContainer, string selection, float weigh
   histoContainer->Fill(histnames[5].Data(),cos_thetastar,weight);
 
   if (diPhoCategory==1) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaGolden");
-  if (diPhoCategory==2 && R<40) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1goodconv");
+  if (diPhoCategory==2) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1goodconv");
   if (diPhoCategory==3) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1poorconv");
   if (diPhoCategory==4) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma2conv");
-  if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6 || (diPhoCategory==2 && R>40)) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
+  if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
 
   histoContainer->Fill(histnames[0].Data(),InvMass,weight);
   histoContainer->Fill(histnames[1].Data(),VSum.Pt(),weight);
@@ -963,7 +990,7 @@ void FilldZRcut(HistoContainer *histoContainer, string selection, float weight, 
 
   float RCuts[] = {90, 80, 70, 60, 50, 40 ,30, 20};
   for (unsigned int i=0; i<8; i++) {
-    TString histname = "ZconvError";
+    TString histname = "ZconvdZ";
     histname += selection;
     histname += (int) floor(RCuts[i]);
     histname += iConvDetector;
