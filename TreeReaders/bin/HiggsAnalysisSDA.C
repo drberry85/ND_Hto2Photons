@@ -48,7 +48,7 @@ void BookPhysicsPlots(HistoContainer *histoContainer, TString histname, TString 
 void BookRCutsMassPlots(HistoContainer *histoContainer, TString histname);
 void BookRCutsdZPlots(HistoContainer *histoContainer, TString histname);
 void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float weight, unsigned int leadindex, unsigned int subleadindex, int leadPhoCategory, int subleadPhoCategory);
-void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex);
+void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
 void FillMassHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, int diPhoCategory, TLorentzVector VSum, double InvMass, double cos_thetastar, double R);
 void FillMassNewVertexHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, string vertextype, TLorentzVector VSum, double InvMass, double cos_thetastar);
 void FillMassRcut(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, double R, double InvMass);
@@ -210,12 +210,11 @@ int main(int argc, char * input[]) {
 
         if (leadPhoCategory==2 || subleadPhoCategory==2) {
           if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
-          histoContainer->Fill("convetadZallEcal",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+	  histoContainer->Fill("convdZvsEtaAll",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
           histoContainer->Fill("convEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
           histoContainer->Fill("convr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
           histoContainer->Fill("Zconv",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex],weight);
           if (!data) {
-            histoContainer->Fill("convrdZ",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),ConversionVertex[convindex].Perp(),weight);
             histoContainer->Fill("convdZPrimary",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),PrimaryVertex[0].Z()-SimVertex.Z(),weight);
             histoContainer->Fill("ZconvdZ",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
             if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < 1 ) histoContainer->Fill("ZconvdZLessOnecm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
@@ -257,7 +256,7 @@ int main(int argc, char * input[]) {
         }*/
 
         histoContainer->Fill("NPhotonsAll",currentTree.pho_n,weight);
-        FillConvHists(&currentTree, histoContainer, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex);
+        FillConvHists(&currentTree, histoContainer, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
         FillPhotonHists(&currentTree, histoContainer, string("lead"), leadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
         FillPhotonHists(&currentTree, histoContainer, string("sublead"), subleadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
         
@@ -394,10 +393,15 @@ int main(int argc, char * input[]) {
 
 	if (diPhoCategory==2) {
 	  //if (leadPhoCategory==2 || subleadPhoCategory==2) {
-	  FillConvHists(&currentTree, histoContainer, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex);
-          histoContainer->Fill("convEoPSel",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
-          if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
-        }
+	  FillConvHists(&currentTree, histoContainer, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
+	  histoContainer->Fill("convdZvsEtaSel",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+          //histoContainer->Fill("convEoPSel",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
+          if (!data) {
+            histoContainer->Fill("convdZvsR",iConvDetector,ConversionVertex[convindex].Perp(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+	    histoContainer->Fill("convdZvsZ",iConvDetector,ConversionVertex[convindex].z(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+	    FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
+	  }
+	}
         
         if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex])
           histoContainer->Fill("convVtxRvsZBarrelSel",ConversionVertex[leadindex].Z(),ConversionVertex[leadindex].Perp(),weight);
@@ -627,11 +631,11 @@ void BookHistograms(HistoContainer *histoContainer) {
     histoContainer->Add("ZdZAll","#deltaZ between the Z of the all vertecies and the Sim Vertex;Z (cm); Counts",100,-1,1);
 
     //histoContainer->Add("convr","R of conversion; R (cm); Counts",100,0,100);
-    BookRCutsdZPlots(histoContainer,"ZconvdZ");
+    BookRCutsdZPlots(histoContainer,"dz_conv_");
 
     BookBarrelAndEndcap(histoContainer,"convr","R of conversion; R (cm): region; Counts",100,0,100);
     BookBarrelAndEndcap(histoContainer,"convEoPAll","E over P of Conversion; E over P; Counts",100,0,3);
-    BookBarrelAndEndcap(histoContainer,"convEoPSel","E over P of Conversion; E over P; Counts",100,0,3);
+    //    BookBarrelAndEndcap(histoContainer,"convEoPSel","E over P of Conversion; E over P; Counts",100,0,3);
     BookBarrelAndEndcap(histoContainer,"Zconv","Z of Primary Vertex from Conversion: region;Z (cm); Counts",100,-20,20);
     BookBarrelAndEndcap(histoContainer,"ZconvdZ","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
     BookBarrelAndEndcap(histoContainer,"ZconvdZLessOnecm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
@@ -647,12 +651,17 @@ void BookHistograms(HistoContainer *histoContainer) {
     BookBarrelAndEndcap(histoContainer,"RefittedZconv","Z of Primary Vertex from Refitted Conversion: region;Z (cm); Counts",100,-20,20);
     BookBarrelAndEndcap(histoContainer,"RefittedZconvdZ","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
     
-    histoContainer->Add("convetadZallEcal","#eta of the conversion versus #deltaZ of the Primary Vertex from the Conversion and the Sim Vertex;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
+    histoContainer->Add("convdZvsEtaAll","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
+    histoContainer->Add("convdZvsEtaSel","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
+ 
+    histoContainer->Add("convdZvsRBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Barrel;R  (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,0,100,100, -5, 5);
+    histoContainer->Add("convdZvsREndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Endcap;R  (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,0,100,100, -5, 5);
+    histoContainer->Add("convdZvsZBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus Z of Conversion: Barrel;Z  (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,-100,100,100, -5, 5);
+    histoContainer->Add("convdZvsZEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus Z of Conversion: Endcap;Z  (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,-100,100,100, -5, 5);
     
-    histoContainer->Add("convrdZBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Barrel;#deltaZ of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 0, 100);
     histoContainer->Add("convdZPrimaryBarrel","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Barrel;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
      
-    histoContainer->Add("convrdZEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex versus R of Conversion: Endcap;#deltaZ of Primary Vertex from Conversion (cm);R of Conversion (cm)",100, -5, 5, 0, 100);
+    
     histoContainer->Add("convdZPrimaryEndcap","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Endcap;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
 
     histoContainer->Add("leadEtMarco_allEcal","Leading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
@@ -679,12 +688,14 @@ void BookHistograms(HistoContainer *histoContainer) {
     BookPhysicsPlots(histoContainer,"leadPhoDZPVAll_region","leading photon #Deltaz_{Zpho - Ztrue} (cm), all candidates: region",100,-5.,5);
     BookPhysicsPlots(histoContainer,"leadPhoDZPVconvAll_region","leading photon #Deltaz_{Zconv - Ztrue} (cm), all candidates: region",100,-5.,5);
 
-    BookConversionPlots(histoContainer,"phi_conv_All_region","#phi of Photon Conversion All ECAL; #phi of Conversion: region", 64, -3.2, 3.2);
-    BookConversionPlots(histoContainer,"eta_conv_All_region","#eta of Photon Conversion All ECAL; #eta of Conversion: region", 60, -3.0, 3.0);
-    BookConversionPlots(histoContainer,"pt_conv_All_region","pt of Photon Conversion All ECAL; pt of Conversion: region", 200, 0, 200);
-    BookConversionPlots(histoContainer,"z_conv_All_region","z of Photon Conversion All ECAL; z of Conversion: region", 200, -100, 100);
-    BookConversionPlots(histoContainer,"r_conv_All_region","r of Photon Conversion All ECAL; r of Conversion: region", 100, 0, 100);
-    BookConversionPlots(histoContainer,"dz_conv_All_region","r of Photon Conversion All ECAL; r of Conversion: region", 100, -5, 5);
+    BookConversionPlots(histoContainer,"phi_conv_All_region","#phi of Photon Conversion; #phi of Conversion: region", 64, -3.2, 3.2);
+    BookConversionPlots(histoContainer,"eta_conv_All_region","#eta of Photon Conversion; #eta of Conversion: region", 60, -3.0, 3.0);
+    BookConversionPlots(histoContainer,"pt_conv_All_region","pt of Photon Conversion; pt of Conversion: region", 200, 0, 200);
+    BookConversionPlots(histoContainer,"z_conv_All_region","z of Photon Conversion; z (cm): region", 200, -100, 100);
+    BookConversionPlots(histoContainer,"r_conv_All_region","r of Photon Conversion; r (cm): region", 100, 0, 100);
+    BookConversionPlots(histoContainer,"dz_conv_All_region","dZ of Photon Conversion; dZ (cm): region", 100, -5, 5);
+    BookConversionPlots(histoContainer,"eop_conv_All_region","E/p of Photon Conversion; E/p: region", 100, 0, 3);
+
 
     // diphoton system
     BookMassPlots(histoContainer,"2gamma");
@@ -845,8 +856,8 @@ void BookRCutsdZPlots(HistoContainer *histoContainer, TString histname) {
 
     int RCut[8] = {20, 30, 40, 50, 60, 70, 80, 90};
     int bins = 100;
-    float lowerlimit = -1;
-    float upperlimit = 1;
+    float lowerlimit = -5;
+    float upperlimit = 5;
     
     for (unsigned int i=0; i<selection.size(); i++) {
       for (unsigned int j=0; j<region.size(); j++) {
@@ -893,19 +904,19 @@ void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float 
   
 }
 
-void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex) {
+void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
 
   for (unsigned int i=0; i<(unsigned int) currentTree->pho_n; i++) {
     if (!currentTree->pho_conv_validvtx[i]) continue;
 
     for (unsigned int j=0; j<2; j++) {
-      TString histnames[] = {"phi_conv_", "eta_conv_", "pt_conv_", "z_conv_", "r_conv_", "dz_conv_"};
+      TString histnames[] = {"phi_conv_", "eta_conv_", "pt_conv_", "z_conv_", "r_conv_", "dz_conv_","eop_conv_"};
       string region = "";
       if (j==0) region = "_allEcal";
       if (j==1 && currentTree->pho_isEB[i]) region = "_Barrel";
       if (j==1 && currentTree->pho_isEE[i]) region = "_Endcap";
 
-      for (unsigned int k=0; k<6; k++) {
+      for (unsigned int k=0; k<7; k++) {
         histnames[k] += selection;
         histnames[k] += region;
       }
@@ -916,8 +927,22 @@ void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, strin
       histoContainer->Fill(histnames[3].Data(),ConversionVertex[i].z(), weight);
       histoContainer->Fill(histnames[4].Data(),ConversionVertex[i].Perp(), weight);
       histoContainer->Fill(histnames[5].Data(),zPVFromConv - SimVertex.Z(), weight);
+      histoContainer->Fill(histnames[6].Data(),eop, weight);
 
     }
+  }
+
+}
+
+void FilldZRcut(HistoContainer *histoContainer, string selection, float weight, string iConvDetector, double R, double deltaz) {
+
+  float RCuts[] = {90, 80, 70, 60, 50, 40 ,30, 20};
+  for (unsigned int i=0; i<8; i++) {
+    TString histname = "dz_conv_";
+    histname += selection;
+    histname += (int) floor(RCuts[i]);
+    histname += iConvDetector;
+    if (R<RCuts[i]) histoContainer->Fill(histname.Data(),deltaz,weight);
   }
 
 }
@@ -985,18 +1010,7 @@ void FillMassRcut(HistoContainer *histoContainer, string selection, float weight
 
 }
 
-void FilldZRcut(HistoContainer *histoContainer, string selection, float weight, string iConvDetector, double R, double deltaz) {
 
-  float RCuts[] = {90, 80, 70, 60, 50, 40 ,30, 20};
-  for (unsigned int i=0; i<8; i++) {
-    TString histname = "ZconvdZ";
-    histname += selection;
-    histname += (int) floor(RCuts[i]);
-    histname += iConvDetector;
-    if (R<RCuts[i]) histoContainer->Fill(histname.Data(),deltaz,weight);
-  }
-
-}
 
 void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, string photon, unsigned int index, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, TVector3 PrimaryVertex, TVector3 SimVertex, vector<TLorentzVector> Photonp4, bool data) {
 
