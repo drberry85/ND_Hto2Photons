@@ -190,7 +190,8 @@ int main(int argc, char * input[]) {
         unsigned int convindex = getconvindex(&currentTree,leadindex,subleadindex);
         unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
         unsigned int nearvertexindex = 0;
-        float scEnergy = SuperClusterp4[convscindex].E();
+        float scEnergy = Photonp4[convindex].E();
+        if (currentTree.sc_p4->GetSize()>0) scEnergy = SuperClusterp4[convscindex].E();
         float EoP = scEnergy/ConversionRefittedPairMomentum[convindex].Mag();
         
         string iLeadDetector = DetectorPosition(&currentTree, leadindex);
@@ -1061,9 +1062,9 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     inputfilelist.push_back(pair<string,int> ("HiggsAnalysis140Pileup.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG140.root",12.525*BranchingFraction/109991));
   }
-  if (inputstring.Contains("PJetEMEnriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+  if (inputstring.Contains("PJet") || inputstring.Contains("PJetEMEnriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("PhotonJetEMEnriched.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GJet_Pt-20_doubleEMEnriched.root",18700000/(21301935/0.00216)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GJet_Pt-20.root",18700000/(21301935/0.00216)));
   }
   if (inputstring.Contains("QCDEMenriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("QCDDoubleEMEnriched.root",1));
