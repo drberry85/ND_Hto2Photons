@@ -37,7 +37,7 @@ double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
 double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairMomentum);
 string HiggsDetectorPosition(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 string DetectorPosition(sdaReader *currentTree, unsigned int index);
-string MakeFileName(string filename, bool unweighted, bool dataweight);
+string MakeFileName(string filename, bool unweighted, bool dataweight, double RCut);
 TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float newz);
 void BookConversionPlots(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
@@ -64,7 +64,7 @@ int main(int argc, char * input[]) {
   bool data = false;
   bool dataweight = false;
   bool unweighted = false;
-  double RCut = 99999;
+  double RCut = 999999;
   //float globalWeight = 29.19;
   float globalWeight = 1000;
 
@@ -94,7 +94,7 @@ int main(int argc, char * input[]) {
   
   for (vector<pair<string, int> >::iterator itFilePair = filelist.begin(); itFilePair != filelist.end(); ++itFilePair) {
 
-    string outfilename = MakeFileName(itFilePair->first, unweighted, dataweight);
+    string outfilename = MakeFileName(itFilePair->first, unweighted, dataweight, RCut);
     
     TFile* outfile = new TFile(outfilename.c_str(),"RECREATE");
     outfile->cd();
@@ -530,7 +530,7 @@ void ProgressBar(int &percent) {
   cout << flush;
 }
 
-string MakeFileName(string filename, bool unweighted, bool dataweight) {
+string MakeFileName(string filename, bool unweighted, bool dataweight, double RCut) {
 
   string outfilename = "";
   
@@ -543,7 +543,7 @@ string MakeFileName(string filename, bool unweighted, bool dataweight) {
     } else {
       outfilename = filename;
     }
-
+  if (RCut!=999999) outfilename+="RCut";
   return outfilename;
   
 }
@@ -1021,31 +1021,31 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
   float BranchingFraction = 0;
 
   if (inputstring.Contains("Data")) {
-    inputfilelist.push_back(pair<string,int> ("Data.root",1));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DataRunA.root",1));
+    inputfilelist.push_back(pair<string,int> ("Data.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DataRunA.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DataRunB.root",1));
     isData=true;
   }
   if (inputstring.Contains("115GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002101;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",1));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",2));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH115.root",18.735*BranchingFraction/109991));
     //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF115.root",1.3712*BranchingFraction/109848));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH115.root",1.2524*BranchingFraction/110000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH115.root",1.2524*BranchingFraction/110000));
   }
   if (inputstring.Contains("120GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",1));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",2));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH120.root",17.173*BranchingFraction/109992));
     //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF120.root",1.3062*BranchingFraction/109842));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
   }
   if (inputstring.Contains("130GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002240;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",1));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",3));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130.root",14.579*BranchingFraction/109991));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/108813));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/108813));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
   }
   if (inputstring.Contains("120Pileup") || inputstring.Contains("pileup") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
