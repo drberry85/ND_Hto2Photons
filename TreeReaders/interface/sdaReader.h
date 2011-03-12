@@ -219,7 +219,7 @@ void sdaReader::Init(TFile *currentFile)
   fChain = tree;
   fCurrent = -1;
   fChain->SetMakeClass(1);
-  fChain->SetBranchAddress("sc_p4", &sc_p4, &b_sc_p4);
+  if (fChain->FindLeaf("sc_p4")!=NULL) fChain->SetBranchAddress("sc_p4", &sc_p4, &b_sc_p4);
   fChain->SetBranchAddress("pho_n", &pho_n, &b_pho_n);
   fChain->SetBranchAddress("pho_isEB", pho_isEB, &b_pho_isEB);
   fChain->SetBranchAddress("pho_isEE", pho_isEE, &b_pho_isEE);
