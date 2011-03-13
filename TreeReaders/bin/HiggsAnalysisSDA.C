@@ -139,7 +139,7 @@ int main(int argc, char * input[]) {
         currentTree.GetEntry(i);
 
         TVector3 SimVertex(0,0,0);
-        if (!data) SimVertex.SetXYZ(((TVector3*) currentTree.simvtx->At(0))->x(),((TVector3*) currentTree.simvtx->At(0))->y(),((TVector3*) currentTree.simvtx->At(0))->z());
+	//        if (!data) SimVertex.SetXYZ(((TVector3*) currentTree.simvtx->At(0))->x(),((TVector3*) currentTree.simvtx->At(0))->y(),((TVector3*) currentTree.simvtx->At(0))->z());
         vector<TVector3> PrimaryVertex;
         vector<TVector3> ConversionVertex;
 	vector<TVector3> ConversionPairMomentum;
@@ -148,13 +148,31 @@ int main(int argc, char * input[]) {
         vector<TLorentzVector> Photonp4;
         vector<TLorentzVector> SuperClusterp4;
 
+
+       //Finding Vertex of Higgs
+        if (currentTree.simvtx->GetSize()>1) {
+          for (int j=0; j<currentTree.gp_n; j++) {
+            if (currentTree.gp_pdgid[j]==25 && currentTree.gp_status[j]==2) {
+              SimVertex.SetXYZ(((TVector3*) currentTree.simvtx->At(j))->x(),((TVector3*) currentTree.simvtx->At(j))->y(),((TVector3*) currentTree.simvtx->At(j))->z());
+            }
+          }
+        }
+ 
         for (unsigned int j=0; j!=(unsigned int) currentTree.vtx_std_xyz->GetSize(); j++) PrimaryVertex.push_back(*((TVector3*) currentTree.vtx_std_xyz->At(j)));
         
         histoContainer->Fill("ZVertex",PrimaryVertex[0].Z(),weight);
         if (!data) {
-          histoContainer->Fill("ZSimVertex",SimVertex.Z(),weight);
-          histoContainer->Fill("ZdZ",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
-          histoContainer->Fill("ZdZZoom",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
+          for ( int i=0; i<currentTree.simvtx->GetSize(); i++) {
+	    SimVertex.SetXYZ(((TVector3*) currentTree.simvtx->At(i))->x(),((TVector3*) currentTree.simvtx->At(i))->y(),((TVector3*) currentTree.simvtx->At(i))->z());
+	    //     cout << " sim vertez coordingates " << SimVertex.X() << " " << SimVertex.Y() << " " << SimVertex.Z() << endl;
+	    histoContainer->Fill("ZSimVertex",SimVertex.Z(),weight);
+	  }
+	}
+
+        if (!data) {
+	  //	  histoContainer->Fill("ZSimVertex",SimVertex.Z(),weight);
+          histoContainer->Fill("ZdZ",PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+          histoContainer->Fill("ZdZZoom",PrimaryVertex[0].Z()-SimVertex.Z(),weight);
           for (unsigned int j=0; j<PrimaryVertex.size(); j++) histoContainer->Fill("ZdZAll",PrimaryVertex[j].Z()-SimVertex.Z(),weight);
         }
         
@@ -180,9 +198,11 @@ int main(int argc, char * input[]) {
         
         if (!sorted) cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
         //cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
-        histoContainer->Fill("NumberVertices",currentTree.vtx_std_xyz->GetSize(),weight);
-        if (!data) histoContainer->Fill("NumberSimVertices",currentTree.simvtx->GetSize(),weight);
-
+        histoContainer->Fill("NumberVertices",float(currentTree.vtx_std_xyz->GetSize()),weight);
+        if (!data) histoContainer->Fill("NumberSimVertices",float(currentTree.simvtx->GetSize()),weight);
+	if (i % (nentries/1000) ) {
+	  //cout << " Number of sim vertices " << float(currentTree.simvtx->GetSize()) << endl;
+	}
         //////////////// basic selection
         if (!preselection(Photonp4[leadindex].Pt(), Photonp4[subleadindex].Pt(), Photonxyz[leadindex].Eta(), Photonxyz[subleadindex].Eta(), currentTree.pho_isEBEEGap[leadindex], currentTree.pho_isEBEEGap[subleadindex])) continue;
 
@@ -217,6 +237,8 @@ int main(int argc, char * input[]) {
           if (!data) {
             histoContainer->Fill("convdZPrimary",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),PrimaryVertex[0].Z()-SimVertex.Z(),weight);
             histoContainer->Fill("ZconvdZ",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+	    histoContainer->Fill("ZconvdZVsNumOfVertices",iConvDetector,float(currentTree.vtx_std_xyz->GetSize()),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+	
             if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < 1 ) histoContainer->Fill("ZconvdZLessOnecm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
             if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .5 ) histoContainer->Fill("ZconvdZLessHalfcm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
             if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .3 ) histoContainer->Fill("ZconvdZLess3mm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
@@ -556,7 +578,7 @@ string MakeFileName(string filename, bool unweighted, bool dataweight, double RC
     } else {
       outfilename = filename;
     }
-  if (RCut!=999999) outfilename.ReplaceAll(".root","RCut.root");
+  if (RCut!=999999) outfilename+="RCut";
   return outfilename;
   
 }
@@ -620,8 +642,8 @@ void BookFourHists(HistoContainer *histoContainer, TString histname, TString his
 
 void BookHistograms(HistoContainer *histoContainer) {
     
-    histoContainer->Add("NumberVertices","Number of Reconstructed Vertices;Number of Vertices; Counts",20,0,20);
-    histoContainer->Add("NumberSimVertices","Number of Simulated Vertices;Number of Sim Vertices; Counts",20,0,20);
+    histoContainer->Add("NumberVertices","Number of Reconstructed Vertices;Number of Vertices; Counts",20,-0.5,19.5);
+    histoContainer->Add("NumberSimVertices","Number of Simulated Vertices;Number of Sim Vertices; Counts",20,-0.5,19.5);
 
     histoContainer->Add("ZVertex","Z of Primary Vertex;Z (cm); Counts",100,-20,20);
     histoContainer->Add("ZSimVertex","Z of Simulated Vertex;Z (com); Counts",100,-20,20);
@@ -638,7 +660,11 @@ void BookHistograms(HistoContainer *histoContainer) {
     //    BookBarrelAndEndcap(histoContainer,"convEoPSel","E over P of Conversion; E over P; Counts",100,0,3);
     BookBarrelAndEndcap(histoContainer,"Zconv","Z of Primary Vertex from Conversion: region;Z (cm); Counts",100,-20,20);
     BookBarrelAndEndcap(histoContainer,"ZconvdZ","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
-    BookBarrelAndEndcap(histoContainer,"ZconvdZLessOnecm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
+
+    histoContainer->Add("ZconvdZVsNumOfVerticesBarrel","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: Barrel;# of PU vertices;dZ (cm)",20,0,20,100,-10,10);
+    histoContainer->Add("ZconvdZVsNumOfVerticesEndcap","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: Endcap;# of PU vertices;dZ (cm)",20,0,20,100,-10,10);
+   
+    BookBarrelAndEndcap(histoContainer,"ZconvdZLessOnecm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-10,10);
     BookBarrelAndEndcap(histoContainer,"ZconvdZLessHalfcm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
     BookBarrelAndEndcap(histoContainer,"ZconvdZLess3mm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
 
@@ -1077,7 +1103,7 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/108813));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
   }
-  if (inputstring.Contains("120Pileup") || inputstring.Contains("pileup") || inputstring.Contains("All")) {
+  if (inputstring.Contains("120PileUp") || inputstring.Contains("pileup") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
     inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120Pileup.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG120.root",17.173*BranchingFraction/109991));
