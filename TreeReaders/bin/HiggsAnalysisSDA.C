@@ -578,7 +578,7 @@ string MakeFileName(string filename, bool unweighted, bool dataweight, double RC
     } else {
       outfilename = filename;
     }
-  if (RCut!=999999) outfilename+="RCut";
+  if (RCut!=999999) outfilename.ReplaceAll(".root","RCut.root");
   return outfilename;
   
 }
