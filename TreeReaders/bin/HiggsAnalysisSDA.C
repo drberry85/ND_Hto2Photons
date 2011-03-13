@@ -98,7 +98,7 @@ int main(int argc, char * input[]) {
     
     TFile* outfile = new TFile(outfilename.c_str(),"RECREATE");
     outfile->cd();
-    cout << outfilename << " created." << endl;
+    cout << "\n" << outfilename << " created." << endl;
 
     HistoContainer* histoContainer;
     histoContainer = new HistoContainer();
@@ -556,7 +556,7 @@ string MakeFileName(string filename, bool unweighted, bool dataweight, double RC
     } else {
       outfilename = filename;
     }
-  if (RCut!=999999) outfilename+="RCut";
+  if (RCut!=999999) outfilename.ReplaceAll(".root","RCut.root");
   return outfilename;
   
 }
@@ -1098,7 +1098,7 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
   }
   if (inputstring.Contains("QCDEMenriched") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("QCDDoubleEMEnriched.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/QCD_Pt-40_doubleEMEnriched.root",77100/(1182075/0.0064)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/QCD_Pt-40.root",77100/(1182075/0.0064)));
   }
   if (inputstring.Contains("Born") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("Born.root",3));
