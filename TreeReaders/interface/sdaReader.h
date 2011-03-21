@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 // This class has been automatically generated on
 // Thu Jul  1 15:30:00 2010 by ROOT version 5.22/00d
 // from TTree Analysis/Analysis
@@ -89,14 +89,15 @@ public :
   Int_t           pho_conv_ch1ch2[100];   //[pho_n]
   Int_t           pho_conv_validvtx[100];   //[pho_n]
   Int_t           pho_conv_MVALikelihood[100];   //[pho_n]
-  Int_t           gp_pdgid[2000];   //[gp_n]
-  Int_t           gp_status[2000];   //[gp_n]
+  Int_t           gp_status[3000];
+  Int_t           gp_pdgid[3000];
   TClonesArray    *pho_conv_vtx;
   TClonesArray    *pho_conv_pair_momentum;
   TClonesArray    *pho_conv_refitted_momentum;
   TClonesArray    *pho_conv_vertexcorrected_p4;
   TClonesArray    *vtx_std_xyz;
   TClonesArray    *simvtx;
+  TClonesArray    *gp_vtx;
   
   // List of branches
   TBranch        *b_sc_p4;
@@ -169,8 +170,8 @@ public :
   TBranch        *b_pho_conv_ch1ch2;   //!
   TBranch        *b_pho_conv_validvtx;   //!
   TBranch        *b_pho_conv_MVALikelihood;   //!
-  TBranch        *b_gp_pdgid;   //!
-  TBranch        *b_gp_status;   //!
+  TBranch        *b_gp_status;
+  TBranch        *b_gp_pdgid;
   TBranch        *b_pho_conv_vtx;   //!
   TBranch        *b_pho_conv_pair_momentum;   //!
   TBranch        *b_pho_conv_refitted_momentum;   //!
@@ -219,7 +220,8 @@ void sdaReader::Init(TFile *currentFile)
   pho_conv_vertexcorrected_p4 = 0;
   vtx_std_xyz = 0;
   simvtx = 0;
-  
+  gp_vtx=0;  
+
   // Set branch addresses and branch pointers
   if (!tree) return;
   fChain = tree;
@@ -295,8 +297,10 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_conv_ch1ch2", pho_conv_ch1ch2, &b_pho_conv_ch1ch2);
   fChain->SetBranchAddress("pho_conv_validvtx", pho_conv_validvtx, &b_pho_conv_validvtx);
   fChain->SetBranchAddress("pho_conv_MVALikelihood", pho_conv_MVALikelihood, &b_pho_conv_MVALikelihood);
-  if (fChain->FindBranch("gp_pdgid")!=NULL) fChain->SetBranchAddress("gp_pdgid", gp_pdgid, &b_gp_pdgid);
-  if (fChain->FindBranch("gp_status")!=NULL) fChain->SetBranchAddress("gp_status", gp_status, &b_gp_status);
+  if (fChain->FindLeaf("gp_status")!=NULL) fChain->SetBranchAddress("gp_status", gp_status, &b_gp_status);
+  if (fChain->FindLeaf("gp_pdgid")!=NULL) fChain->SetBranchAddress("gp_pdgid", gp_pdgid, &b_gp_pdgid);
+  fChain->SetBranchAddress("gp_pdgid", gp_pdgid, &b_gp_pdgid);
+  fChain->SetBranchAddress("gp_status", gp_status, &b_gp_status);
   fChain->SetBranchAddress("pho_conv_vtx", &pho_conv_vtx, &b_pho_conv_vtx);
   fChain->SetBranchAddress("pho_conv_pair_momentum", &pho_conv_pair_momentum, &b_pho_conv_pair_momentum);
   fChain->SetBranchAddress("pho_conv_refitted_momentum", &pho_conv_refitted_momentum, &b_pho_conv_refitted_momentum);
