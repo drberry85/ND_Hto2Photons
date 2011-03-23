@@ -35,6 +35,7 @@ bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, 
 unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
+double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex);
 double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairMomentum);
 string HiggsDetectorPosition(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 string DetectorPosition(sdaReader *currentTree, unsigned int index);
@@ -266,11 +267,9 @@ int main(int argc, char * input[]) {
             }
           }
 	  
-          if (!data) {
-            histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
-            histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
-          }
-          
+          if (!data) histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
+          if (!data) histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
+        
           double RefittedZ = FindRefittedZ(ConversionVertex[convindex], ConversionRefittedPairMomentum[convindex]);
           histoContainer->Fill("RefittedZconv",iConvDetector, RefittedZ, weight);
           if (!data) histoContainer->Fill("RefittedZconvdZ",iConvDetector, RefittedZ-SimVertex.Z(), weight);
@@ -283,14 +282,18 @@ int main(int argc, char * input[]) {
           NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
           histoContainer->Fill("NewZPVconv",iConvDetector, NewZ, weight);
           if (!data) histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
+          double NewZconvlinear = FindNewZConvLinear(ConversionVertex[convindex],Photonxyz[convindex],PrimaryVertex[0]);
+          histoContainer->Fill("NewZconvlinear",iConvDetector, NewZconvlinear, weight);
+          if (!data) histoContainer->Fill("NewZconvlineardZ",iConvDetector, NewZconvlinear-SimVertex.Z(), weight);
         }
 
         TVector3 NearVertex = PrimaryVertex[nearvertexindex];
         bool PrimaryVertexMatched = DoVertexMatching(PrimaryVertex[0],SimVertex);
         bool NearVertexMatched = DoVertexMatching(NearVertex,SimVertex);
 
-        histoContainer->Fill("PrimaryVertexMatched", PrimaryVertexMatched, weight);
+        histoContainer->Fill("PrimaryVertexMatchedAllEcal", PrimaryVertexMatched, weight);
         histoContainer->Fill("NearVertexMatchedAllEcal", NearVertexMatched, weight);
+        histoContainer->Fill("PrimaryVertexMatched", iConvDetector, PrimaryVertexMatched, weight);
         histoContainer->Fill("NearVertexMatched", iConvDetector, NearVertexMatched, weight);
 
         /*if (Photonp4[subleadindex].Pt()>Photonp4[leadindex].Pt()) {
@@ -578,6 +581,23 @@ double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot) {
   
 }
 
+double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex) {
+  
+  double deltaX1 = superclustervtx.X()-convvtx.X();
+  double deltaY1 = superclustervtx.Y()-convvtx.Y();
+  double deltaZ1 = superclustervtx.Z()-convvtx.Z();
+  double R1 = sqrt(deltaX1*deltaX1+deltaY1*deltaY1);
+  double tantheta = R1/deltaZ1;
+  
+  double deltaX2 = convvtx.X()-primaryvertex.X();
+  double deltaY2 = convvtx.Y()-primaryvertex.Y();
+  double R2 = sqrt(deltaX2*deltaX2+deltaY2*deltaY2);
+  double deltaZ2 = R2/tantheta;
+  double primaryvertexZ = superclustervtx.Z()-deltaZ1-deltaZ2;
+  return primaryvertexZ;
+
+}
+
 double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairMomentum) {
 
   double theZOfPrimaryVertexFromTracks=-9999.;
@@ -733,9 +753,10 @@ void BookHistograms(HistoContainer *histoContainer) {
 
   BookRCutsdZPlots(histoContainer,"dz_conv_");
 
-  histoContainer->Add("PrimaryVertexMatched","#deltaZ between the Primary Vertex and SimVertex less than 0.2mm: region",2,0,2);
-  histoContainer->Add("NearVertexMatchedAllEcal","#deltaZ between the Near Vertex and SimVertex less than 0.2mm: AllECAL",2,0,2);
-  BookBarrelAndEndcap(histoContainer,"NearVertexMatched","#deltaZ between the Near Vertex and SimVertex less than 0.2mm: region",2,0,2);
+  histoContainer->Add("PrimaryVertexMatchedAllEcal","#deltaZ between the Primary Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
+  histoContainer->Add("NearVertexMatchedAllEcal","#deltaZ between the Near Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
+  BookBarrelAndEndcap(histoContainer,"PrimaryVertexMatched","#deltaZ between the Primary Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
+  BookBarrelAndEndcap(histoContainer,"NearVertexMatched","#deltaZ between the Near Vertex and SimVertex less than 2mm: region",2,0,2);
   
   BookBarrelAndEndcap(histoContainer,"convr","R of conversion; R (cm): region; Counts",100,0,100);
   BookBarrelAndEndcap(histoContainer,"convEoPAll","E over P of Conversion; E over P; Counts",100,0,3);
@@ -750,13 +771,15 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"ZconvdZLess3mm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
 
   BookBarrelAndEndcap(histoContainer,"ZconvdZNearest","#deltaZ between the Z of the Conversion and the nearest vertex: region;Z (cm); Counts",100,-5,5);
-  BookBarrelAndEndcap(histoContainer,"ZdZNear","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: region;Z (cm); Counts",100,-1,1);
+  BookBarrelAndEndcap(histoContainer,"ZdZNear","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: region;Z (cm); Counts",100,-5,5);
   BookBarrelAndEndcap(histoContainer,"NewZconv","Josh's Z of Primary Vertex from Conversion (0,0,0): region;Z (cm); Counts",100,-20,20);
   BookBarrelAndEndcap(histoContainer,"NewZconvdZ","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (0,0,0): region;Z (cm); Counts",100,-5,5);
   BookBarrelAndEndcap(histoContainer,"NewZPVconv","Josh's Z of Primary Vertex from Conversion (PV): region;Z (cm); Counts",100,-20,20);
   BookBarrelAndEndcap(histoContainer,"NewZPVconvdZ","#deltaZ between the Josh's Z of the Primary Vertex from Conversion and Sim Vertex (PV): region;Z (cm); Counts",100,-5,5);
   BookBarrelAndEndcap(histoContainer,"RefittedZconv","Z of Primary Vertex from Refitted Conversion: region;Z (cm); Counts",100,-20,20);
   BookBarrelAndEndcap(histoContainer,"RefittedZconvdZ","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
+  BookBarrelAndEndcap(histoContainer,"NewZconvlinear","Z of Primary Vertex using linear method: region;Z (cm); Counts",100,-20,20);
+  BookBarrelAndEndcap(histoContainer,"NewZconvlineardZ","#deltaZ between the Z of the Primary Vertex using linear method and the SimVertex: region;Z (cm); Counts",100,-5,5);
     
   histoContainer->Add("convdZvsEtaAll","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
   histoContainer->Add("convdZvsEtaSel","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
@@ -1244,6 +1267,11 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box10to25.root",358.2/797975));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box25to250.root",12.37/777725));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box250toInf.root",0.000208/789470));
+  }
+  if (inputstring.Contains("DY") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    inputfilelist.push_back(pair<string,int> ("DrellYan.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DYEEM1020.root",2659.0/1933000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DYEEM20.root",1300.0/2127607));
   }
   if (inputstring.Contains("Test")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
