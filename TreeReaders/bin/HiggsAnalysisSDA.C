@@ -241,9 +241,12 @@ int main(int argc, char * input[]) {
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
         if (leadPhoCategory==2 && ConversionVertex[convindex].Perp()>RCut) leadPhoCategory=3;
         if (subleadPhoCategory==2 && ConversionVertex[convindex].Perp()>RCut) subleadPhoCategory=3;
+
+        double NewZconvlinear = 0;
         ////////////////////////////////////
 
         if (leadPhoCategory==2 || subleadPhoCategory==2) {
+
           if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
           histoContainer->Fill("convdZvsEtaAll",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
           histoContainer->Fill("convEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
@@ -259,32 +262,35 @@ int main(int argc, char * input[]) {
             if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .3 ) histoContainer->Fill("ZconvdZLess3mm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
 	    
           }
+
+          TVector3 myBeamSpot(0,0,0);
+          double NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
+          double RefittedZ = FindRefittedZ(ConversionVertex[convindex], ConversionRefittedPairMomentum[convindex]);
+          NewZconvlinear = FindNewZConvLinear(ConversionVertex[convindex],Photonxyz[convindex],PrimaryVertex[0]);
+
           float deltaz = 100000;
           for (unsigned int j=0; j<PrimaryVertex.size(); j++) {
-            if (deltaz > fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[j].Z())) {
-              deltaz = fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[j].Z());
+            if (deltaz > fabs(NewZconvlinear-PrimaryVertex[j].Z())) {
+              deltaz = fabs(NewZconvlinear-PrimaryVertex[j].Z());
               nearvertexindex = j;
             }
           }
-	  
-          if (!data) histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
-          if (!data) histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
-        
-          double RefittedZ = FindRefittedZ(ConversionVertex[convindex], ConversionRefittedPairMomentum[convindex]);
+
           histoContainer->Fill("RefittedZconv",iConvDetector, RefittedZ, weight);
-          if (!data) histoContainer->Fill("RefittedZconvdZ",iConvDetector, RefittedZ-SimVertex.Z(), weight);
-          
-          TVector3 myBeamSpot(0,0,0);
-          double NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
           histoContainer->Fill("NewZconv",iConvDetector, NewZ, weight);
-          if (!data) histoContainer->Fill("NewZconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
-          myBeamSpot.SetXYZ(PrimaryVertex[0].x(),PrimaryVertex[0].y(),0);
+          myBeamSpot.SetXYZ(PrimaryVertex[0].X(),PrimaryVertex[0].Y(),0);
           NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
           histoContainer->Fill("NewZPVconv",iConvDetector, NewZ, weight);
-          if (!data) histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
-          double NewZconvlinear = FindNewZConvLinear(ConversionVertex[convindex],Photonxyz[convindex],PrimaryVertex[0]);
           histoContainer->Fill("NewZconvlinear",iConvDetector, NewZconvlinear, weight);
-          if (!data) histoContainer->Fill("NewZconvlineardZ",iConvDetector, NewZconvlinear-SimVertex.Z(), weight);
+          
+          if (!data) {
+            histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
+            histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
+            histoContainer->Fill("RefittedZconvdZ",iConvDetector, RefittedZ-SimVertex.Z(), weight);
+            histoContainer->Fill("NewZconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
+            histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
+            histoContainer->Fill("NewZconvlineardZ",iConvDetector, NewZconvlinear-SimVertex.Z(), weight);
+          }
         }
 
         TVector3 NearVertex = PrimaryVertex[nearvertexindex];
@@ -328,6 +334,13 @@ int main(int argc, char * input[]) {
         double InvMass_newvertex = 0;
         double cos_thetastar_newvertex = 0;
 
+        //With New Linear Vertex Fit
+        TLorentzVector VSum_linearvertex(0,0,0,0);
+        TLorentzVector VLead_linearvertex(0,0,0,0);
+        TLorentzVector VSubLead_linearvertex(0,0,0,0);
+        double InvMass_linearvertex = 0;
+        double cos_thetastar_linearvertex = 0;
+        
         //With Sim Vertex
         TLorentzVector VSum_simvertex(0,0,0,0);
         TLorentzVector VLead_simvertex(0,0,0,0);
@@ -350,6 +363,12 @@ int main(int argc, char * input[]) {
           InvMass_newvertex=fabs(VSum_newvertex.M());
           cos_thetastar_newvertex= CosThetaStar(VLead_newvertex,VSum_newvertex);
 
+          VLead_linearvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], NewZconvlinear);
+          VSubLead_linearvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], NewZconvlinear);
+          VSum_linearvertex=VLead_linearvertex+VSubLead_linearvertex;
+          InvMass_linearvertex=fabs(VSum_linearvertex.M());
+          cos_thetastar_linearvertex= CosThetaStar(VLead_linearvertex,VSum_linearvertex);
+          
           if (!data) {
             VLead_simvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], SimVertex.Z());
             VSubLead_simvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], SimVertex.Z());
@@ -357,11 +376,13 @@ int main(int argc, char * input[]) {
             InvMass_simvertex=fabs(VSum_simvertex.M());
             cos_thetastar_simvertex= CosThetaStar(VLead_simvertex,VSum_simvertex);
           }
+          
           VLead_nearvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], NearVertex.Z());
           VSubLead_nearvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], NearVertex.Z());
           VSum_nearvertex=VLead_nearvertex+VSubLead_nearvertex;
           InvMass_nearvertex=fabs(VSum_nearvertex.M());
           cos_thetastar_nearvertex= CosThetaStar(VLead_nearvertex,VSum_nearvertex);
+          
         }
         
         if (Photonp4[leadindex].Pt()>40 && Photonp4[subleadindex].Pt()>30 && InvMass>90 && InvMass<250
@@ -391,6 +412,7 @@ int main(int argc, char * input[]) {
         if (diPhoCategory==2) {
           FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
+          FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
         }
@@ -459,6 +481,7 @@ int main(int argc, char * input[]) {
         if (diPhoCategory==2) {
           FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
+          FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
         }
@@ -472,6 +495,7 @@ int main(int argc, char * input[]) {
           if (diPhoCategory==2) {
             FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
+            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
             if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
           }
@@ -838,6 +862,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookMassPlots(histoContainer,"2gamma1goodconv");
   BookRCutsMassPlots(histoContainer,"2gamma1goodconv");
   BookMassPlots(histoContainer,"2gamma1goodconvnewvertex");
+  BookMassPlots(histoContainer,"2gamma1goodconvlinearvertex");
   BookMassPlots(histoContainer,"2gamma1goodconvsimvertex");
   BookMassPlots(histoContainer,"2gamma1goodconvnearvertex");
   BookMassPlots(histoContainer,"2gamma1poorconv");
@@ -891,8 +916,9 @@ void BookMassPlots(HistoContainer *histoContainer, TString histname) {
         TString histtitletemp = "Di-photon ";
         histtitletemp += parameter[k].second;
         if (histname.Contains("newvertex")) histtitletemp += " with New Vertex";
+        if (histname.Contains("linearvertex")) histtitletemp += " with New Linear Fit Vertex";
         if (histname.Contains("simvertex")) histtitletemp += " with Sim Vertex";
-        if (histname.Contains("nearvertex")) histtitletemp += " with Near Vertex";
+        if (histname.Contains("nearvertex") && !histname.Contains("linearvertex")) histtitletemp += " with Near Vertex";
         histtitletemp += ";";
         histtitletemp += parameter[k].second;
         if (k==1 || k==2) {
