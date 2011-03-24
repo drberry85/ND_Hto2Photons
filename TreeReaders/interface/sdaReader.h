@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
 // This class has been automatically generated on
 // Thu Jul  1 15:30:00 2010 by ROOT version 5.22/00d
 // from TTree Analysis/Analysis
@@ -89,8 +89,8 @@ public :
   Int_t           pho_conv_ch1ch2[100];   //[pho_n]
   Int_t           pho_conv_validvtx[100];   //[pho_n]
   Int_t           pho_conv_MVALikelihood[100];   //[pho_n]
-  Int_t           gp_status[3000];
-  Int_t           gp_pdgid[3000];
+  Int_t           gp_pdgid[2000];   //[gp_n]
+  Int_t           gp_status[2000];   //[gp_n]
   TClonesArray    *pho_conv_vtx;
   TClonesArray    *pho_conv_pair_momentum;
   TClonesArray    *pho_conv_refitted_momentum;
@@ -170,20 +170,23 @@ public :
   TBranch        *b_pho_conv_ch1ch2;   //!
   TBranch        *b_pho_conv_validvtx;   //!
   TBranch        *b_pho_conv_MVALikelihood;   //!
-  TBranch        *b_gp_status;
-  TBranch        *b_gp_pdgid;
+  TBranch        *b_gp_pdgid;   //!
+  TBranch        *b_gp_status;   //!
   TBranch        *b_pho_conv_vtx;   //!
   TBranch        *b_pho_conv_pair_momentum;   //!
   TBranch        *b_pho_conv_refitted_momentum;   //!
   TBranch        *b_pho_conv_vertexcorrected_p4;   //!
   TBranch        *b_vtx_std_xyz;   //!
   TBranch        *b_simvtx;   //!
-
+  TBranch        *b_gp_vtx;
+  
   sdaReader(TFile *currentFile=0);
   virtual ~sdaReader();
   virtual Int_t    GetEntry(Long64_t entry);
   virtual void     Init(TFile *currentFile);
   virtual Bool_t   Notify();
+  virtual Bool_t   FindLeaf(const char* leafname);
+  virtual Bool_t   FindBranch(const char* leafname);
 };
 
 sdaReader::sdaReader(TFile *currentFile)
@@ -220,16 +223,16 @@ void sdaReader::Init(TFile *currentFile)
   pho_conv_vertexcorrected_p4 = 0;
   vtx_std_xyz = 0;
   simvtx = 0;
-  gp_vtx=0;  
-
+  gp_vtx = 0;
+  
   // Set branch addresses and branch pointers
   if (!tree) return;
   fChain = tree;
   fCurrent = -1;
   fChain->SetMakeClass(1);
-  if (fChain->FindLeaf("sc_p4")!=NULL) fChain->SetBranchAddress("sc_p4", &sc_p4, &b_sc_p4);
+  fChain->SetBranchAddress("sc_p4", &sc_p4, &b_sc_p4);
   fChain->SetBranchAddress("pho_n", &pho_n, &b_pho_n);
-  if (fChain->FindLeaf("gp_n")!=NULL) fChain->SetBranchAddress("gp_n", &gp_n, &b_gp_n);
+  fChain->SetBranchAddress("gp_n", &gp_n, &b_gp_n);
   fChain->SetBranchAddress("pho_isEB", pho_isEB, &b_pho_isEB);
   fChain->SetBranchAddress("pho_isEE", pho_isEE, &b_pho_isEE);
   fChain->SetBranchAddress("pho_isEBGap", pho_isEBGap, &b_pho_isEBGap);
@@ -297,8 +300,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_conv_ch1ch2", pho_conv_ch1ch2, &b_pho_conv_ch1ch2);
   fChain->SetBranchAddress("pho_conv_validvtx", pho_conv_validvtx, &b_pho_conv_validvtx);
   fChain->SetBranchAddress("pho_conv_MVALikelihood", pho_conv_MVALikelihood, &b_pho_conv_MVALikelihood);
-  if (fChain->FindLeaf("gp_status")!=NULL) fChain->SetBranchAddress("gp_status", gp_status, &b_gp_status);
-  if (fChain->FindLeaf("gp_pdgid")!=NULL) fChain->SetBranchAddress("gp_pdgid", gp_pdgid, &b_gp_pdgid);
   fChain->SetBranchAddress("gp_pdgid", gp_pdgid, &b_gp_pdgid);
   fChain->SetBranchAddress("gp_status", gp_status, &b_gp_status);
   fChain->SetBranchAddress("pho_conv_vtx", &pho_conv_vtx, &b_pho_conv_vtx);
@@ -306,8 +307,8 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_conv_refitted_momentum", &pho_conv_refitted_momentum, &b_pho_conv_refitted_momentum);
   fChain->SetBranchAddress("pho_conv_vertexcorrected_p4", &pho_conv_vertexcorrected_p4, &b_pho_conv_vertexcorrected_p4);
   fChain->SetBranchAddress("vtx_std_xyz", &vtx_std_xyz, &b_vtx_std_xyz);
-  if (fChain->FindLeaf("simvtx")!=NULL) fChain->SetBranchAddress("simvtx", &simvtx, &b_simvtx);
-  if (fChain->FindLeaf("gp_vtx")!=NULL) fChain->SetBranchAddress("gp_vtx", &simvtx, &b_simvtx);
+  fChain->SetBranchAddress("simvtx", &simvtx, &b_simvtx);
+  fChain->SetBranchAddress("gp_vtx", &gp_vtx, &b_gp_vtx);
   
   Notify();
 }
@@ -320,4 +321,14 @@ Bool_t sdaReader::Notify()
   // to the generated code, but the routine can be extended by the
   // user if needed. The return value is currently not used.
   return kTRUE;
+}
+
+Bool_t sdaReader::FindLeaf(const char* leafname) {
+  if (fChain->FindLeaf(leafname)==NULL) return false;
+  return true;
+}
+
+Bool_t sdaReader::FindBranch(const char* leafname) {
+  if (fChain->FindBranch(leafname)==NULL) return false;
+  return true;
 }
