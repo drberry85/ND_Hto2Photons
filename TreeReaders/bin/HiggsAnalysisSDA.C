@@ -290,6 +290,9 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("NewZconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
             histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
             histoContainer->Fill("NewZconvlineardZ",iConvDetector, NewZconvlinear-SimVertex.Z(), weight);
+            if (abs(NewZconvlinear-SimVertex.Z())<1) histoContainer->Fill("ZconvdZLinearLessOnecm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
+            if (abs(NewZconvlinear-SimVertex.Z())<0.5) histoContainer->Fill("ZconvdZLinearLessHalfcm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
+            if (abs(NewZconvlinear-SimVertex.Z())<0.3) histoContainer->Fill("ZconvdZLinearLess3mm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
           }
         }
 
@@ -487,19 +490,19 @@ int main(int argc, char * input[]) {
         }
         
         //GenMatching
-        bool GenMatched = false;
-        if (HasGenParticles) GenMatched = DoGenMatching(&currentTree, Photonxyz[leadindex], Photonxyz[subleadindex]);
-        if (!data && GenMatched) {
-          selection="Matched";
-          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
-          if (diPhoCategory==2) {
-            FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
-            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
-            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
-            if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
-            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
-          }
-        }
+//         bool GenMatched = false;
+//         if (HasGenParticles) GenMatched = DoGenMatching(&currentTree, Photonxyz[leadindex], Photonxyz[subleadindex]);
+//         if (!data && GenMatched) {
+//           selection="Matched";
+//           FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
+//           if (diPhoCategory==2) {
+//             FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
+//             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
+//             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
+//             if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
+//             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
+//           }
+//         }
         
       }
       currentFile->Close();
@@ -793,6 +796,10 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"ZconvdZLessOnecm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-10,10);
   BookBarrelAndEndcap(histoContainer,"ZconvdZLessHalfcm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
   BookBarrelAndEndcap(histoContainer,"ZconvdZLess3mm","#deltaZ between the Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
+
+  BookBarrelAndEndcap(histoContainer,"ZconvdZLinearLessOnecm","#deltaZ between the Z of the Primary Vertex from Conversion Linear Method and Sim Vertex: region;Z (cm); Counts",100,-10,10);
+  BookBarrelAndEndcap(histoContainer,"ZconvdZLinearLessHalfcm","#deltaZ between the Z of the Primary Vertex from Conversion Linear Method and Sim Vertex: region;Z (cm); Counts",100,-5,5);
+  BookBarrelAndEndcap(histoContainer,"ZconvdZLinearLess3mm","#deltaZ between the Z of the Primary Vertex from Conversion Linear Method and Sim Vertex: region;Z (cm); Counts",100,-5,5);
 
   BookBarrelAndEndcap(histoContainer,"ZconvdZNearest","#deltaZ between the Z of the Conversion and the nearest vertex: region;Z (cm); Counts",100,-5,5);
   BookBarrelAndEndcap(histoContainer,"ZdZNear","#deltaZ between the Z of the vertex nearest the conversion Z position and the Sim Vertex: region;Z (cm); Counts",100,-5,5);
