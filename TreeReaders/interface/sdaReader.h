@@ -89,8 +89,9 @@ public :
   Int_t           pho_conv_ch1ch2[100];   //[pho_n]
   Int_t           pho_conv_validvtx[100];   //[pho_n]
   Int_t           pho_conv_MVALikelihood[100];   //[pho_n]
-  Int_t           gp_pdgid[2000];   //[gp_n]
   Int_t           gp_status[2000];   //[gp_n]
+  Int_t           gp_pdgid[2000];   //[gp_n]
+  Int_t           gp_mother[2000];   //[gp_n]
   TClonesArray    *pho_conv_vtx;
   TClonesArray    *pho_conv_pair_momentum;
   TClonesArray    *pho_conv_refitted_momentum;
@@ -98,6 +99,7 @@ public :
   TClonesArray    *vtx_std_xyz;
   TClonesArray    *simvtx;
   TClonesArray    *gp_vtx;
+  TClonesArray    *gp_p4;
   
   // List of branches
   TBranch        *b_sc_p4;
@@ -172,6 +174,7 @@ public :
   TBranch        *b_pho_conv_MVALikelihood;   //!
   TBranch        *b_gp_pdgid;   //!
   TBranch        *b_gp_status;   //!
+  TBranch        *b_gp_mother;   //!
   TBranch        *b_pho_conv_vtx;   //!
   TBranch        *b_pho_conv_pair_momentum;   //!
   TBranch        *b_pho_conv_refitted_momentum;   //!
@@ -179,6 +182,7 @@ public :
   TBranch        *b_vtx_std_xyz;   //!
   TBranch        *b_simvtx;   //!
   TBranch        *b_gp_vtx;
+  TBranch        *b_gp_p4;
   
   sdaReader(TFile *currentFile=0);
   virtual ~sdaReader();
@@ -224,6 +228,7 @@ void sdaReader::Init(TFile *currentFile)
   vtx_std_xyz = 0;
   simvtx = 0;
   gp_vtx = 0;
+  gp_p4 = 0;
   
   // Set branch addresses and branch pointers
   if (!tree) return;
@@ -302,6 +307,7 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_conv_MVALikelihood", pho_conv_MVALikelihood, &b_pho_conv_MVALikelihood);
   fChain->SetBranchAddress("gp_pdgid", gp_pdgid, &b_gp_pdgid);
   fChain->SetBranchAddress("gp_status", gp_status, &b_gp_status);
+  fChain->SetBranchAddress("gp_mother", gp_mother, &b_gp_mother);
   fChain->SetBranchAddress("pho_conv_vtx", &pho_conv_vtx, &b_pho_conv_vtx);
   fChain->SetBranchAddress("pho_conv_pair_momentum", &pho_conv_pair_momentum, &b_pho_conv_pair_momentum);
   fChain->SetBranchAddress("pho_conv_refitted_momentum", &pho_conv_refitted_momentum, &b_pho_conv_refitted_momentum);
@@ -309,6 +315,7 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("vtx_std_xyz", &vtx_std_xyz, &b_vtx_std_xyz);
   fChain->SetBranchAddress("simvtx", &simvtx, &b_simvtx);
   fChain->SetBranchAddress("gp_vtx", &gp_vtx, &b_gp_vtx);
+  fChain->SetBranchAddress("gp_p4", &gp_p4, &b_gp_p4);
   
   Notify();
 }
