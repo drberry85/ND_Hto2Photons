@@ -29,7 +29,7 @@
 
 using namespace std;
 
-bool DoGenMatching(sdaReader *currentTree, TVector3 LeadPhoton, TVector3 SubleadPhoton);
+unsigned int DoGenMatching(sdaReader *currentTree, TVector3 Photon);
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex);
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
 unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
@@ -490,20 +490,32 @@ int main(int argc, char * input[]) {
         }
         
         //GenMatching
-//         bool GenMatched = false;
-//         if (HasGenParticles) GenMatched = DoGenMatching(&currentTree, Photonxyz[leadindex], Photonxyz[subleadindex]);
-//         if (!data && GenMatched) {
-//           selection="Matched";
-//           FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
-//           if (diPhoCategory==2) {
-//             FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
-//             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
-//             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
-//             if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
-//             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
-//           }
-//         }
-        
+        unsigned int LeadGenMatchedIndex = 999999;
+        unsigned int SubleadGenMatchedIndex = 999999;
+        if (HasGenParticles) {
+           LeadGenMatchedIndex = DoGenMatching(&currentTree, Photonxyz[leadindex]);
+           SubleadGenMatchedIndex = DoGenMatching(&currentTree, Photonxyz[subleadindex]);
+        }
+        if (LeadGenMatchedIndex!=999999) {
+          TLorentzVector GenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(LeadGenMatchedIndex)));
+          histoContainer->Fill("MomentumResolution",iLeadDetector,Photonp4[leadindex].E()-GenPhotonp4.E());
+        }
+        if (SubleadGenMatchedIndex!=999999) {
+          TLorentzVector GenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(SubleadGenMatchedIndex)));
+          histoContainer->Fill("MomentumResolution",iSubleadDetector,Photonp4[subleadindex].E()-GenPhotonp4.E());
+        }
+        if (!data && LeadGenMatchedIndex!=999999 && SubleadGenMatchedIndex!=999999) {
+          selection="Matched";
+          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, cos_thetastar, ConversionVertex[convindex].Perp());
+          if (diPhoCategory==2) {
+            FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
+            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
+            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
+            if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
+            FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
+          }
+        }
+
       }
       currentFile->Close();
       delete currentFile;
@@ -519,35 +531,29 @@ int main(int argc, char * input[]) {
   }
 }
 
-bool DoGenMatching(sdaReader *currentTree, TVector3 LeadPhoton, TVector3 SubleadPhoton) {
-  bool ReturnBool = false;
-  bool LeadMatched = false;
-  bool SubleadMatched = false;
+unsigned int DoGenMatching(sdaReader *currentTree, TVector3 Photon) {
+  unsigned int ReturnValue = 999999;
   double Pi = 3.14159265;
-  
-  for (int i=0; i<currentTree->gp_n; i++) {
+
+  for (unsigned int i=0; i< (unsigned int) currentTree->gp_n; i++) {
     if (currentTree->gp_pdgid[i]!=22) continue;
-    TVector3 gp_vtx = (*((TVector3*) currentTree->gp_vtx->At(i)));
-    double LeadDeltaEta = abs(LeadPhoton.Eta() - gp_vtx.Eta());
-    double LeadDeltaPhi = abs(LeadPhoton.Phi() - gp_vtx.Phi());
-    double SubleadDeltaEta = abs(SubleadPhoton.Eta() - gp_vtx.Eta());
-    double SubleadDeltaPhi = abs(SubleadPhoton.Phi() - gp_vtx.Phi());
+    TLorentzVector GenParticlep4 = (*((TLorentzVector*) currentTree->gp_p4->At(i)));
+    if (GenParticlep4.Pt()<20) continue;
+    double DeltaEta = abs(Photon.Eta() - GenParticlep4.Eta());
+    double DeltaPhi = abs(Photon.Phi() - GenParticlep4.Phi());
+    
+    if (DeltaPhi>Pi) DeltaPhi = 2*Pi-DeltaPhi;
 
-    if (LeadDeltaPhi>Pi) LeadDeltaPhi = 2*Pi-LeadDeltaPhi;
-    if (SubleadDeltaPhi>Pi) SubleadDeltaPhi = 2*Pi-SubleadDeltaPhi;
+    double DeltaR = sqrt(DeltaPhi*DeltaPhi + DeltaEta*DeltaEta);
 
-    double LeadDeltaR = sqrt(LeadDeltaPhi*LeadDeltaPhi + LeadDeltaEta*LeadDeltaEta);
-    double SubleadDeltaR = sqrt(SubleadDeltaPhi*SubleadDeltaPhi + SubleadDeltaEta*SubleadDeltaEta);
-
-    if (LeadDeltaR<.1) LeadMatched=true;
-    if (SubleadDeltaR<.1) SubleadMatched=true;
-    if (LeadMatched && SubleadMatched) {
-      ReturnBool=true;
+    if (DeltaR<.1) {
+      ReturnValue=i;
       break;
     }
   }
 
-  return ReturnBool;
+  return ReturnValue;
+
 }
 
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex) {
@@ -864,6 +870,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookConversionPlotsDiPho(histoContainer,"eop_conv_DiPho_region","E/p of Photon Conversion; E/p: region", 100, 0, 3);
 
   // diphoton system
+  BookBarrelAndEndcap(histoContainer,"MomentumResolution","#deltaEnergy between the GenParticle and Measured Pt: region;#DeltaE;Counts",100,-10,10);
   BookMassPlots(histoContainer,"2gamma");
   BookMassPlots(histoContainer,"2gammaGolden");
   BookMassPlots(histoContainer,"2gamma1goodconv");
