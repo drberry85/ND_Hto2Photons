@@ -1,4 +1,4 @@
-void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/UnweightedHiggsAnalysis130GeV.root", float startmass = 130) {
+void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/UnweightedHiggsAnalysis120GeV.root", float startmass = 120) {
   using namespace RooFit;
 
   //  gStyle->SetOptStat(0);
@@ -16,7 +16,7 @@ void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3
   for (Int_t i=1; i<HistList->GetSize(); ++i) {
     TString HistName(HistList->At(i)->GetName());
     //cout << "Looking at Hist: " << HistName << endl; 
-    if (HistName.Contains("mass_")==1) {
+    if (HistName.Contains("mass_2gamma")==1) {
       // Parameter used for mass in both CrystalBall or BreitWigner
       RooRealVar mass("mass","Mass_{2#gamma}", 80, 160,"GeV/c^{2}");
 
@@ -37,8 +37,12 @@ void fitter (char * filename = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3
 
       //  Introduce a resolution model
       // Gaussian Sigma
-      RooRealVar GaussianSigma("#sigma_{G}","Core Width", 1.0,0.99,1.01,"GeV/c^{2}"); 
-      
+      RooRealVar GaussianSigma("#sigma_{G}","Core Width", 0.65,0.64,0.66,"GeV/c^{2}");
+      if (HistName.Contains("Endcap")) {
+        GaussianSigma.setRange(4.0,4.2);
+        GaussianSigma.setVal(4.1);
+      }
+
       //  RooBifurGauss  res("res", "A Bifurcated Gaussian Distribution", deltam, mu,sigL,sigR);
       RooGaussian GaussianResolution("GaussianResolution", "A  Gaussian Lineshape", mass, m0,GaussianSigma);
       RooRealVar fracG("f_{G}", "Gaussian Fraction", 0.0,0.0,1.0);
