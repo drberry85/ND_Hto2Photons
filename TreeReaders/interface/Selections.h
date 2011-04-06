@@ -95,7 +95,7 @@ bool tightId(
   */
 
   if (hadronicOverEm > 0.02) return false;
-  if (ecalRecHitSumEtConeDR04 > 2  + 0.006 * pt) return false;
+  if (ecalRecHitSumEtConeDR04 > 2.0  + 0.006 * pt) return false;
   if (hcalTowerSumEtConeDR04 > 2.0 + 0.0025 * pt) return false;
   if (trkSumPtHollowConeDR04 > 1.5 + 0.001 * pt) return false;
   if (isEB && sigmaIetaIeta > 0.010) return false;
@@ -161,7 +161,7 @@ int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob
   //  if (  !pixMatch ) { 
     if ( r9>0.93 && !pixMatch ) {
       cate=1; // golden
-    } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3) {
+    } else if ( (r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3) || (r9>0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3 && pixMatch)) {
       cate=2; // good reconstructed conversion
     } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob <=0.0005 ) {
       cate=3; // poor reconstructed conversions
