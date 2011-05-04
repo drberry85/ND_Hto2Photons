@@ -30,9 +30,9 @@
 using namespace std;
 
 unsigned int DoGenMatching(sdaReader *currentTree, TVector3 Photon);
+unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex);
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
-unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
 double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex);
@@ -49,6 +49,7 @@ void BookMassPlots(HistoContainer *histoContainer, TString histname);
 void BookPhysicsPlots(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookRCutsMassPlots(HistoContainer *histoContainer, TString histname);
 void BookRCutsdZPlots(HistoContainer *histoContainer, TString histname);
+void BookTrackerdZ(HistoContainer *histoContainer, TString histname);
 void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float weight, unsigned int leadindex, unsigned int subleadindex, int leadPhoCategory, int subleadPhoCategory);
 void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, string photon, unsigned int index, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, TVector3 PrimaryVertex, TVector3 SimVertex, vector<TLorentzVector> Photonp4, bool data);
 void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, int iPho, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
@@ -57,7 +58,8 @@ void FillMassHists(HistoContainer *histoContainer, string selection, float weigh
 void FillMassNewVertexHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, string vertextype, TLorentzVector VSum, double InvMass, double cos_thetastar);
 void FillMassRcut(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, double R, double InvMass);
 void FilldZRcut(HistoContainer *histoContainer, string selection, float weight, string iConvDetector, double R, double deltaz);
-
+void FilldZTrackerBarrel(HistoContainer *histoContainer, TString histname, double deltaZ, double R, float weight);
+void FilldZTrackerEndcap(HistoContainer *histoContainer, TString histname, double deltaZ, double Z, float weight);
 void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, bool &isData);
 void ProgressBar(int &percent);
 void PrintWeights();
@@ -155,14 +157,22 @@ int main(int argc, char * input[]) {
         vector<TLorentzVector> SuperClusterp4;
 
         //Finding Vertex of Higgs
+        int HiggsIndex = -1;
+        TLorentzVector Higgs_p4(0,0,0,0);
         if (!data && HasGenParticles) {
           for (int j=0; j<currentTree.gp_n; j++) {
             if (currentTree.gp_pdgid[j]==25 && currentTree.gp_status[j]==2) {
+              HiggsIndex = j;
               SimVertex = (*((TVector3*) currentTree.gp_vtx->At(j)));
+              Higgs_p4 = (*((TLorentzVector*) currentTree.gp_p4->At(j)));
             }
           }
         }
-
+        if (HiggsIndex != -1) {
+          histoContainer->Fill("GenHiggsPt",Higgs_p4.Pt(),weight);
+          histoContainer->Fill("GenHiggsEta",Higgs_p4.Eta(),weight);
+        }
+        
         for (unsigned int j=0; j!=(unsigned int) currentTree.vtx_std_xyz->GetSize(); j++) {
           PrimaryVertex.push_back(*((TVector3*) currentTree.vtx_std_xyz->At(j)));
           histoContainer->Fill("ZVertices",PrimaryVertex[j].Z(),weight);
@@ -202,6 +212,29 @@ int main(int argc, char * input[]) {
         if (HasSimVertex) histoContainer->Fill("NumberSimVerticesVsRecoVertices",float(currentTree.vtx_std_xyz->GetSize()), float(currentTree.simvtx->GetSize()));
         if (!data && HasSimVertex) histoContainer->Fill("NumberSimVertices",float(currentTree.simvtx->GetSize()),weight);
 
+        if (!data && HasGenParticles) {
+          double genleadpt = -1;
+          double gensubleadpt = -1;
+          unsigned int genleadindex = 0;
+          unsigned int gensubleadindex = 0;
+
+          map <double, unsigned int> genptindex;
+          for (unsigned int j=0; j<(unsigned int) currentTree.gp_n; j++) if (currentTree.gp_pdgid[j]==22) genptindex[((TLorentzVector*) currentTree.gp_p4->At(j))->Pt()]=j;
+          
+          bool gensorted = sortpt(genptindex, genptindex.size(), genleadpt, gensubleadpt, genleadindex, gensubleadindex);
+          if (!gensorted) cout << "GenParticles not sorted!" << endl;
+        
+          TLorentzVector LeadGenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(genleadindex)));
+          TLorentzVector SubleadGenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(gensubleadindex)));
+          histoContainer->Fill("GenPhotonEta",LeadGenPhotonp4.Eta(),weight);
+          histoContainer->Fill("GenPhotonEta",SubleadGenPhotonp4.Eta(),weight);
+          if (abs(LeadGenPhotonp4.Eta())<2.5 && abs(SubleadGenPhotonp4.Eta())<2.5) {
+            histoContainer->Fill("GenPhotonEtaBool",1,weight);
+          } else {
+            histoContainer->Fill("GenPhotonEtaBool",0,weight);
+          }
+        }
+        
         //////////////// basic selection
         if (!preselection(Photonp4[leadindex].Pt(), Photonp4[subleadindex].Pt(), Photonxyz[leadindex].Eta(), Photonxyz[subleadindex].Eta(), currentTree.pho_isEBEEGap[leadindex], currentTree.pho_isEBEEGap[subleadindex])) continue;
 
@@ -263,11 +296,17 @@ int main(int argc, char * input[]) {
 	    
           }
 
+          histoContainer->Fill("RefittedPt",iConvDetector, ConversionRefittedPairMomentum[convindex].Pt(), weight);
+          histoContainer->Fill("RefittedEta",iConvDetector, ConversionRefittedPairMomentum[convindex].Eta(), weight);
+          histoContainer->Fill("RefittedPhi",iConvDetector, ConversionRefittedPairMomentum[convindex].Phi(), weight);
+          
           TVector3 myBeamSpot(0,0,0);
           double NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
           double RefittedZ = FindRefittedZ(ConversionVertex[convindex], ConversionRefittedPairMomentum[convindex]);
           NewZconvlinear = FindNewZConvLinear(ConversionVertex[convindex],Photonxyz[convindex],PrimaryVertex[0]);
-
+          myBeamSpot.SetXYZ(PrimaryVertex[0].X(),PrimaryVertex[0].Y(),0);
+          double NewZPV = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
+          
           float deltaz = 100000;
           for (unsigned int j=0; j<PrimaryVertex.size(); j++) {
             if (deltaz > fabs(NewZconvlinear-PrimaryVertex[j].Z())) {
@@ -278,9 +317,7 @@ int main(int argc, char * input[]) {
 
           histoContainer->Fill("RefittedZconv",iConvDetector, RefittedZ, weight);
           histoContainer->Fill("NewZconv",iConvDetector, NewZ, weight);
-          myBeamSpot.SetXYZ(PrimaryVertex[0].X(),PrimaryVertex[0].Y(),0);
-          NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
-          histoContainer->Fill("NewZPVconv",iConvDetector, NewZ, weight);
+          histoContainer->Fill("NewZPVconv",iConvDetector, NewZPV, weight);
           histoContainer->Fill("NewZconvlinear",iConvDetector, NewZconvlinear, weight);
           
           if (!data) {
@@ -288,11 +325,19 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
             histoContainer->Fill("RefittedZconvdZ",iConvDetector, RefittedZ-SimVertex.Z(), weight);
             histoContainer->Fill("NewZconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
-            histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
+            histoContainer->Fill("NewZPVconvdZ",iConvDetector, NewZPV-SimVertex.Z(), weight);
             histoContainer->Fill("NewZconvlineardZ",iConvDetector, NewZconvlinear-SimVertex.Z(), weight);
             if (abs(NewZconvlinear-SimVertex.Z())<1) histoContainer->Fill("ZconvdZLinearLessOnecm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
             if (abs(NewZconvlinear-SimVertex.Z())<0.5) histoContainer->Fill("ZconvdZLinearLessHalfcm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
             if (abs(NewZconvlinear-SimVertex.Z())<0.3) histoContainer->Fill("ZconvdZLinearLess3mm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
+            if (iConvDetector=="Barrel") {
+              FilldZTrackerBarrel(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              FilldZTrackerBarrel(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+            }
+            if (iConvDetector=="Endcap") {
+              FilldZTrackerEndcap(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Z(), weight);
+              FilldZTrackerEndcap(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Z(), weight);
+            }
           }
         }
 
@@ -804,8 +849,14 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ZdZZoom","#deltaZ between the Z of the Primary Vertex and the Sim Vertex: Zoom;Z (cm); Counts",100,-0.02,0.02);
   histoContainer->Add("ZdZAll","#deltaZ between the Z of the all vertecies and the Sim Vertex;Z (cm); Counts",100,-1,1);
 
+  BookBarrelAndEndcap(histoContainer,"RefittedPt","Pt distrobution of refitted momentum;Pt (GeV);Counts",100,0,300);
+  BookBarrelAndEndcap(histoContainer,"RefittedEta","#eta distrobution of refitted momentum;#eta (GeV);Counts",60,-3,3);
+  BookBarrelAndEndcap(histoContainer,"RefittedPhi","#phi distrobution of refitted momentum;#phi (GeV);Counts",64,-3.2,3.2);
+  
   BookRCutsdZPlots(histoContainer,"dz_conv_");
-
+  BookTrackerdZ(histoContainer,"NewPVdZ");
+  BookTrackerdZ(histoContainer,"LineardZ");
+  
   histoContainer->Add("PrimaryVertexMatchedAllEcal","#deltaZ between the Primary Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
   histoContainer->Add("NearVertexMatchedAllEcal","#deltaZ between the Near Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
   BookBarrelAndEndcap(histoContainer,"PrimaryVertexMatched","#deltaZ between the Primary Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
@@ -870,9 +921,9 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookPhysicsPlots(histoContainer,"leadPhoPhiAll_region","leading photon Phi, all candidates: region",32,-3.2,3.2);
   BookPhysicsPlots(histoContainer,"leadPhoR9All_region","leading photon R9, all candidates: region",100,0.,1.1);
   BookPhysicsPlots(histoContainer,"leadPhoHoEAll_region","leading photon HoE, all candidates: region",100,0.,0.1);
-  BookPhysicsPlots(histoContainer,"leadPhoTrkPtSumSolid03All_region","leading photon trk pt sum dr=03, all candidates: region",100,0.,2);
-  BookPhysicsPlots(histoContainer,"leadPhoEcalPtSumSolid03All_region","leading photon ecal pt sum dr=03, all candidates: region",100,0.,5);
-  BookPhysicsPlots(histoContainer,"leadPhoHcalPtSumSolid03All_region","leading photon hcal pt sum dr=03, all candidates: region",100,0.,5);
+  BookPhysicsPlots(histoContainer,"leadPhoTrkPtSumHollow04All_region","leading photon trk pt sum dr=04, all candidates: region",100,0.,2);
+  BookPhysicsPlots(histoContainer,"leadPhoEcalPtSumHollow04All_region","leading photon ecal pt sum dr=04, all candidates: region",100,0.,5);
+  BookPhysicsPlots(histoContainer,"leadPhoHcalPtSumHollow04All_region","leading photon hcal pt sum dr=04, all candidates: region",100,0.,5);
   BookPhysicsPlots(histoContainer,"leadPhoSigmaIetaIetaAll_region","leading photon SigmaIetaIeta, all candidates: region",100,0.,0.15);
   BookPhysicsPlots(histoContainer,"leadPhoZPVAll_region","leading photon Z(PV) (cm), all candidates: region",100,0.,20);
   BookPhysicsPlots(histoContainer,"leadPhoDZPVAll_region","leading photon #Deltaz_{Zpho - Ztrue} (cm), all candidates: region",100,-5.,5);
@@ -922,6 +973,11 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("convVtxRvsZBarrelSel"," Photon conversion vtx position selected candidates Barrel",200, 0., 280., 200, 0., 80.);
   histoContainer->Add("selconvVtxRvsZBarrelSel"," Photon conversion vtx position selected conversion Barrel",200, 0., 280., 200, 0., 80.);
 
+  histoContainer->Add("GenPhotonEta","Eta of Gen Daughter Photons;#eta;Counts;",120,-6,6);
+  histoContainer->Add("GenPhotonEtaBool","Is the daughter of the Higgs in the Fiducial Region;Bool Value;Counts;",2,0,2);
+  histoContainer->Add("GenHiggsEta","Eta of Gen Higgs Boson;",120,-6,6);
+  histoContainer->Add("GenHiggsPt","Pt of Gen Daughter Photons;#eta;Counts;",200,0,200);
+  
 }
 
 void BookMassPlots(HistoContainer *histoContainer, TString histname) {
@@ -1085,6 +1141,32 @@ void BookRCutsdZPlots(HistoContainer *histoContainer, TString histname) {
     
 }
 
+void BookTrackerdZ(HistoContainer *histoContainer, TString histname) {
+
+  int bins = 100;
+  int lowerlimit = -5;
+  int upperlimit = 5;
+
+  TString histtitle = "#DeltaZ between the Z of the Primary Vertex using method and the SimVertex: region;#DeltaZ (cm); Counts";
+  histtitle.ReplaceAll("method",histname+" method");
+    
+  vector<pair<TString, TString> > histarray;
+  histarray.push_back(pair<TString,TString> ("PixelBarrel","Pixel Barrel"));
+  histarray.push_back(pair<TString,TString> ("TIB","Tracker Inner Barrel"));
+  histarray.push_back(pair<TString,TString> ("TOB","Tracker Outer Barrel"));
+  histarray.push_back(pair<TString,TString> ("PixelFwd","Pixel Foward"));
+  histarray.push_back(pair<TString,TString> ("TID","Tracker Inner Disk"));
+  histarray.push_back(pair<TString,TString> ("TEC","Tracker EndCaps"));
+
+  for (unsigned int i=0; i<histarray.size(); i++) {
+    TString histnametemp = histarray[i].first+histname;
+    TString histtitletemp = histtitle;
+    histtitletemp.ReplaceAll("region",histarray[i].second); 
+    histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),bins,lowerlimit,upperlimit);
+  }
+
+}
+
 void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float weight, unsigned int leadindex, unsigned int subleadindex, int leadPhoCategory, int subleadPhoCategory) {
 
   for (int i=0; i<4; i++) {
@@ -1173,6 +1255,26 @@ void FilldZRcut(HistoContainer *histoContainer, string selection, float weight, 
 
 }
 
+void FilldZTrackerBarrel(HistoContainer *histoContainer, TString histname, double deltaZ, double R, float weight) {
+
+  TString histnametemp = "";
+  if (R<=15.0) histnametemp = "PixelBarrel"+histname;
+  else if (R>15 && R<=60.0) histnametemp = "TIB"+histname;
+  else if (R>60.0) histnametemp = "TOB"+histname;
+  histoContainer->Fill(histnametemp.Data(),deltaZ,weight);
+  
+}
+
+void FilldZTrackerEndcap(HistoContainer *histoContainer, TString histname, double deltaZ, double Z, float weight) {
+
+  TString histnametemp = "";
+  if (Z<=50.0) histnametemp = "PixelFwd"+histname;
+  else if (Z>50 && Z<=100.0) histnametemp = "TID"+histname;
+  else if (Z>100.0) histnametemp = "TEC"+histname;
+  histoContainer->Fill(histnametemp.Data(),deltaZ,weight);
+
+}
+
 void FillMassHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, int diPhoCategory, TLorentzVector VSum, double InvMass, double SimInvMass, double cos_thetastar) {
 
   TString histnames[] = {"mass_", "masssimvertex_", "pt_", "pz_", "eta_", "phi_", "CosThetaStar_"};
@@ -1195,7 +1297,6 @@ void FillMassHists(HistoContainer *histoContainer, string selection, float weigh
     if (diPhoCategory==2) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1goodconv");
     if (diPhoCategory==3) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1poorconv");
     if (diPhoCategory==4) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma2conv");
-    if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
     
     histoContainer->Fill(histnames[0].Data(),InvMass,weight);
     histoContainer->Fill(histnames[1].Data(),SimInvMass,weight);
@@ -1204,6 +1305,22 @@ void FillMassHists(HistoContainer *histoContainer, string selection, float weigh
     histoContainer->Fill(histnames[4].Data(),VSum.Eta(),weight);
     histoContainer->Fill(histnames[5].Data(),VSum.Phi(),weight);
     histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
+
+    if (diPhoCategory!=1 && diPhoCategory!=2) {
+      if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
+      for (unsigned int i=0; i<6; i++) {
+        if (histnames[i].Contains("2gamma1poorconv")) histnames[i].ReplaceAll("2gamma1poorconv","2gammaleftover");
+        else if (histnames[i].Contains("2gamma2conv")) histnames[i].ReplaceAll("2gamma2conv","2gammaleftover");
+      }
+      histoContainer->Fill(histnames[0].Data(),InvMass,weight);
+      histoContainer->Fill(histnames[1].Data(),SimInvMass,weight);
+      histoContainer->Fill(histnames[2].Data(),VSum.Pt(),weight);
+      histoContainer->Fill(histnames[3].Data(),VSum.Pz(),weight);
+      histoContainer->Fill(histnames[4].Data(),VSum.Eta(),weight);
+      histoContainer->Fill(histnames[5].Data(),VSum.Phi(),weight);
+      histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
+    }
+
   }
           
 }
@@ -1243,7 +1360,7 @@ void FillMassRcut(HistoContainer *histoContainer, string selection, float weight
 void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, string photon, unsigned int index, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, TVector3 PrimaryVertex, TVector3 SimVertex, vector<TLorentzVector> Photonp4, bool data) {
 
   for (unsigned int i=0; i<2; i++) {
-    TString histnames[] = {"PhoEt", "PhoEta", "PhoPhi", "PhoR9", "PhoHoE", "PhoTrkPtSumSolid03", "PhoEcalPtSumSolid03", "PhoHcalPtSumSolid03", "PhoSigmaIetaIeta", "PhoZPV", "PhoDZPV", "PhoDZPVconv"};
+    TString histnames[] = {"PhoEt", "PhoEta", "PhoPhi", "PhoR9", "PhoHoE", "PhoTrkPtSumHollow04", "PhoEcalPtSumHollow04", "PhoHcalPtSumHollow04", "PhoSigmaIetaIeta", "PhoZPV", "PhoDZPV", "PhoDZPVconv"};
     string region = "";
     if (i==0) region = "_allEcal";
     if (i==1 && currentTree->pho_isEB[index]) region = "_Barrel";
@@ -1260,9 +1377,9 @@ void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, str
     histoContainer->Fill(histnames[2].Data(),Photonxyz[index].Phi(),weight);
     histoContainer->Fill(histnames[3].Data(),currentTree->pho_r9[index],weight);
     histoContainer->Fill(histnames[4].Data(),currentTree->pho_hoe[index],weight);
-    histoContainer->Fill(histnames[5].Data(),currentTree->pho_trksumptsolidconedr03[index],weight);
-    histoContainer->Fill(histnames[6].Data(),currentTree->pho_ecalsumetconedr03[index],weight);
-    histoContainer->Fill(histnames[7].Data(),currentTree->pho_hcalsumetconedr03[index],weight);
+    histoContainer->Fill(histnames[5].Data(),currentTree->pho_trksumpthollowconedr04[index],weight);
+    histoContainer->Fill(histnames[6].Data(),currentTree->pho_ecalsumetconedr04[index],weight);
+    histoContainer->Fill(histnames[7].Data(),currentTree->pho_hcalsumetconedr04[index],weight);
     histoContainer->Fill(histnames[8].Data(),currentTree->pho_sieie[index],weight);
     histoContainer->Fill(histnames[9].Data(),PrimaryVertex.Z(),weight);
     if (!data) {

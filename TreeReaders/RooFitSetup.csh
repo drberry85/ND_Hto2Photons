@@ -1,6 +1,6 @@
 source /afs/cern.ch/sw/lcg/external/gcc/4.4.3/x86_64-slc5/setup.csh
 
-setenv ROOTSYS /afs/cern.ch/sw/lcg/app/releases/ROOT/5.26.00b/x86_64-slc5-gcc44-opt/root
+setenv ROOTSYS /afs/cern.ch/sw/lcg/app/releases/ROOT/5.28.00b/x86_64-slc5-gcc43-opt/root
 
 setenv PATH "$ROOTSYS/bin:$PATH"
 

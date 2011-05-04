@@ -6,25 +6,25 @@ from math import log
 gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
-GlobalWeight = 1000.0
-EventReference = [["HiggsAnalysis110GeV.root",GlobalWeight*0.001939*(20.493+1.4405+1.4421)],["HiggsAnalysis115GeV.root",GlobalWeight*0.002101*(18.735+1.3712+1.2524)],["HiggsAnalysis120GeV.root",GlobalWeight*0.002219*(17.173+1.3062+1.0921)],["HiggsAnalysis130GeV.root",GlobalWeight*0.002240*(14.579+1.1866+0.8395)],["HiggsAnalysis140GeV.root",GlobalWeight*0.001929*(12.525+1.0811+0.6539)],["HiggsAnalysis150GeV.root",GlobalWeight*0.001363*(10.863+0.9868+0.5155)]]
+GlobalWeight = 5000.0
+#EventReference = [["HiggsAnalysis110GeV.root",GlobalWeight*0.001939*(20.493+1.4405+1.4421)],["HiggsAnalysis115GeV.root",GlobalWeight*0.002101*(18.735+1.3712+1.2524)],["HiggsAnalysis120GeV.root",GlobalWeight*0.002219*(17.173+1.3062+1.0921)],["HiggsAnalysis130GeV.root",GlobalWeight*0.002240*(14.579+1.1866+0.8395)],["HiggsAnalysis140GeV.root",GlobalWeight*0.001929*(12.525+1.0811+0.6539)],["HiggsAnalysis150GeV.root",GlobalWeight*0.001363*(10.863+0.9868+0.5155)]]
+EventReference = [["HiggsAnalysis115GeV.root",GlobalWeight*0.002101*(18.735+1.2524)],["HiggsAnalysis120GeV.root",GlobalWeight*0.002219*(17.173+1.0921)],["HiggsAnalysis130GeV.root",GlobalWeight*0.002240*(14.579+1.1866+0.8395)]]
 
 print "Setting Initial Parameters."
 pwd = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/"
-SignalFiles = ["HiggsAnalysis110GeV.root","HiggsAnalysis115GeV.root","HiggsAnalysis120GeV.root","HiggsAnalysis130GeV.root","HiggsAnalysis140GeV.root","HiggsAnalysis150GeV.root"]
-#SignalFiles = ["HiggsAnalysis110GeV.root"]
-BackgroundFiles = ["PhotonPlusJet.root","ReweightedDoubleEMEnriched.root","QCDBCtoE.root","Box.root"]
-hists = [["h_mass_2gammaAllEB","h_mass_2gammaAllEE","h_mass_2gammaSelEB","h_mass_2gammaSelEE","h_mass_2gammaMatchedEB","h_mass_2gammaMatchedEE"]]
-hists.append(["h_mass_2gammaGoldenAllEB","h_mass_2gammaGoldenAllEE","h_mass_2gammaGoldenSelEB","h_mass_2gammaGoldenSelEE","h_mass_2gammaGoldenMatchedEB","h_mass_2gammaGoldenMatchedEE"])
-hists.append(["h_mass_2gamma1goodconvAllEB","h_mass_2gamma1goodconvAllEE","h_mass_2gamma1goodconvSelEB","h_mass_2gamma1goodconvSelEE","h_mass_2gamma1goodconvMatchedEB","h_mass_2gamma1goodconvMatchedEE"])
-hists.append(["h_mass_2gamma1poorconvAllEB","h_mass_2gamma1poorconvAllEE","h_mass_2gamma1poorconvSelEB","h_mass_2gamma1poorconvSelEE","h_mass_2gamma1poorconvMatchedEB","h_mass_2gamma1poorconvMatchedEE"])
-hists.append(["h_mass_2gamma2convAllEB","h_mass_2gamma2convAllEE","h_mass_2gamma2convSelEB","h_mass_2gamma2convSelEE","h_mass_2gamma2convMatchedEB","h_mass_2gamma2convMatchedEE"])
-hists.append(["h_mass_2gammaleftoverAllEB","h_mass_2gammaleftoverAllEE","h_mass_2gammaleftoverSelEB","h_mass_2gammaleftoverSelEE","h_mass_2gammaleftoverMatchedEB","h_mass_2gammaleftoverMatchedEE"])
+SignalFiles = ["HiggsAnalysis115GeV.root","HiggsAnalysis120GeV.root","HiggsAnalysis130GeV.root"]
+BackgroundFiles = ["PhotonJetEMEnriched.root","QCDDoubleEMEnriched.root","Born.root","Box.root","DrellYan.root"]
+hists = [["mass_2gammaAllBarrel","mass_2gammaAllEndcap","mass_2gammaSelBarrel","mass_2gammaSelEndcap"]]
+hists.append(["mass_2gammaGoldenAllBarrel","mass_2gammaGoldenAllEndcap","mass_2gammaGoldenSelBarrel","mass_2gammaGoldenSelEndcap"])
+hists.append(["mass_2gamma1goodconvAllBarrel","mass_2gamma1goodconvAllEndcap","mass_2gamma1goodconvSelBarrel","mass_2gamma1goodconvSelEndcap"])
+hists.append(["mass_2gamma1poorconvAllBarrel","mass_2gamma1poorconvAllEndcap","mass_2gamma1poorconvSelBarrel","mass_2gamma1poorconvSelEndcap"])
+hists.append(["mass_2gamma2convAllBarrel","mass_2gamma2convAllEndcap","mass_2gamma2convSelBarrel","mass_2gamma2convSelEndcap"])
+hists.append(["mass_2gammaleftoverAllBarrel","mass_2gammaleftoverAllEndcap","mass_2gammaleftoverSelBarrel","mass_2gammaleftoverSelEndcap"])
 background = []
 data = []
 
 fit=TF1("fit","[0]*exp([1]*(x-100))",100,160)
-fit.SetParNames("constant","coefficient");
+fit.SetParNames("constant","coefficient")
 fit.SetParLimits(1,-1,0)
 fit.SetLineColor(4)
 
@@ -76,9 +76,12 @@ for i in range(len(SignalFiles)):
 	for j in range(len(backgroundsum)):
 		for k in range(len(backgroundsum[k])):
 			#can = TCanvas("Plots","Plots",1200,1200)
+			#backgroundhist[j][k].GetXaxis().SetRangeUser(100,160)
 			#backgroundhist[j][k].Draw()
 			fit.SetParameters(backgroundhist[j][k].GetMaximum(),-0.02)
 			backgroundhist[j][k].Fit(fit,"QLMN","",100,160)
+			backgroundintegral[j][k] = fit.Integral(HiggsMass-5,HiggsMass+5)
+			backgroundintegralerror[j][k] = fit.IntegralError(HiggsMass-5,HiggsMass+5)
 			backgroundintegral[j][k] = fit.Integral(HiggsMass*0.98,HiggsMass*1.02)
 			backgroundintegralerror[j][k] = fit.IntegralError(HiggsMass*0.98,HiggsMass*1.02)
 			#fit.Draw("same")
@@ -95,12 +98,12 @@ for i in range(len(SignalFiles)):
 			#print "The number of events in %s is: %0.02f with %.02f background events so the purity is %.02f%%" %(hists[j][k],events[k],backgroundsum[j][k],100*events[k]/(events[k]+backgroundsum[j][k]))
 		eventmatrix.append(events)
 	print "\nResults Table for %s" %SignalFiles[i]
-	print "Selection\t\t%s\t%s\t\t%s\t\t%s\t\t\t%s" %(SignalFiles[i],BackgroundFiles[0],BackgroundFiles[1],BackgroundFiles[2],BackgroundFiles[3])
+	print "Selection\t\t%s\t%s\t%s\t%s\t\t\t%s\t\t\t%s" %(SignalFiles[i],BackgroundFiles[0],BackgroundFiles[1],BackgroundFiles[2],BackgroundFiles[3],BackgroundFiles[4])
 	for j in range(len(eventmatrix)):
 		if (len(hists[j][0][8:hists[j][0].find("All")])<6):
-			print "%s:\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundmatrix[0][j][2],backgroundmatrix[0][j][3],backgroundmatrix[1][j][2],backgroundmatrix[1][j][3],backgroundmatrix[2][j][2],backgroundmatrix[2][j][3],backgroundmatrix[3][j][2],backgroundmatrix[3][j][3])
+			print "%s:\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)" %(hists[j][0][6:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundmatrix[0][j][2],backgroundmatrix[0][j][3],backgroundmatrix[1][j][2],backgroundmatrix[1][j][3],backgroundmatrix[2][j][2],backgroundmatrix[2][j][3],backgroundmatrix[3][j][2],backgroundmatrix[3][j][3],backgroundmatrix[4][j][2],backgroundmatrix[4][j][3])
 		else:
-			print "%s:\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t\t%.03e (%.03e)\t\t%.03e (%.03e)" %(hists[j][0][8:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundmatrix[0][j][2],backgroundmatrix[0][j][3],backgroundmatrix[1][j][2],backgroundmatrix[1][j][3],backgroundmatrix[2][j][2],backgroundmatrix[2][j][3],backgroundmatrix[3][j][2],backgroundmatrix[3][j][3])
+			print "%s:\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)\t\t%.03e (%.03e)" %(hists[j][0][6:hists[j][0].find("All")],eventmatrix[j][2],eventmatrix[j][3],backgroundmatrix[0][j][2],backgroundmatrix[0][j][3],backgroundmatrix[1][j][2],backgroundmatrix[1][j][3],backgroundmatrix[2][j][2],backgroundmatrix[2][j][3],backgroundmatrix[3][j][2],backgroundmatrix[3][j][3],backgroundmatrix[4][j][2],backgroundmatrix[4][j][3])
 	print "Likelihood Sum: " 
 	print "\nPurity Results for %s" %SignalFiles[i]
 	print "Purity Table:\t\tSignal Events\t\t\tIntegrated Background\t\tIntegrated Error\t\tPurity\t\t\tLog Likelihood\t\tSensitivity\t\tEfficiency X Acceptance"
@@ -108,7 +111,7 @@ for i in range(len(SignalFiles)):
 		if EventReference[i][0]==SignalFiles[i]: NumEvents = EventReference[i][1]
 	likelihoodsum = 0
 	for j in range(len(eventmatrix)):
-		histname = hists[j][0][8:hists[j][0].find("All")]
+		histname = hists[j][0][6:hists[j][0].find("All")]
 		purityEB = 100*eventmatrix[j][2]/(backgroundintegral[j][2]+eventmatrix[j][2])
 		purityEE = 100*eventmatrix[j][3]/(backgroundintegral[j][3]+eventmatrix[j][3])
 		likelihoodEB = eventmatrix[j][2]-(eventmatrix[j][2]+backgroundintegral[j][2])*log(1+eventmatrix[j][2]/backgroundintegral[j][2])
