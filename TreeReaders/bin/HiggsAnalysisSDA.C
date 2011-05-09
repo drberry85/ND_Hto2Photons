@@ -31,6 +31,7 @@ using namespace std;
 
 unsigned int DoGenMatching(sdaReader *currentTree, TVector3 Photon);
 unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
+unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz);
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex);
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
@@ -69,6 +70,7 @@ int main(int argc, char * input[]) {
   bool bar = false;
   bool data = false;
   bool dataweight = false;
+  bool debug = false;
   bool unweighted = false;
   double RCut = 999999;
   float globalWeight = 5000;
@@ -89,6 +91,7 @@ int main(int argc, char * input[]) {
   }
   if (InputArgs.Contains("Unweighted")) unweighted=true;
   if (InputArgs.Contains("Bar")) bar=true;
+  if (InputArgs.Contains("Debug")) debug=true;
   if (InputArgs.Contains("RCut")) RCut=40;
   if (filesAndWeights.size()==0) {
     cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
@@ -111,8 +114,6 @@ int main(int argc, char * input[]) {
 
     for (int itFile = FirstFileNum; itFile<itFilePair->second+FirstFileNum; itFile++) {
 
-      bool HasSimVertex = false;
-      bool HasGenParticles = false;
       string file = filesAndWeights[itFile].first;
       float weight = filesAndWeights[itFile].second * globalWeight;
 
@@ -143,23 +144,26 @@ int main(int argc, char * input[]) {
 
         currentTree.GetEntry(i);
 
-        if (i==0) HasSimVertex = currentTree.FindLeaf("simvtx");
-        if (i==0) HasGenParticles = currentTree.FindLeaf("gp_vtx");
-        
         TVector3 SimVertex(0,0,0);
-        if (!data && HasSimVertex) SimVertex = (*((TVector3*) currentTree.simvtx->At(0)));
         vector<TVector3> PrimaryVertex;
         vector<TVector3> ConversionVertex;
+        vector<TVector3> TrackerConversionVertex;
         vector<TVector3> ConversionPairMomentum;
+        vector<TVector3> TrackerConversionPairMomentum;
         vector<TVector3> ConversionRefittedPairMomentum;
+        vector<TVector3> TrackerConversionRefittedPairMomentum;
         vector<TVector3> Photonxyz;
         vector<TLorentzVector> Photonp4;
         vector<TLorentzVector> SuperClusterp4;
-
+        if (debug) cout << "Vectors Defined" << endl;
+        if (debug) cout << "Number Gen Particles: " << currentTree.gp_n << endl;
+        if (debug) cout << "Number Gen Vertexes: " << currentTree.gp_vtx->GetSize() << endl;
+        if (debug) cout << "Number Gen P4: " << currentTree.gp_p4->GetSize() << endl;
         //Finding Vertex of Higgs
+
         int HiggsIndex = -1;
         TLorentzVector Higgs_p4(0,0,0,0);
-        if (!data && HasGenParticles) {
+        if (!data) {
           for (int j=0; j<currentTree.gp_n; j++) {
             if (currentTree.gp_pdgid[j]==25 && currentTree.gp_status[j]==2) {
               HiggsIndex = j;
@@ -168,11 +172,12 @@ int main(int argc, char * input[]) {
             }
           }
         }
+        if (debug) cout << "Higgs Vertexing Done" << endl;
         if (HiggsIndex != -1) {
           histoContainer->Fill("GenHiggsPt",Higgs_p4.Pt(),weight);
           histoContainer->Fill("GenHiggsEta",Higgs_p4.Eta(),weight);
         }
-        
+
         for (unsigned int j=0; j!=(unsigned int) currentTree.vtx_std_xyz->GetSize(); j++) {
           PrimaryVertex.push_back(*((TVector3*) currentTree.vtx_std_xyz->At(j)));
           histoContainer->Fill("ZVertices",PrimaryVertex[j].Z(),weight);
@@ -185,9 +190,9 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("ZdZZoom",PrimaryVertex[0].Z()-SimVertex.Z(),weight);
           for (unsigned int j=0; j<PrimaryVertex.size(); j++) histoContainer->Fill("ZdZAll",PrimaryVertex[j].Z()-SimVertex.Z(),weight);
         }
-        
-        if (currentTree.pho_n<1) continue;
 
+        if (currentTree.pho_n<1) continue;
+        if (debug) cout << "One Photon Found" << endl;
         map <double, unsigned int> ptindex;
         for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
           ConversionVertex.push_back(*((TVector3*) currentTree.pho_conv_vtx->At(j)));
@@ -198,54 +203,71 @@ int main(int argc, char * input[]) {
           ptindex[Photonp4[j].Pt()]=j;
         }
         for (unsigned int j=0; j<(unsigned int) currentTree.sc_p4->GetSize(); j++) SuperClusterp4.push_back(*((TLorentzVector*) currentTree.sc_p4->At(j)));
-
+        for (unsigned int j=0; j<(unsigned int) currentTree.conv_n; j++) {
+          TrackerConversionVertex.push_back(*((TVector3*) currentTree.conv_vtx->At(j)));
+          TrackerConversionPairMomentum.push_back(*((TVector3*) currentTree.conv_pair_momentum->At(j)));
+          TrackerConversionRefittedPairMomentum.push_back(*((TVector3*) currentTree.conv_refitted_momentum->At(j)));
+        }
+        if (debug) cout << "Conversions Vectors Filled" << endl;
+        
         double leadpt = -1;
         double subleadpt = -1;
         unsigned int leadindex = 0;
         unsigned int subleadindex = 0;
 
+        //cout << "Doing pt sorting." << endl;
         bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
         
         if (!sorted) cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
         //cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
         histoContainer->Fill("NumberVertices",float(currentTree.vtx_std_xyz->GetSize()),weight);
-        if (HasSimVertex) histoContainer->Fill("NumberSimVerticesVsRecoVertices",float(currentTree.vtx_std_xyz->GetSize()), float(currentTree.simvtx->GetSize()));
-        if (!data && HasSimVertex) histoContainer->Fill("NumberSimVertices",float(currentTree.simvtx->GetSize()),weight);
 
-        if (!data && HasGenParticles) {
+        if (!data) {
           double genleadpt = -1;
           double gensubleadpt = -1;
           unsigned int genleadindex = 0;
           unsigned int gensubleadindex = 0;
 
           map <double, unsigned int> genptindex;
-          for (unsigned int j=0; j<(unsigned int) currentTree.gp_n; j++) if (currentTree.gp_pdgid[j]==22) genptindex[((TLorentzVector*) currentTree.gp_p4->At(j))->Pt()]=j;
-          
+          //cout << "Filling Gen Tree with " << currentTree.gp_n << " entries." << endl;
+          for (unsigned int j=0; j<(unsigned int) currentTree.gp_n; j++) {
+            //cout << "J is: " << j << " and pdgid is: " << currentTree.gp_pdgid[j] << endl;
+            if (currentTree.gp_pdgid[j]==22 && currentTree.gp_status[j]==1) {
+              //cout << "Filling pt: " << ((TLorentzVector*) currentTree.gp_p4->At(j))->Pt() << " with index " << counter << endl;
+              genptindex[((TLorentzVector*) currentTree.gp_p4->At(j))->Pt()]=j;
+            }
+          }
+
+          //cout << "Doing Gen Sorting." << endl;
           bool gensorted = sortpt(genptindex, genptindex.size(), genleadpt, gensubleadpt, genleadindex, gensubleadindex);
           if (!gensorted) cout << "GenParticles not sorted!" << endl;
-        
+
           TLorentzVector LeadGenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(genleadindex)));
           TLorentzVector SubleadGenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(gensubleadindex)));
+
           histoContainer->Fill("GenPhotonEta",LeadGenPhotonp4.Eta(),weight);
           histoContainer->Fill("GenPhotonEta",SubleadGenPhotonp4.Eta(),weight);
+
           if (abs(LeadGenPhotonp4.Eta())<2.5 && abs(SubleadGenPhotonp4.Eta())<2.5) {
             histoContainer->Fill("GenPhotonEtaBool",1,weight);
           } else {
             histoContainer->Fill("GenPhotonEtaBool",0,weight);
           }
         }
-        
+
         //////////////// basic selection
         if (!preselection(Photonp4[leadindex].Pt(), Photonp4[subleadindex].Pt(), Photonxyz[leadindex].Eta(), Photonxyz[subleadindex].Eta(), currentTree.pho_isEBEEGap[leadindex], currentTree.pho_isEBEEGap[subleadindex])) continue;
 
         ////////////////////////////////////
         unsigned int convindex = getconvindex(&currentTree,leadindex,subleadindex);
+        unsigned int trackerconvindex = gettrackerconvindex(&currentTree,Photonxyz[leadindex]);
+        if (trackerconvindex==9999) gettrackerconvindex(&currentTree,Photonxyz[subleadindex]);
         unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
         unsigned int nearvertexindex = 0;
         float scEnergy = Photonp4[convindex].E();
         if (currentTree.sc_p4->GetSize()>0) scEnergy = SuperClusterp4[convscindex].E();
         float EoP = scEnergy/ConversionRefittedPairMomentum[convindex].Mag();
-        
+
         string iLeadDetector = DetectorPosition(&currentTree, leadindex);
         string iSubleadDetector = DetectorPosition(&currentTree, subleadindex);
         string iConvDetector = DetectorPosition(&currentTree, convindex);
@@ -253,7 +275,6 @@ int main(int argc, char * input[]) {
 
         int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_chi2_probability[leadindex] , Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp(), ConversionVertex[leadindex].Perp());
         int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex] ,  Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp(), ConversionVertex[subleadindex].Perp());
-
 
         bool convsel1 = convSel(currentTree.pho_conv_ntracks[leadindex],
                                 currentTree.pho_conv_validvtx[leadindex] ,  
@@ -319,7 +340,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("NewZconv",iConvDetector, NewZ, weight);
           histoContainer->Fill("NewZPVconv",iConvDetector, NewZPV, weight);
           histoContainer->Fill("NewZconvlinear",iConvDetector, NewZconvlinear, weight);
-          
+
           if (!data) {
             histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
             histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
@@ -339,6 +360,14 @@ int main(int argc, char * input[]) {
               FilldZTrackerEndcap(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Z(), weight);
             }
           }
+
+          if (trackerconvindex!=9999) {
+            histoContainer->Fill("trackerconvr",iConvDetector,TrackerConversionVertex[trackerconvindex].Perp(),weight);
+            histoContainer->Fill("trackerconvEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/TrackerConversionRefittedPairMomentum[trackerconvindex].Mag(),weight);
+            histoContainer->Fill("Ztrackerconv",iConvDetector,currentTree.conv_zofprimvtxfromtrks[trackerconvindex],weight);
+            histoContainer->Fill("ZtrackerconvdZ",iConvDetector,currentTree.conv_zofprimvtxfromtrks[trackerconvindex]-SimVertex.Z(),weight);
+          }
+          
         }
 
         TVector3 NearVertex = PrimaryVertex[nearvertexindex];
@@ -406,7 +435,7 @@ int main(int argc, char * input[]) {
         TLorentzVector VSubLead_nearvertex(0,0,0,0);
         double InvMass_nearvertex = 0;
         double cos_thetastar_nearvertex = 0;
-        
+
         if (diPhoCategory==2) {
 
           VLead_newvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
@@ -543,10 +572,10 @@ int main(int argc, char * input[]) {
         //GenMatching
         unsigned int LeadGenMatchedIndex = 999999;
         unsigned int SubleadGenMatchedIndex = 999999;
-        if (HasGenParticles) {
-          LeadGenMatchedIndex = DoGenMatching(&currentTree, Photonxyz[leadindex]);
-          SubleadGenMatchedIndex = DoGenMatching(&currentTree, Photonxyz[subleadindex]);
-        }
+
+        LeadGenMatchedIndex = DoGenMatching(&currentTree, Photonxyz[leadindex]);
+        SubleadGenMatchedIndex = DoGenMatching(&currentTree, Photonxyz[subleadindex]);
+
         if (LeadGenMatchedIndex!=999999) {
           TVector3 GenPhotonxyz = (*((TVector3*) currentTree.gp_vtx->At(LeadGenMatchedIndex)));
           TLorentzVector GenPhotonp4 = (*((TLorentzVector*) currentTree.gp_p4->At(LeadGenMatchedIndex)));
@@ -559,7 +588,7 @@ int main(int argc, char * input[]) {
           TLorentzVector Correctedp4 = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], GenPhotonp4.Z());
           histoContainer->Fill("MomentumResolution",iSubleadDetector,(Correctedp4.E()-GenPhotonp4.E())/GenPhotonp4.E(),weight);
         }
-        
+
         if (!data && LeadGenMatchedIndex!=999999 && SubleadGenMatchedIndex!=999999) {
           selection="Matched";
           FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
@@ -653,6 +682,29 @@ unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsign
   if (currentTree->pho_conv_validvtx[leadindex]) return leadindex;
   if (currentTree->pho_conv_validvtx[subleadindex]) return subleadindex;
   return 0;
+}
+
+unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
+
+  double Pi = 3.14159265;
+  unsigned int ReturnIndex = 9999;
+  
+  for (unsigned int i=0; i<(unsigned int) currentTree->conv_n; i++) {
+    TVector3 ConversionRefittedPairMomentum = *((TVector3*) currentTree->conv_refitted_momentum->At(i));
+    double DeltaPhi = abs(Photonxyz.Phi()-ConversionRefittedPairMomentum.Phi());
+    if (DeltaPhi>Pi) DeltaPhi = 2*Pi-DeltaPhi;
+
+    double ConvEta = ConversionRefittedPairMomentum.Eta();
+    double DeltaEta = abs(Photonxyz.Eta()-ConvEta);
+
+    if (DeltaEta < 0.03 && DeltaPhi < 0.05) {
+      if (ReturnIndex==9999) ReturnIndex = i;
+      if (ReturnIndex!=9999 && currentTree->conv_MVALikelihood[i]>currentTree->conv_MVALikelihood[ReturnIndex]) ReturnIndex=i; 
+    }
+  }
+  
+  return ReturnIndex;
+
 }
 
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum) {
@@ -905,6 +957,11 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("convdZPrimaryBarrel","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Barrel;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
   histoContainer->Add("convdZPrimaryEndcap","#deltaZ of the Primary Vertex from Conversion and Sim Vertex versus #deltaZ of the Primary Vertex and the Sim Vertex: Endcap;#deltaZ of Primary Vertex from Conversion and SimVertex (cm);#deltaZ of Primary Vertex and SimVertex (cm)",100, -5, 5, 100, -5, 5);
 
+  BookBarrelAndEndcap(histoContainer,"trackerconvr","R of tracker conversion; R (cm): region; Counts",100,0,100);
+  BookBarrelAndEndcap(histoContainer,"trackerconvEoPAll","E over P of Tracker Conversion; E over P; Counts",100,0,3);
+  BookBarrelAndEndcap(histoContainer,"Ztrackerconv","Z of Primary Vertex from Tracker Conversion: region;Z (cm); Counts",100,-20,20);
+  BookBarrelAndEndcap(histoContainer,"ZtrackerconvdZ","#deltaZ between the Z of the Primary Vertex from Tracker Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
+  
   histoContainer->Add("leadEtMarco_allEcal","Leading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
   histoContainer->Add("subleadEtMarco_allEcal","Subleading Photon Et with Marco's Cuts, Et (GeV); Counts",30,0.,150.);
   histoContainer->Add("mass_Marco_allEcal","Invariant Mass of Photons with Marco's Cuts; Mass (GeV); Counts",20,100.,200.);
@@ -1029,7 +1086,7 @@ void BookMassPlots(HistoContainer *histoContainer, TString histname) {
         histtitletemp += region[j].second;
         histtitletemp += "candidates";
           
-        histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),bins[k],lowerlimit[k],upperlimit[k]);
+        if (!(histname.Contains("vertex") && parameter[k].first.Contains("simvertex"))) histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),bins[k],lowerlimit[k],upperlimit[k]);
       }
     }
   }
@@ -1278,7 +1335,8 @@ void FilldZTrackerEndcap(HistoContainer *histoContainer, TString histname, doubl
 void FillMassHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, int diPhoCategory, TLorentzVector VSum, double InvMass, double SimInvMass, double cos_thetastar) {
 
   TString histnames[] = {"mass_", "masssimvertex_", "pt_", "pz_", "eta_", "phi_", "CosThetaStar_"};
-  for (unsigned int i=0; i<7; i++) {
+  unsigned int arraylength = (unsigned int) sizeof(histnames)/sizeof(histnames[0]);
+  for (unsigned int i=0; i<arraylength; i++) {
     histnames[i] += "2gamma";
     histnames[i] += selection;
     histnames[i] += HiggsInWhichDetector;
@@ -1293,22 +1351,24 @@ void FillMassHists(HistoContainer *histoContainer, string selection, float weigh
     histoContainer->Fill(histnames[5].Data(),VSum.Phi(),weight);
     histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
     
-    if (diPhoCategory==1) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaGolden");
-    if (diPhoCategory==2) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1goodconv");
-    if (diPhoCategory==3) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma1poorconv");
-    if (diPhoCategory==4) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gamma2conv");
-    
-    histoContainer->Fill(histnames[0].Data(),InvMass,weight);
-    histoContainer->Fill(histnames[1].Data(),SimInvMass,weight);
-    histoContainer->Fill(histnames[2].Data(),VSum.Pt(),weight);
-    histoContainer->Fill(histnames[3].Data(),VSum.Pz(),weight);
-    histoContainer->Fill(histnames[4].Data(),VSum.Eta(),weight);
-    histoContainer->Fill(histnames[5].Data(),VSum.Phi(),weight);
-    histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
+    if (diPhoCategory==1) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gammaGolden");
+    if (diPhoCategory==2) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma1goodconv");
+    if (diPhoCategory==3) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma1poorconv");
+    if (diPhoCategory==4) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma2conv");
+
+    if (diPhoCategory==1 || diPhoCategory==2 || diPhoCategory==3 || diPhoCategory==4) {
+      histoContainer->Fill(histnames[0].Data(),InvMass,weight);
+      histoContainer->Fill(histnames[1].Data(),SimInvMass,weight);
+      histoContainer->Fill(histnames[2].Data(),VSum.Pt(),weight);
+      histoContainer->Fill(histnames[3].Data(),VSum.Pz(),weight);
+      histoContainer->Fill(histnames[4].Data(),VSum.Eta(),weight);
+      histoContainer->Fill(histnames[5].Data(),VSum.Phi(),weight);
+      histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
+    }
 
     if (diPhoCategory!=1 && diPhoCategory!=2) {
-      if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6) for (unsigned int i=0; i<6; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
-      for (unsigned int i=0; i<6; i++) {
+      if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
+      for (unsigned int i=0; i<arraylength; i++) {
         if (histnames[i].Contains("2gamma1poorconv")) histnames[i].ReplaceAll("2gamma1poorconv","2gammaleftover");
         else if (histnames[i].Contains("2gamma2conv")) histnames[i].ReplaceAll("2gamma2conv","2gammaleftover");
       }
@@ -1409,10 +1469,10 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
   }
   if ((inputstring.Contains("120GeV") && !inputstring.Contains("Pileup")) || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002219;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",2));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH120.root",17.173*BranchingFraction/109992));
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M120_2011PUFull.root",17.173*BranchingFraction/109992));
     //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF120.root",1.3062*BranchingFraction/109842));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
   }
   if ((inputstring.Contains("130GeV") && !inputstring.Contains("Pileup")) || inputstring.Contains("Signal") || inputstring.Contains("All")) {
     BranchingFraction = 0.002240;
@@ -1463,7 +1523,7 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
   }
   if (inputstring.Contains("Test")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/CMSSW_3_8_5_patch3/src/ND_Hto2Photons/TreeReaders/GGH130.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M120_2011PU.root",1));
   }
 
 }
