@@ -35,6 +35,7 @@ unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz);
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex);
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
+double etaTransformation(double EtaParticle, double Zvertex);
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
 double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex);
 double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairMomentum);
@@ -688,22 +689,29 @@ unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
 
   double Pi = 3.14159265;
   unsigned int ReturnIndex = 9999;
+  double MinDeltaEta = 9999;
+  double MinDeltaPhi = 9999;
   
   for (unsigned int i=0; i<(unsigned int) currentTree->conv_n; i++) {
     TVector3 ConversionRefittedPairMomentum = *((TVector3*) currentTree->conv_refitted_momentum->At(i));
     double DeltaPhi = abs(Photonxyz.Phi()-ConversionRefittedPairMomentum.Phi());
     if (DeltaPhi>Pi) DeltaPhi = 2*Pi-DeltaPhi;
 
-    double ConvEta = ConversionRefittedPairMomentum.Eta();
+    double ConvEta = etaTransformation(ConversionRefittedPairMomentum.Eta(),currentTree->conv_zofprimvtxfromtrks[i]);
     double DeltaEta = abs(Photonxyz.Eta()-ConvEta);
 
-    if (DeltaEta < 0.03 && DeltaPhi < 0.05) {
-      if (ReturnIndex==9999) ReturnIndex = i;
-      if (ReturnIndex!=9999 && currentTree->conv_MVALikelihood[i]>currentTree->conv_MVALikelihood[ReturnIndex]) ReturnIndex=i; 
+    if (DeltaEta<MinDeltaEta && DeltaPhi<MinDeltaPhi) {
+      MinDeltaPhi=DeltaPhi;
+      MinDeltaEta=DeltaEta;
+      ReturnIndex = i;
     }
   }
-  
-  return ReturnIndex;
+
+  if (MinDeltaEta<0.1 && MinDeltaPhi<0.1) {
+    return ReturnIndex;
+  } else {
+    return 9999;
+  }
 
 }
 
@@ -723,6 +731,40 @@ double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum) {
   return cos_thetastar;
 
 }
+
+double etaTransformation(double EtaParticle, double Zvertex)  {
+
+  //---Definitions
+  const float PI    = 3.1415927;
+
+  //---Definitions for ECAL
+  const float R_ECAL           = 136.5;
+  const float Z_Endcap         = 328.0;
+  const float etaBarrelEndcap  = 1.479; 
+   
+  //---ETA correction
+  float Theta = 0.0; 
+  float ZEcal = R_ECAL*sinh(EtaParticle)+Zvertex;
+
+  if(ZEcal != 0.0) Theta = atan(R_ECAL/ZEcal);
+  if(Theta<0.0) Theta = Theta+PI;
+  double ETA = -log(tan(0.5*Theta));
+         
+  if( fabs(ETA) > etaBarrelEndcap )
+    {
+      float Zend = Z_Endcap ;
+      if(EtaParticle<0.0 )  Zend = -Zend ;
+      float Zlen = Zend - Zvertex ;
+      float RR = Zlen/sinh(EtaParticle); 
+      Theta = atan(RR/Zend);
+      if(Theta<0.0) Theta = Theta+PI ;
+      ETA = - log(tan(0.5*Theta));                    
+    } 
+  //---Return the result
+  return ETA;
+  //---end
+}
+
 
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot) {
 
