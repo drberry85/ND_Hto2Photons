@@ -155,20 +155,31 @@ bool convSel(
 }
 
 
-int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt, float R) {
+int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt) {
   
   int cate=0;
-  //  if (  !pixMatch ) { 
-    if ( r9>0.93 && !pixMatch ) {
-      cate=1; // golden
-    } else if ( (r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3) || (r9>0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && etOverPt< 3 && pixMatch)) {
-      cate=2; // good reconstructed conversion
-    } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob <=0.0005 ) {
-      cate=3; // poor reconstructed conversions
-    } else if ( r9<=0.93 && nTracks<2 ) {
-      cate=4;  // no tracks are reconstructed
-    }
-    //  }
+  if ( r9>0.93 && !pixMatch ) {
+    cate=1; // golden
+  } else if ( (r9<=0.93 && nTracks==2 && convVtxChi2Prob >0.0005) || (r9>0.93 && nTracks==2 && convVtxChi2Prob >0.0005 && pixMatch)) {
+    cate=2; // good reconstructed conversion
+  } else if ( r9<=0.93 && nTracks==2 && convVtxChi2Prob <=0.0005 ) {
+    cate=3; // poor reconstructed conversions
+  } else if ( r9<=0.93 && nTracks<2 ) {
+    cate=4;  // no tracks are reconstructed
+  }
+
+  return cate;
+  
+}
+
+int photonCategory (bool pixMatch, float r9) {
+  
+  int cate=0;
+  if ( r9>0.93 && !pixMatch ) {
+    cate=1; // golden
+  } else if ( r9<=0.93 ) {
+    cate=4;  // no tracks are reconstructed
+  }
 
   return cate;
   
