@@ -41,7 +41,7 @@ double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 p
 double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairMomentum);
 string HiggsDetectorPosition(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
 string DetectorPosition(sdaReader *currentTree, unsigned int index);
-TString MakeFileName(string filename, bool unweighted, bool dataweight, double RCut);
+TString MakeFileName(string filename, bool unweighted, string dataweight, double RCut);
 TLorentzVector CalcDiffVertex(TLorentzVector p4, TVector3 xyz, float newz);
 void BookConversionPlots(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
@@ -54,8 +54,8 @@ void BookRCutsdZPlots(HistoContainer *histoContainer, TString histname);
 void BookTrackerdZ(HistoContainer *histoContainer, TString histname);
 void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float weight, unsigned int leadindex, unsigned int subleadindex, int leadPhoCategory, int subleadPhoCategory);
 void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, string photon, unsigned int index, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, TVector3 PrimaryVertex, TVector3 SimVertex, vector<TLorentzVector> Photonp4, bool data);
-void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, int iPho, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
-void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, int iPho, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
+void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
+void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
 void FillMassHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, int diPhoCategory, TLorentzVector VSum, double InvMass, double SimInvMass, double cos_thetastar);
 void FillMassNewVertexHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, string vertextype, TLorentzVector VSum, double InvMass, double cos_thetastar);
 void FillMassRcut(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, double R, double InvMass);
@@ -70,7 +70,6 @@ int main(int argc, char * input[]) {
 
   bool bar = false;
   bool data = false;
-  bool dataweight = false;
   bool debug = false;
   bool unweighted = false;
   double RCut = 999999;
@@ -81,14 +80,19 @@ int main(int argc, char * input[]) {
   vector<pair<string, float> > filesAndWeights;
   vector<pair<string, int> > filelist;
     
+  string dataweight = "";
   TString InputArgs(input[1]);
 
   //PrintWeights();
   MakeFilesAndWeights(InputArgs, filesAndWeights, filelist, data);
   
   if (InputArgs.Contains("Dataweight")) {
-    globalWeight = 36.0;
-    dataweight=true;
+    globalWeight = 94.4;
+    dataweight="Dataweight";
+  }
+  if (InputArgs.Contains("PromptRecoweight")) {
+    globalWeight = 228.6;
+    dataweight="PromptRecoweight";
   }
   if (InputArgs.Contains("Unweighted")) unweighted=true;
   if (InputArgs.Contains("Bar")) bar=true;
@@ -119,7 +123,7 @@ int main(int argc, char * input[]) {
       float weight = filesAndWeights[itFile].second * globalWeight;
 
       if (unweighted) weight=1;
-      if (itFilePair->first=="Data.root" || itFilePair->first=="YousiData.root") weight=1;
+      if (itFilePair->first=="Data.root" || itFilePair->first=="PromptReco.root") weight=1;
       
       TFile * currentFile = new TFile(file.c_str());
       currentFile->cd();
@@ -148,18 +152,15 @@ int main(int argc, char * input[]) {
         TVector3 SimVertex(0,0,0);
         vector<TVector3> PrimaryVertex;
         vector<TVector3> ConversionVertex;
-        vector<TVector3> TrackerConversionVertex;
         vector<TVector3> ConversionPairMomentum;
-        vector<TVector3> TrackerConversionPairMomentum;
         vector<TVector3> ConversionRefittedPairMomentum;
-        vector<TVector3> TrackerConversionRefittedPairMomentum;
         vector<TVector3> Photonxyz;
         vector<TLorentzVector> Photonp4;
         vector<TLorentzVector> SuperClusterp4;
         if (debug) cout << "Vectors Defined" << endl;
-        if (debug) cout << "Number Gen Particles: " << currentTree.gp_n << endl;
-        if (debug) cout << "Number Gen Vertexes: " << currentTree.gp_vtx->GetSize() << endl;
-        if (debug) cout << "Number Gen P4: " << currentTree.gp_p4->GetSize() << endl;
+        if (debug && !data) cout << "Number Gen Particles: " << currentTree.gp_n << endl;
+        if (debug && !data) cout << "Number Gen Vertexes: " << currentTree.gp_vtx->GetSize() << endl;
+        if (debug && !data) cout << "Number Gen P4: " << currentTree.gp_p4->GetSize() << endl;
         //Finding Vertex of Higgs
 
         int HiggsIndex = -1;
@@ -196,18 +197,15 @@ int main(int argc, char * input[]) {
         if (debug) cout << "One Photon Found" << endl;
         map <double, unsigned int> ptindex;
         for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
-          ConversionVertex.push_back(*((TVector3*) currentTree.pho_conv_vtx->At(j)));
-          ConversionPairMomentum.push_back(*((TVector3*) currentTree.pho_conv_pair_momentum->At(j)));
           Photonxyz.push_back(*((TVector3*) currentTree.pho_calopos->At(j)));
-          ConversionRefittedPairMomentum.push_back(*((TVector3*) currentTree.pho_conv_refitted_momentum->At(j)));
           Photonp4.push_back(*((TLorentzVector*) currentTree.pho_p4->At(j)));
           ptindex[Photonp4[j].Pt()]=j;
         }
         for (unsigned int j=0; j<(unsigned int) currentTree.sc_p4->GetSize(); j++) SuperClusterp4.push_back(*((TLorentzVector*) currentTree.sc_p4->At(j)));
         for (unsigned int j=0; j<(unsigned int) currentTree.conv_n; j++) {
-          TrackerConversionVertex.push_back(*((TVector3*) currentTree.conv_vtx->At(j)));
-          TrackerConversionPairMomentum.push_back(*((TVector3*) currentTree.conv_pair_momentum->At(j)));
-          TrackerConversionRefittedPairMomentum.push_back(*((TVector3*) currentTree.conv_refitted_momentum->At(j)));
+          ConversionVertex.push_back(*((TVector3*) currentTree.conv_vtx->At(j)));
+          ConversionPairMomentum.push_back(*((TVector3*) currentTree.conv_pair_momentum->At(j)));
+          ConversionRefittedPairMomentum.push_back(*((TVector3*) currentTree.conv_refitted_momentum->At(j)));
         }
         if (debug) cout << "Conversions Vectors Filled" << endl;
         
@@ -216,11 +214,11 @@ int main(int argc, char * input[]) {
         unsigned int leadindex = 0;
         unsigned int subleadindex = 0;
 
-        //cout << "Doing pt sorting." << endl;
+        if (debug) cout << "Doing pt sorting." << endl;
         bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
         
         if (!sorted) cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
-        //cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
+        if (debug) cout << "Final Lead Index: " << leadindex  << " (" << Photonp4[leadindex].Pt() << ") Sublead Index: " << subleadindex << " (" << Photonp4[subleadindex].Pt() << ") Number of Photons: " << currentTree.pho_n << endl;
         histoContainer->Fill("NumberVertices",float(currentTree.vtx_std_xyz->GetSize()),weight);
 
         if (!data) {
@@ -239,7 +237,7 @@ int main(int argc, char * input[]) {
             }
           }
 
-          //cout << "Doing Gen Sorting." << endl;
+          if (debug) cout << "Doing Gen Sorting." << endl;
           bool gensorted = sortpt(genptindex, genptindex.size(), genleadpt, gensubleadpt, genleadindex, gensubleadindex);
           if (!gensorted) cout << "GenParticles not sorted!" << endl;
 
@@ -260,74 +258,94 @@ int main(int argc, char * input[]) {
         if (!preselection(Photonp4[leadindex].Pt(), Photonp4[subleadindex].Pt(), Photonxyz[leadindex].Eta(), Photonxyz[subleadindex].Eta(), currentTree.pho_isEBEEGap[leadindex], currentTree.pho_isEBEEGap[subleadindex])) continue;
 
         ////////////////////////////////////
-        unsigned int convindex = getconvindex(&currentTree,leadindex,subleadindex);
-        unsigned int trackerconvindex = gettrackerconvindex(&currentTree,Photonxyz[leadindex]);
-        if (trackerconvindex==9999) gettrackerconvindex(&currentTree,Photonxyz[subleadindex]);
-        unsigned int convscindex = (unsigned int) currentTree.pho_scind[convindex];
+        //unsigned int convindex = getconvindex(&currentTree,leadindex,subleadindex);
+        if (debug) cout << "Matching Conversions" << endl;
+        unsigned int photonconvindex = 0;
+        bool validconversion = false;
+        unsigned int convindex = gettrackerconvindex(&currentTree,Photonxyz[leadindex]);
+        if (convindex!=999999) photonconvindex=leadindex;
+        if (convindex==999999) {
+          convindex = gettrackerconvindex(&currentTree,Photonxyz[subleadindex]);
+          if (convindex!=999999) photonconvindex=subleadindex;
+        }
+        if (convindex!=999999) validconversion=true;
+        unsigned int convscindex = (unsigned int) currentTree.pho_scind[photonconvindex];
         unsigned int nearvertexindex = 0;
-        float scEnergy = Photonp4[convindex].E();
-        if (currentTree.sc_p4->GetSize()>0) scEnergy = SuperClusterp4[convscindex].E();
-        float EoP = scEnergy/ConversionRefittedPairMomentum[convindex].Mag();
+        double scEnergy = Photonp4[photonconvindex].E();
+        scEnergy = SuperClusterp4[convscindex].E();
+        double EoP = 0;
+        if (validconversion) EoP=scEnergy/ConversionRefittedPairMomentum[convindex].Mag();
 
+        if (debug) cout << "Getting Detector Positions" << endl;
         string iLeadDetector = DetectorPosition(&currentTree, leadindex);
         string iSubleadDetector = DetectorPosition(&currentTree, subleadindex);
-        string iConvDetector = DetectorPosition(&currentTree, convindex);
+        string iConvDetector = DetectorPosition(&currentTree, photonconvindex);
         string selection = "All";
 
-        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.pho_conv_ntracks[leadindex], currentTree.pho_conv_chi2_probability[leadindex] , Photonp4[leadindex].Pt()/ConversionPairMomentum[leadindex].Perp(), ConversionVertex[leadindex].Perp());
-        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.pho_conv_ntracks[subleadindex], currentTree.pho_conv_chi2_probability[subleadindex] ,  Photonp4[subleadindex].Pt()/ConversionPairMomentum[subleadindex].Perp(), ConversionVertex[subleadindex].Perp());
+        if (debug) cout << "Getting Photon Category" << endl;
+        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex]);
+        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex]);
 
-        bool convsel1 = convSel(currentTree.pho_conv_ntracks[leadindex],
-                                currentTree.pho_conv_validvtx[leadindex] ,  
-                                currentTree.pho_conv_chi2_probability[leadindex], 
-                                currentTree.pho_conv_dphitrksatvtx[leadindex], 
-                                currentTree.pho_conv_paircotthetasep[leadindex], 
-                                EoP,
-                                ConversionVertex[leadindex].Perp());
+        if (debug) cout << "Getting Conversion Category" << endl;
+        if (photonconvindex==leadindex && validconversion) leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.conv_ntracks[convindex], currentTree.conv_chi2_probability[convindex] , EoP);
+        if (photonconvindex==subleadindex && validconversion) subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.conv_ntracks[convindex], currentTree.conv_chi2_probability[convindex], EoP);
+        
+        bool convsel1 = false;
+        bool convsel2 = false;
+
+        if (debug) cout << "Checking for Good Conversions" << endl;
+        if (photonconvindex==leadindex && validconversion) convsel1 = convSel(currentTree.conv_ntracks[convindex],
+                                                           currentTree.conv_validvtx[convindex] ,  
+                                                           currentTree.conv_chi2_probability[convindex], 
+                                                           currentTree.conv_dphitrksatvtx[convindex], 
+                                                           currentTree.conv_paircotthetasep[convindex], 
+                                                           EoP,
+                                                           ConversionVertex[convindex].Perp());
 	
-        bool convsel2 = convSel(currentTree.pho_conv_ntracks[subleadindex],
-                                currentTree.pho_conv_validvtx[subleadindex] ,  
-                                currentTree.pho_conv_chi2_probability[subleadindex], 
-                                currentTree.pho_conv_dphitrksatvtx[subleadindex], 
-                                currentTree.pho_conv_paircotthetasep[subleadindex], 
-                                EoP,
-                                ConversionVertex[subleadindex].Perp());
+        if (photonconvindex==subleadindex && validconversion) convsel2 = convSel(currentTree.conv_ntracks[convindex],
+                                                              currentTree.conv_validvtx[convindex] ,  
+                                                              currentTree.conv_chi2_probability[convindex], 
+                                                              currentTree.conv_dphitrksatvtx[convindex], 
+                                                              currentTree.conv_paircotthetasep[convindex], 
+                                                              EoP,
+                                                              ConversionVertex[convindex].Perp());
 
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
-        if (leadPhoCategory==2 && ConversionVertex[convindex].Perp()>RCut) leadPhoCategory=3;
-        if (subleadPhoCategory==2 && ConversionVertex[convindex].Perp()>RCut) subleadPhoCategory=3;
+        if (leadPhoCategory==2 && validconversion && ConversionVertex[convindex].Perp()>RCut) leadPhoCategory=3;
+        if (subleadPhoCategory==2 && validconversion && ConversionVertex[convindex].Perp()>RCut) subleadPhoCategory=3;
 
         double NewZconvlinear = 0;
         ////////////////////////////////////
-
+        if (debug) cout << "Filling Conversion Plots" << endl;
         if (leadPhoCategory==2 || subleadPhoCategory==2) {
-
-          if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
-          histoContainer->Fill("convdZvsEtaAll",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+          if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
+          histoContainer->Fill("convdZvsEtaAll",Photonxyz[photonconvindex].Eta(),currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
           histoContainer->Fill("convEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
           histoContainer->Fill("convr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
-          histoContainer->Fill("Zconv",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex],weight);
+          histoContainer->Fill("Zconv",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex],weight);
           if (!data) {
-            histoContainer->Fill("convdZPrimary",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),PrimaryVertex[0].Z()-SimVertex.Z(),weight);
-            histoContainer->Fill("ZconvdZ",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
-            histoContainer->Fill("ZconvdZVsNumOfVertices",iConvDetector,float(currentTree.vtx_std_xyz->GetSize()),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            if (debug) cout << "Filling DeltaZ resolution plots." << endl;
+            histoContainer->Fill("convdZPrimary",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),PrimaryVertex[0].Z()-SimVertex.Z(),weight);
+            histoContainer->Fill("ZconvdZ",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            histoContainer->Fill("ZconvdZVsNumOfVertices",iConvDetector,float(currentTree.vtx_std_xyz->GetSize()),currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
 	
-            if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < 1 ) histoContainer->Fill("ZconvdZLessOnecm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
-            if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .5 ) histoContainer->Fill("ZconvdZLessHalfcm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
-            if ( fabs(currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .3 ) histoContainer->Fill("ZconvdZLess3mm",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            if ( fabs(currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < 1 ) histoContainer->Fill("ZconvdZLessOnecm",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            if ( fabs(currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .5 ) histoContainer->Fill("ZconvdZLessHalfcm",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            if ( fabs(currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z() ) < .3 ) histoContainer->Fill("ZconvdZLess3mm",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
 	    
           }
-
+          if (debug) cout << "Filling Refitted Tracks" << endl;
           histoContainer->Fill("RefittedPt",iConvDetector, ConversionRefittedPairMomentum[convindex].Pt(), weight);
           histoContainer->Fill("RefittedEta",iConvDetector, ConversionRefittedPairMomentum[convindex].Eta(), weight);
           histoContainer->Fill("RefittedPhi",iConvDetector, ConversionRefittedPairMomentum[convindex].Phi(), weight);
-          
+
+          if (debug) cout << "Finding new vertex Z." << endl;
           TVector3 myBeamSpot(0,0,0);
-          double NewZ = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
+          double NewZ = FindNewdZ(Photonxyz[photonconvindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
           double RefittedZ = FindRefittedZ(ConversionVertex[convindex], ConversionRefittedPairMomentum[convindex]);
-          NewZconvlinear = FindNewZConvLinear(ConversionVertex[convindex],Photonxyz[convindex],PrimaryVertex[0]);
+          NewZconvlinear = FindNewZConvLinear(ConversionVertex[convindex],Photonxyz[photonconvindex],PrimaryVertex[0]);
           myBeamSpot.SetXYZ(PrimaryVertex[0].X(),PrimaryVertex[0].Y(),0);
-          double NewZPV = FindNewdZ(Photonxyz[convindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
+          double NewZPV = FindNewdZ(Photonxyz[photonconvindex], ConversionRefittedPairMomentum[convindex], myBeamSpot);
           
           float deltaz = 100000;
           for (unsigned int j=0; j<PrimaryVertex.size(); j++) {
@@ -337,13 +355,15 @@ int main(int argc, char * input[]) {
             }
           }
 
+          if (debug) cout << "Filling Z Plots" << endl;
           histoContainer->Fill("RefittedZconv",iConvDetector, RefittedZ, weight);
           histoContainer->Fill("NewZconv",iConvDetector, NewZ, weight);
           histoContainer->Fill("NewZPVconv",iConvDetector, NewZPV, weight);
           histoContainer->Fill("NewZconvlinear",iConvDetector, NewZconvlinear, weight);
 
           if (!data) {
-            histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.pho_conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
+            if (debug) cout << "Filling DeltaZ Plots" << endl;
+            histoContainer->Fill("ZconvdZNearest",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-PrimaryVertex[nearvertexindex].Z(),weight);
             histoContainer->Fill("ZdZNear",iConvDetector,PrimaryVertex[nearvertexindex].Z()-SimVertex.Z(),weight);
             histoContainer->Fill("RefittedZconvdZ",iConvDetector, RefittedZ-SimVertex.Z(), weight);
             histoContainer->Fill("NewZconvdZ",iConvDetector, NewZ-SimVertex.Z(), weight);
@@ -362,23 +382,26 @@ int main(int argc, char * input[]) {
             }
           }
 
-          if (trackerconvindex!=9999) {
-            histoContainer->Fill("trackerconvr",iConvDetector,TrackerConversionVertex[trackerconvindex].Perp(),weight);
-            histoContainer->Fill("trackerconvEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/TrackerConversionRefittedPairMomentum[trackerconvindex].Mag(),weight);
-            histoContainer->Fill("Ztrackerconv",iConvDetector,currentTree.conv_zofprimvtxfromtrks[trackerconvindex],weight);
-            histoContainer->Fill("ZtrackerconvdZ",iConvDetector,currentTree.conv_zofprimvtxfromtrks[trackerconvindex]-SimVertex.Z(),weight);
+          if (validconversion) {
+            if (debug) cout << "Filling Combined Conversion Plots" << endl;
+            histoContainer->Fill("trackerconvr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
+            histoContainer->Fill("trackerconvEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
+            histoContainer->Fill("Ztrackerconv",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex],weight);
+            histoContainer->Fill("ZtrackerconvdZ",iConvDetector,currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
           }
           
         }
 
+        if (debug) cout << "Doing Vertex Matching" << endl;
         TVector3 NearVertex = PrimaryVertex[nearvertexindex];
         bool PrimaryVertexMatched = DoVertexMatching(PrimaryVertex[0],SimVertex);
         bool NearVertexMatched = DoVertexMatching(NearVertex,SimVertex);
 
+        if (debug) cout << "Filling Vertex Matched Plots" << endl;
         histoContainer->Fill("PrimaryVertexMatchedAllEcal", PrimaryVertexMatched, weight);
-        histoContainer->Fill("NearVertexMatchedAllEcal", NearVertexMatched, weight);
         histoContainer->Fill("PrimaryVertexMatched", iConvDetector, PrimaryVertexMatched, weight);
-        histoContainer->Fill("NearVertexMatched", iConvDetector, NearVertexMatched, weight);
+        if (validconversion) histoContainer->Fill("NearVertexMatchedAllEcal", NearVertexMatched, weight);
+        if (validconversion) histoContainer->Fill("NearVertexMatched", iConvDetector, NearVertexMatched, weight);
 
         /*if (Photonp4[subleadindex].Pt()>Photonp4[leadindex].Pt()) {
           cout << "WARNING! - Tree is not pt sorted!!!!!!!!!" << endl;
@@ -386,19 +409,19 @@ int main(int argc, char * input[]) {
           cout << "SubLeadPt is " << Photonp4[subleadindex].Pt() << endl;
           }*/
 
+        if (debug) cout << "Filling Conversion Hists" << endl;
         histoContainer->Fill("NPhotonsAll",currentTree.pho_n,weight);
         //// Fill histograms hists only for conversions satisfying the conversion selection
-        if ( convsel1) FillConvHists(&currentTree, histoContainer, leadindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
-        if ( convsel2) FillConvHists(&currentTree, histoContainer, subleadindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
-	
+        if (convsel1 || convsel2) FillConvHists(&currentTree, histoContainer, photonconvindex, convindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
+
+        if (debug) cout << "Filling Photon Hists" << endl;
         FillPhotonHists(&currentTree, histoContainer, string("lead"), leadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
         FillPhotonHists(&currentTree, histoContainer, string("sublead"), subleadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
+
+        if (validconversion && currentTree.conv_ntracks[convindex]==2 && currentTree.conv_chi2_probability[convindex]>0.0005 && (bool) currentTree.pho_isEB[photonconvindex])
+          histoContainer->Fill("convVtxRvsZBarrelAll",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
         
-        if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex])
-          histoContainer->Fill("convVtxRvsZBarrelAll",ConversionVertex[leadindex].Z(),ConversionVertex[leadindex].Perp(),weight);
-        if (currentTree.pho_conv_ntracks[subleadindex]==2 && currentTree.pho_conv_chi2_probability[subleadindex]>0.0005 && (bool) currentTree.pho_isEB[subleadindex])
-          histoContainer->Fill("convVtxRvsZBarrelAll",ConversionVertex[leadindex].Z(),ConversionVertex[leadindex].Perp(),weight);
-        
+        if (debug) cout << "Making Vertex Vectors" << endl;
         TLorentzVector VLead(Photonp4[leadindex]);
         TLorentzVector VSubLead(Photonp4[subleadindex]);
         TLorentzVector VSum=VLead+VSubLead;
@@ -438,9 +461,9 @@ int main(int argc, char * input[]) {
         double cos_thetastar_nearvertex = 0;
 
         if (diPhoCategory==2) {
-
-          VLead_newvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
-          VSubLead_newvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], currentTree.pho_conv_zofprimvtxfromtrks[convindex]);
+          if (debug) cout << "Filling Conversion Vertex Hists" << endl;
+          VLead_newvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], currentTree.conv_zofprimvtxfromtrks[convindex]);
+          VSubLead_newvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], currentTree.conv_zofprimvtxfromtrks[convindex]);
           VSum_newvertex=VLead_newvertex+VSubLead_newvertex;
           InvMass_newvertex=fabs(VSum_newvertex.M());
           cos_thetastar_newvertex= CosThetaStar(VLead_newvertex,VSum_newvertex);
@@ -501,6 +524,7 @@ int main(int argc, char * input[]) {
           
         ///////////////////////////////  Event selection ///////////////////////////////////////
         ///////////// build the di-photon system
+        if (debug) cout << "Doing Selection" << endl;
         if (Photonp4[leadindex].Pt()<40) continue; // leading photon
         if (Photonp4[subleadindex].Pt()<30) continue; // subleading photon
         if (fabs(Photonxyz[leadindex].Eta())>2.5 || fabs(Photonxyz[subleadindex].Eta())>2.5) continue;
@@ -527,34 +551,27 @@ int main(int argc, char * input[]) {
         histoContainer->Fill("NPhotonsSel",currentTree.pho_n,weight);
         selection = "Sel";
 
+        if (debug) cout << "Filling Photon Hists" << endl;
         FillPhotonHists(&currentTree, histoContainer, string("lead"), leadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
         FillPhotonHists(&currentTree, histoContainer, string("sublead"), subleadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
-        if ( convsel1 ) 
-          FillConvHists(&currentTree, histoContainer, leadindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
-        if ( convsel2 ) 
-          FillConvHists(&currentTree, histoContainer, subleadindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
+        if (convsel1 || convsel2) FillConvHists(&currentTree, histoContainer, photonconvindex, convindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
 
         if (diPhoCategory==2) {
           string diPhoSel = "DiPho";	  
-          if ( convsel1 ) 
-            FillConvHistsInDiPho(&currentTree, histoContainer, leadindex, diPhoSel, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
-          if ( convsel2 ) 
-            FillConvHistsInDiPho(&currentTree, histoContainer, subleadindex, diPhoSel, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.pho_conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
+          if (convsel1 || convsel2) FillConvHistsInDiPho(&currentTree, histoContainer, photonconvindex, convindex, diPhoSel, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
 	  
-          histoContainer->Fill("convdZvsEtaSel",Photonxyz[convindex].Eta(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+          histoContainer->Fill("convdZvsEtaSel",Photonxyz[photonconvindex].Eta(),currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
           if (!data) {
-            histoContainer->Fill("convdZvsR",iConvDetector,ConversionVertex[convindex].Perp(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
-            histoContainer->Fill("convdZvsZ",iConvDetector,ConversionVertex[convindex].z(),currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            histoContainer->Fill("convdZvsR",iConvDetector,ConversionVertex[convindex].Perp(),currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
+            histoContainer->Fill("convdZvsZ",iConvDetector,ConversionVertex[convindex].z(),currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
             histoContainer->Fill("convdZvsRlinear",iConvDetector,ConversionVertex[convindex].Perp(),NewZconvlinear-SimVertex.Z(),weight);
             histoContainer->Fill("convdZvsZlinear",iConvDetector,ConversionVertex[convindex].z(),NewZconvlinear-SimVertex.Z(),weight);
-            FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.pho_conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
+            FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
           }
         }
-        
-        if (currentTree.pho_conv_ntracks[leadindex]==2 && currentTree.pho_conv_chi2_probability[leadindex]>0.0005 && (bool) currentTree.pho_isEB[leadindex])
-          histoContainer->Fill("convVtxRvsZBarrelSel",ConversionVertex[leadindex].Z(),ConversionVertex[leadindex].Perp(),weight);
-        if (currentTree.pho_conv_ntracks[subleadindex]==2 && currentTree.pho_conv_chi2_probability[subleadindex]>0.0005 && (bool) currentTree.pho_isEB[subleadindex])
-          histoContainer->Fill("convVtxRvsZBarrelSel",ConversionVertex[subleadindex].Z(),ConversionVertex[subleadindex].Perp(),weight);
+
+        if (validconversion && currentTree.conv_ntracks[convindex]==2 && currentTree.conv_chi2_probability[convindex]>0.0005 && (bool) currentTree.pho_isEB[photonconvindex])
+          histoContainer->Fill("convVtxRvsZBarrelSel",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
 
         if (convsel1) histoContainer->Fill("selconvVtxRvsZBarrelSel",ConversionVertex[leadindex].Z(),sqrt(ConversionVertex[leadindex].X()*ConversionVertex[leadindex].X()+ConversionVertex[leadindex].Y()*ConversionVertex[leadindex].Y()));
         if (convsel2) histoContainer->Fill("selconvVtxRvsZBarrelSel",ConversionVertex[subleadindex].Z(),sqrt(ConversionVertex[subleadindex].X()*ConversionVertex[subleadindex].X()+ConversionVertex[subleadindex].Y()*ConversionVertex[subleadindex].Y()));
@@ -571,6 +588,8 @@ int main(int argc, char * input[]) {
         }
         
         //GenMatching
+        if (data) continue;
+        if (debug) cout << "Doing Gen Matching" << endl;
         unsigned int LeadGenMatchedIndex = 999999;
         unsigned int SubleadGenMatchedIndex = 999999;
 
@@ -590,7 +609,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("MomentumResolution",iSubleadDetector,(Correctedp4.E()-GenPhotonp4.E())/GenPhotonp4.E(),weight);
         }
 
-        if (!data && LeadGenMatchedIndex!=999999 && SubleadGenMatchedIndex!=999999) {
+        if (LeadGenMatchedIndex!=999999 && SubleadGenMatchedIndex!=999999) {
           selection="Matched";
           FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
           if (diPhoCategory==2) {
@@ -688,9 +707,9 @@ unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsign
 unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
 
   double Pi = 3.14159265;
-  unsigned int ReturnIndex = 9999;
-  double MinDeltaEta = 9999;
-  double MinDeltaPhi = 9999;
+  unsigned int ReturnIndex = 999999;
+  double MinDeltaEta = 999999;
+  double MinDeltaPhi = 999999;
   
   for (unsigned int i=0; i<(unsigned int) currentTree->conv_n; i++) {
     TVector3 ConversionRefittedPairMomentum = *((TVector3*) currentTree->conv_refitted_momentum->At(i));
@@ -710,7 +729,7 @@ unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
   if (MinDeltaEta<0.1 && MinDeltaPhi<0.1) {
     return ReturnIndex;
   } else {
-    return 9999;
+    return 999999;
   }
 
 }
@@ -792,7 +811,7 @@ double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 p
 
 double FindRefittedZ(TVector3 ConversionVertex, TVector3 ConversionRefittedPairMomentum) {
 
-  double theZOfPrimaryVertexFromTracks=-9999.;
+  double theZOfPrimaryVertexFromTracks=-999999.;
   double theta=ConversionRefittedPairMomentum.Theta();
 
   theZOfPrimaryVertexFromTracks = ConversionVertex.z() - sqrt(ConversionVertex.Perp2())*(1./tan(theta));
@@ -834,18 +853,16 @@ void ProgressBar(int &percent) {
   cout << flush;
 }
 
-TString MakeFileName(string filename, bool unweighted, bool dataweight, double RCut) {
+TString MakeFileName(string filename, bool unweighted, string dataweight, double RCut) {
 
   TString outfilename = "";
   
   if (unweighted) {
     outfilename = "Unweighted";
     outfilename += filename;
-  } else if (dataweight) {
-    outfilename = "Dataweight";
-    outfilename += filename;
   } else {
-    outfilename = filename;
+    outfilename = dataweight;
+    outfilename += filename;
   }
   if (RCut!=999999) {
     
@@ -1289,25 +1306,25 @@ void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float 
   
 }
 
-void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, int i, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
+void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
 
   for (unsigned int j=0; j<2; j++) {
     TString histnames[] = {"phi_conv_", "eta_conv_", "pt_conv_", "z_conv_", "r_conv_", "dz_conv_","eop_conv_"};
     string region = "";
     if (j==0) region = "_allEcal";
-    if (j==1 && currentTree->pho_isEB[i]) region = "_Barrel";
-    if (j==1 && currentTree->pho_isEE[i]) region = "_Endcap";
+    if (j==1 && currentTree->pho_isEB[photonconvindex]) region = "_Barrel";
+    if (j==1 && currentTree->pho_isEE[photonconvindex]) region = "_Endcap";
 
     for (unsigned int k=0; k<7; k++) {
       histnames[k] += selection;
       histnames[k] += region;
     }
 
-    histoContainer->Fill(histnames[0].Data(),Photonxyz[i].Phi(), weight);
-    histoContainer->Fill(histnames[1].Data(),Photonxyz[i].Eta(), weight);
-    histoContainer->Fill(histnames[2].Data(),Photonp4[i].Pt(), weight);
-    histoContainer->Fill(histnames[3].Data(),ConversionVertex[i].z(), weight);
-    histoContainer->Fill(histnames[4].Data(),ConversionVertex[i].Perp(), weight);
+    histoContainer->Fill(histnames[0].Data(),Photonxyz[photonconvindex].Phi(), weight);
+    histoContainer->Fill(histnames[1].Data(),Photonxyz[photonconvindex].Eta(), weight);
+    histoContainer->Fill(histnames[2].Data(),Photonp4[photonconvindex].Pt(), weight);
+    histoContainer->Fill(histnames[3].Data(),ConversionVertex[convindex].z(), weight);
+    histoContainer->Fill(histnames[4].Data(),ConversionVertex[convindex].Perp(), weight);
     histoContainer->Fill(histnames[5].Data(),zPVFromConv - SimVertex.Z(), weight);
     histoContainer->Fill(histnames[6].Data(),eop, weight);
 
@@ -1315,25 +1332,25 @@ void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, int i
 
 }
 
-void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, int i, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
+void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
 
   for (unsigned int j=0; j<2; j++) {
     TString histnames[] = {"phi_conv_", "eta_conv_", "pt_conv_", "z_conv_", "r_conv_", "dz_conv_","eop_conv_"};
     string region = "";
     if (j==0) region = "_allEcal";
-    if (j==1 && currentTree->pho_isEB[i]) region = "_Barrel";
-    if (j==1 && currentTree->pho_isEE[i]) region = "_Endcap";
+    if (j==1 && currentTree->pho_isEB[photonconvindex]) region = "_Barrel";
+    if (j==1 && currentTree->pho_isEE[photonconvindex]) region = "_Endcap";
 
     for (unsigned int k=0; k<7; k++) {
       histnames[k] += selection;
       histnames[k] += region;
     }
 
-    histoContainer->Fill(histnames[0].Data(),Photonxyz[i].Phi(), weight);
-    histoContainer->Fill(histnames[1].Data(),Photonxyz[i].Eta(), weight);
-    histoContainer->Fill(histnames[2].Data(),Photonp4[i].Pt(), weight);
-    histoContainer->Fill(histnames[3].Data(),ConversionVertex[i].z(), weight);
-    histoContainer->Fill(histnames[4].Data(),ConversionVertex[i].Perp(), weight);
+    histoContainer->Fill(histnames[0].Data(),Photonxyz[photonconvindex].Phi(), weight);
+    histoContainer->Fill(histnames[1].Data(),Photonxyz[photonconvindex].Eta(), weight);
+    histoContainer->Fill(histnames[2].Data(),Photonp4[photonconvindex].Pt(), weight);
+    histoContainer->Fill(histnames[3].Data(),ConversionVertex[convindex].z(), weight);
+    histoContainer->Fill(histnames[4].Data(),ConversionVertex[convindex].Perp(), weight);
     histoContainer->Fill(histnames[5].Data(),zPVFromConv - SimVertex.Z(), weight);
     histoContainer->Fill(histnames[6].Data(),eop, weight);
 
@@ -1497,71 +1514,109 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
   float BranchingFraction = 0;
 
   if (inputstring.Contains("Data") && !inputstring.Contains("Dataweight")) {
-    inputfilelist.push_back(pair<string,int> ("Data.root",2));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DataRunA.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DataRunB.root",1));
+    inputfilelist.push_back(pair<string,int> ("Data.root",4));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/paoloReRecoWithLaserV5ESFixed_v1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/paoloReRecoWithLaserV5_v2.root",1));
     isData=true;
   }
-  if ((inputstring.Contains("115GeV") && !inputstring.Contains("Pileup")) || inputstring.Contains("Signal") || inputstring.Contains("All")) {
-    BranchingFraction = 0.002101;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",2));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH115.root",18.735*BranchingFraction/109991));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF115.root",1.3712*BranchingFraction/109848));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH115.root",1.2524*BranchingFraction/110000));
+  if (inputstring.Contains("PromptReco") && !inputstring.Contains("PromptRecoweight")) {
+    inputfilelist.push_back(pair<string,int> ("PromptReco.root",4));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_160404_161474.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_161475_163754.root",1));
+    isData=true;
   }
-  if ((inputstring.Contains("120GeV") && !inputstring.Contains("Pileup")) || inputstring.Contains("Signal") || inputstring.Contains("All")) {
-    BranchingFraction = 0.002219;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M120_2011PUFull.root",17.173*BranchingFraction/109992));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF120.root",1.3062*BranchingFraction/109842));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH120.root",1.0921*BranchingFraction/110000));
+  if (inputstring.Contains("90GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00123;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis90GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M90_2011PU.root",29.47*BranchingFraction/109995));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M90_2011PU.root",1.710*BranchingFraction/108813));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M90_2011PU.root",(1.640+0.8597+0.2162)*BranchingFraction/110000));
   }
-  if ((inputstring.Contains("130GeV") && !inputstring.Contains("Pileup")) || inputstring.Contains("Signal") || inputstring.Contains("All")) {
-    BranchingFraction = 0.002240;
+  if (inputstring.Contains("95GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00140;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis95GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M95_2011PU.root",26.58*BranchingFraction/109988));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M95_2011PU.root",1.628*BranchingFraction/109579));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M95_2011PU.root",(1.392+0.7348+0.1880)*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("100GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00159;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis100GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M100_2011PU.root",24.02*BranchingFraction/109989));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M100_2011PU.root",1.546*BranchingFraction/109826));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M100_2011PU.root",(1.186+0.6313+0.1638)*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("105GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00178;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis105GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M105_2011PU.root",21.78*BranchingFraction/109470));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M105_2011PU.root",1.472*BranchingFraction/109835));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M105_2011PU.root",(1.018+0.5449+0.1433 )*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("110GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00197;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis110GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M110_2011PU.root",19.84*BranchingFraction/109994));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M110_2011PU.root",1.398*BranchingFraction/108563));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M110_2011PU.root",(0.8754+0.4721+0.1257)*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("115GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00213;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis115GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M115_2011PU.root",18.13*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M115_2011PU.root",1.332*BranchingFraction/109834));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M115_2011PU.root",(0.7546+0.4107+0.1106)*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("120GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00225;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M120_2011PU.root",16.63*BranchingFraction/109992));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M120_2011PU.root",1.269*BranchingFraction/109848));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M120_2011PU.root",(0.6561+0.3598+0.09756)*BranchingFraction/110000));
+  }
+  if (inputstring.Contains("130GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00226;
     inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130GeV.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GGH130.root",14.579*BranchingFraction/109991));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/VBF130.root",1.1866*BranchingFraction/109848));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/WZTTH130.root",0.8395*BranchingFraction/110000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M130_2011PU.root",14.12*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M130_2011PU.root",1.154*BranchingFraction/109848));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M130_2011PU.root",(0.5008+0.2778+0.07658)*BranchingFraction/110000));
   }
-  if (inputstring.Contains("120GeVPileup") || (inputstring.Contains("Pileup") && !inputstring.Contains("GeV")) || inputstring.Contains("All")) {
-    BranchingFraction = 0.002219;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis120Pileup.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG120.root",17.173*BranchingFraction/109991));
-  }
-  if (inputstring.Contains("130GeVPileup") || (inputstring.Contains("Pileup") && !inputstring.Contains("GeV")) || inputstring.Contains("All")) {
-    BranchingFraction = 0.002240;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis130Pileup.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG130.root",14.579*BranchingFraction/109991));
-  }
-  if (inputstring.Contains("140GeVPileup") || (inputstring.Contains("Pileup") && !inputstring.Contains("GeV")) || inputstring.Contains("All")) {
-    BranchingFraction = 0.001929;
-    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis140Pileup.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Pileup398/GluGluToHToGG140.root",12.525*BranchingFraction/109991));
+  if (inputstring.Contains("140GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
+    BranchingFraction = 0.00194;
+    inputfilelist.push_back(pair<string,int> ("HiggsAnalysis140GeV.root",3));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GluGlu_M140_2011PU.root",12.13*BranchingFraction/109991));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/VBF_M140_2011PU.root",1.052*BranchingFraction/109842));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M140_2011PU.root",(0.3857+0.2172+0.06072 )*BranchingFraction/110000));
   }
   if (inputstring.Contains("PJet") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("PhotonJetEMEnriched.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/GJet_Pt-20.root",77100/(1182075/0.0064)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GJet_Pt20_2011PU.root",77100/(1182075/0.0064)));
   }
   if (inputstring.Contains("QCD") || inputstring.Contains("Background") || inputstring.Contains("All")) {
-    inputfilelist.push_back(pair<string,int> ("QCDDoubleEMEnriched.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/QCD_Pt-40.root",18700000/(21301935/0.00216)));
+    inputfilelist.push_back(pair<string,int> ("QCDDoubleEMEnriched.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/QCD_Pt30to40_2011PU.root",41800000/(3550408/0.00023)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/QCD_Pt40_2011PU.root",18700000/(21276029/0.00216)));
   }
   if (inputstring.Contains("Born") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("Born.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Born10to25.root",236.4/522865));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Born25to250.root",22.37/537445));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Born250toInf.root",0.008072/546355));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt10to25_2011PU.root",236.4/522865));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt25to250_2011PU.root",22.37/537445));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt250toinf_2011PU.root",0.008072/546355));
   }
   if (inputstring.Contains("Box") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("Box.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box10to25.root",358.2/797975));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box25to250.root",12.37/777725));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/Box250toInf.root",0.000208/789470));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt10to25_2011PU.root",358.2/797975));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt25to250_2011PU.root",12.37/777725));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt250toinf_2011PU.root",0.000208/789470));
   }
   if (inputstring.Contains("DY") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("DrellYan.root",2));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DYEEM1020.root",2659.0/1933000));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/DYEEM20.root",1300.0/2127607));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DYToEE_M10To20_2011PU.root",2659.0/1933000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DYToEE_powheg_M20_2011PU.root",1614.0/1998990));
   }
   if (inputstring.Contains("Test")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
