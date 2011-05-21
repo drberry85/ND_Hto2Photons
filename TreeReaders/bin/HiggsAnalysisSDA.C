@@ -519,13 +519,16 @@ int main(int argc, char * input[]) {
 
         /// di-photon system before event selection
         string HiggsInWhichDetector = HiggsDetectorPosition(&currentTree, leadindex, subleadindex);
-        FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
+
         if (convsel1 || convsel2) {
+          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass_nearvertex, SimInvMass, cos_thetastar);
           FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
+        } else {
+          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
         }
           
         ///////////////////////////////  Event selection ///////////////////////////////////////
@@ -584,13 +587,15 @@ int main(int argc, char * input[]) {
 
         FillCatHists(&currentTree, histoContainer, weight, leadindex, subleadindex, leadPhoCategory, subleadPhoCategory);
 
-        FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
         if (convsel1 || convsel2) {
+          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass_nearvertex, SimInvMass, cos_thetastar);
           FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
+        } else {
+          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
         }
 
         if ((convsel1 || convsel2) && InvMass>100) {
@@ -631,13 +636,15 @@ int main(int argc, char * input[]) {
 
         if (LeadGenMatchedIndex!=999999 && SubleadGenMatchedIndex!=999999) {
           selection="Matched";
-          FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
           if (convsel1 || convsel2) {
+            FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass_nearvertex, SimInvMass, cos_thetastar);
             FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
             if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
+          } else {
+            FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
           }
           
           TLorentzVector LeadGenPhoton = (*((TLorentzVector*) currentTree.gp_p4->At(LeadGenMatchedIndex)));
@@ -1542,14 +1549,6 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     isData=true;
   }
   if (inputstring.Contains("PromptReco") && !inputstring.Contains("PromptRecoweight")) {
-    inputfilelist.push_back(pair<string,int> ("PromptReco.root",4));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_160404_161474.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_161475_163754.root",1));
-    isData=true;
-  }
-  if (inputstring.Contains("PromptReco") && !inputstring.Contains("PromptRecoTrial") && !inputstring.Contains("PromptRecoweight")) {
     inputfilelist.push_back(pair<string,int> ("PromptReco.root",4));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
