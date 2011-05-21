@@ -1,8 +1,0 @@
-<use name=CommonTools/Utils>
-<use name=rootphysics>
-<use name=rootgraphics>
-<use name=root>
-<use name=rootminuit>
-
-<bin name=HiggsAnalysis file=HiggsAnalysis.C> </bin>
-<bin name=HiggsAnalysisSDA file=HiggsAnalysisSDA.C> </bin>
