@@ -205,6 +205,7 @@ public :
   Float_t         l1emnoniso_eta[4];
   Float_t         l1emnoniso_phi[4];
   vector<int>     *l1bits_phy;
+  vector<int>     *pho_matchingConv;
 //   vector<float>   *vtx_std_diphopt;
 //   vector<float>   *vtx_std_nch;
 //   vector<float>   *vtx_std_ptmax;
@@ -427,6 +428,7 @@ public :
   TBranch        *b_l1emnoniso_eta;
   TBranch        *b_l1emnoniso_phi;
   TBranch        *b_l1bits_phy;
+  TBranch        *b_pho_matchingConv;   //!
 //   TBranch        *b_vtx_std_diphopt;
 //   TBranch        *b_vtx_std_nch;
 //   TBranch        *b_vtx_std_ptmax;
@@ -525,6 +527,7 @@ void sdaReader::Init(TFile *currentFile)
   hlt_path_names_HLT1 = 0;
   hlt_p4 = 0;
   l1bits_phy = 0;
+  pho_matchingConv = 0;
 //   vtx_std_diphopt = 0;
 //   vtx_std_nch = 0;
 //   vtx_std_ptmax = 0;
@@ -744,6 +747,7 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("l1emnoniso_eta", l1emnoniso_eta, &b_l1emnoniso_eta);
   fChain->SetBranchAddress("l1emnoniso_phi", l1emnoniso_phi, &b_l1emnoniso_phi);
   fChain->SetBranchAddress("l1bits_phy", &l1bits_phy, &b_l1bits_phy);
+  fChain->SetBranchAddress("pho_matchingConv", &pho_matchingConv, &b_pho_matchingConv);
 //   fChain->SetBranchAddress("vtx_std_diphopt", &vtx_std_diphopt, &b_vtx_std_diphopt);
 //   fChain->SetBranchAddress("vtx_std_nch", &vtx_std_nch, &b_vtx_std_nch);
 //   fChain->SetBranchAddress("vtx_std_ptmax", &vtx_std_ptmax, &b_vtx_std_ptmax);
