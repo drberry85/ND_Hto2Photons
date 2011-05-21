@@ -102,7 +102,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Debug")) debug=true;
   if (InputArgs.Contains("RCut")) RCut=40;
   if (filesAndWeights.size()==0) {
-    cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
+    cout << "Warning!!!! No valid inputs!!!! Please one of the following: Data, PromptReco, 90GeV, 95GeV, 100GeV, 105GeV, 110GeV, 115GeV, 120GeV, 130GeV, 140GeV, PJet, QCD, DY, Born, or Box." << endl;
     cout << "Exiting Program!!!!" << endl;
     return 0;
   }
@@ -298,10 +298,6 @@ int main(int argc, char * input[]) {
         int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex]);
         int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex]);
 
-        if (debug) cout << "Getting Conversion Category" << endl;
-        if (photonconvindex==leadindex && validconversion) leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex],  currentTree.conv_ntracks[convindex], currentTree.conv_chi2_probability[convindex] , EoP);
-        if (photonconvindex==subleadindex && validconversion) subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex],  currentTree.conv_ntracks[convindex], currentTree.conv_chi2_probability[convindex], EoP);
-        
         bool convsel1 = false;
         bool convsel2 = false;
 
@@ -323,13 +319,11 @@ int main(int argc, char * input[]) {
                                                               ConversionVertex[convindex].Perp());
 
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
-        if (leadPhoCategory==2 && validconversion && ConversionVertex[convindex].Perp()>RCut) leadPhoCategory=3;
-        if (subleadPhoCategory==2 && validconversion && ConversionVertex[convindex].Perp()>RCut) subleadPhoCategory=3;
 
         double NewZconvlinear = 0;
         ////////////////////////////////////
         if (debug) cout << "Filling Conversion Plots" << endl;
-        if (leadPhoCategory==2 || subleadPhoCategory==2) {
+        if (convsel1 || convsel2) {
           if (!data) FilldZRcut(histoContainer, selection, weight, iConvDetector, ConversionVertex[convindex].Perp(), currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.z());
           histoContainer->Fill("convdZvsEtaAll",Photonxyz[photonconvindex].Eta(),currentTree.conv_zofprimvtxfromtrks[convindex]-SimVertex.Z(),weight);
           histoContainer->Fill("convEoPAll",iConvDetector,SuperClusterp4[convscindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
@@ -472,7 +466,7 @@ int main(int argc, char * input[]) {
         double InvMass_nearvertex = 0;
         double cos_thetastar_nearvertex = 0;
 
-        if (diPhoCategory==2) {
+        if (convsel1 || convsel2) {
           if (debug) cout << "Filling Conversion Vertex Hists" << endl;
           VLead_newvertex = CalcDiffVertex(Photonp4[leadindex], Photonxyz[leadindex], currentTree.conv_zofprimvtxfromtrks[convindex]);
           VSubLead_newvertex = CalcDiffVertex(Photonp4[subleadindex], Photonxyz[subleadindex], currentTree.conv_zofprimvtxfromtrks[convindex]);
@@ -526,7 +520,7 @@ int main(int argc, char * input[]) {
         /// di-photon system before event selection
         string HiggsInWhichDetector = HiggsDetectorPosition(&currentTree, leadindex, subleadindex);
         FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
-        if (diPhoCategory==2) {
+        if (convsel1 || convsel2) {
           FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
@@ -568,7 +562,7 @@ int main(int argc, char * input[]) {
         FillPhotonHists(&currentTree, histoContainer, string("sublead"), subleadindex, selection, weight, Photonxyz, ConversionVertex, PrimaryVertex[0], SimVertex, Photonp4, data);
         if (convsel1 || convsel2) FillConvHists(&currentTree, histoContainer, photonconvindex, convindex, selection, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
 
-        if (diPhoCategory==2) {
+        if (convsel1 || convsel2) {
           string diPhoSel = "DiPho";	  
           if (convsel1 || convsel2) FillConvHistsInDiPho(&currentTree, histoContainer, photonconvindex, convindex, diPhoSel, weight, Photonxyz, ConversionVertex, Photonp4,currentTree.conv_zofprimvtxfromtrks[convindex],SimVertex, EoP);
 	  
@@ -591,7 +585,7 @@ int main(int argc, char * input[]) {
         FillCatHists(&currentTree, histoContainer, weight, leadindex, subleadindex, leadPhoCategory, subleadPhoCategory);
 
         FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
-        if (diPhoCategory==2) {
+        if (convsel1 || convsel2) {
           FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
@@ -599,7 +593,7 @@ int main(int argc, char * input[]) {
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
         }
 
-        if ((diPhoCategory==2) && InvMass>100) {
+        if ((convsel1 || convsel2) && InvMass>100) {
           TLorentzVector MatchedSuperCluster = SuperClusterp4[currentTree.pho_scind[photonconvindex]];
           double deltaeta = Photonxyz[photonconvindex].Eta() - etaTransformation(ConversionRefittedPairMomentum[convindex].Eta(),currentTree.conv_zofprimvtxfromtrks[convindex]);
           double deltaphi = DeltaPhi(Photonxyz[photonconvindex].Phi(),ConversionRefittedPairMomentum[convindex].Phi());
@@ -638,7 +632,7 @@ int main(int argc, char * input[]) {
         if (LeadGenMatchedIndex!=999999 && SubleadGenMatchedIndex!=999999) {
           selection="Matched";
           FillMassHists(histoContainer, selection, weight, HiggsInWhichDetector, diPhoCategory, VSum, InvMass, SimInvMass, cos_thetastar);
-          if (diPhoCategory==2) {
+          if (convsel1 || convsel2) {
             FillMassRcut(histoContainer, selection, weight, HiggsInWhichDetector, ConversionVertex[convindex].Perp(), InvMass_newvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "newvertex", VSum_newvertex, InvMass_newvertex, cos_thetastar_newvertex);
             FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "linearvertex", VSum_linearvertex, InvMass_linearvertex, cos_thetastar_linearvertex);
@@ -1114,8 +1108,8 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookMassPlots(histoContainer,"2gamma1goodconvlinearvertex");
   BookMassPlots(histoContainer,"2gamma1goodconvsimvertex");
   BookMassPlots(histoContainer,"2gamma1goodconvnearvertex");
-  BookMassPlots(histoContainer,"2gamma1poorconv");
-  BookMassPlots(histoContainer,"2gamma2conv");
+  //BookMassPlots(histoContainer,"2gamma1poorconv");
+  //BookMassPlots(histoContainer,"2gamma2conv");
   BookMassPlots(histoContainer,"2gammaleftover");
     
   BookFourHists(histoContainer,"lead_r9_catdummy_allEcal","leading photon R9, selected candidates: all ECAL",100,0.,1.1);
@@ -1303,7 +1297,7 @@ void BookTrackerdZ(HistoContainer *histoContainer, TString histname) {
   int lowerlimit = -5;
   int upperlimit = 5;
 
-  TString histtitle = "#DeltaZ between the Z of the Primary Vertex using method and the SimVertex: region;#DeltaZ (cm); Counts";
+  TString histtitle = "#DeltaZ between the Z of the Primary Vertex using method and the SimVertex: region;#DeltaZ (cm);";
   histtitle.ReplaceAll("method",histname+" method");
     
   vector<pair<TString, TString> > histarray;
@@ -1451,26 +1445,11 @@ void FillMassHists(HistoContainer *histoContainer, string selection, float weigh
     histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
     
     if (diPhoCategory==1) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gammaGolden");
-    if (diPhoCategory==2) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma1goodconv");
-    if (diPhoCategory==3) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma1poorconv");
-    if (diPhoCategory==4) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma2conv");
+    if (diPhoCategory==2) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
+    //if (diPhoCategory==3) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma1poorconv");
+    //if (diPhoCategory==4) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gamma2conv");
 
-    if (diPhoCategory==1 || diPhoCategory==2 || diPhoCategory==3 || diPhoCategory==4) {
-      histoContainer->Fill(histnames[0].Data(),InvMass,weight);
-      histoContainer->Fill(histnames[1].Data(),SimInvMass,weight);
-      histoContainer->Fill(histnames[2].Data(),VSum.Pt(),weight);
-      histoContainer->Fill(histnames[3].Data(),VSum.Pz(),weight);
-      histoContainer->Fill(histnames[4].Data(),VSum.Eta(),weight);
-      histoContainer->Fill(histnames[5].Data(),VSum.Phi(),weight);
-      histoContainer->Fill(histnames[6].Data(),cos_thetastar,weight);
-    }
-
-    if (diPhoCategory!=1 && diPhoCategory!=2) {
-      if (diPhoCategory==0 || diPhoCategory==5 || diPhoCategory==6) for (unsigned int i=0; i<arraylength; i++) histnames[i].ReplaceAll("2gamma","2gammaleftover");
-      for (unsigned int i=0; i<arraylength; i++) {
-        if (histnames[i].Contains("2gamma1poorconv")) histnames[i].ReplaceAll("2gamma1poorconv","2gammaleftover");
-        else if (histnames[i].Contains("2gamma2conv")) histnames[i].ReplaceAll("2gamma2conv","2gammaleftover");
-      }
+    if (diPhoCategory==1 || diPhoCategory==2) {
       histoContainer->Fill(histnames[0].Data(),InvMass,weight);
       histoContainer->Fill(histnames[1].Data(),SimInvMass,weight);
       histoContainer->Fill(histnames[2].Data(),VSum.Pt(),weight);
