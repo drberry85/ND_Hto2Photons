@@ -77,7 +77,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("DiPhoton")) debug=true;
   if (InputArgs.Contains("RCut")) RCut=40;
   if (filesAndWeights.size()==0) {
-    cout << "Warning!!!! No valid inputs!!!! Please one of the following: 90GeV, 110GeV, 120GeV, 150GeV, PhotonPlusJet, EMEnriched, DoubleEMEnriched, QCDBEtoE, Born, or Box." << endl;
+    cout << "Warning!!!! No valid inputs!!!! Please one of the following: Data, PromptReco, 90GeV, 95GeV, 100GeV, 105GeV, 110GeV, 115GeV, 120GeV, 130GeV, 140GeV, PJet, QCD, DY, Born, or Box." << endl;
     cout << "Exiting Program!!!!" << endl;
     return 0;
   }
@@ -424,14 +424,14 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"convphotonr9","R9 of photons with valid conversion vertexes; R9; Counts",100,0,1);
   BookBarrelAndEndcap(histoContainer,"goodconvphotonr9","r9 of photons with good conversions; #eta; Counts",100,0,1);
 
-  BookBarrelAndEndcap(histoContainer,"goodconvr","R of conversion; R (cm): region; Counts",100,0,100);
-  BookBarrelAndEndcap(histoContainer,"goodconvchi2","#Chi^2 probability of vertex; Pt (GeV); Counts",100,0,1);
-  BookBarrelAndEndcap(histoContainer,"goodconvdistmin","Distantance of minimum approach of conversion tracks; Pt (GeV); Counts",100,0,1);
-  BookBarrelAndEndcap(histoContainer,"goodconveop","E over P of conversion: region; E over P; Counts",100,0,3);
-  BookBarrelAndEndcap(histoContainer,"goodconvdeta","#Delta#eta between the refitted tracks and supercluster; #Delta#eta; Counts",100,-0.2,0.2);
-  BookBarrelAndEndcap(histoContainer,"goodconvdphi","#Delta#phi between the refitted tracks and supercluster; #Delta#phi; Counts",100,-0.2,0.2);
-  histoContainer->Add("goodconveta","#eta of matched good conversion; #eta; Counts",100,-3,3);
-  histoContainer->Add("goodconvphi","#phi of matched good conversion; #phi; Counts",100,-3.2,3.2);
+  BookBarrelAndEndcap(histoContainer,"goodconvr","R of conversion; R (cm): region;",100,0,100);
+  BookBarrelAndEndcap(histoContainer,"goodconvchi2","#Chi^2 probability of vertex; Pt (GeV);",100,0,1);
+  BookBarrelAndEndcap(histoContainer,"goodconvdistmin","Distantance of minimum approach of conversion tracks; Pt (GeV);",100,0,1);
+  BookBarrelAndEndcap(histoContainer,"goodconveop","E over P of conversion: region; E over P;",100,0,3);
+  BookBarrelAndEndcap(histoContainer,"goodconvdeta","#Delta#eta between the refitted tracks and supercluster; #Delta#eta;",100,-0.2,0.2);
+  BookBarrelAndEndcap(histoContainer,"goodconvdphi","#Delta#phi between the refitted tracks and supercluster; #Delta#phi;",100,-0.2,0.2);
+  histoContainer->Add("goodconveta","#eta of matched good conversion; #eta;",100,-3,3);
+  histoContainer->Add("goodconvphi","#phi of matched good conversion; #phi;",100,-3.2,3.2);
 
 }
 
