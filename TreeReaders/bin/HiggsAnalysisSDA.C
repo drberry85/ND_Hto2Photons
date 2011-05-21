@@ -6,6 +6,7 @@
 #include "TCut.h"
 #include "TString.h"
 
+#include <ctime>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -35,6 +36,7 @@ unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz);
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex);
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
+double DeltaPhi(double Phi1, double Phi2);
 double etaTransformation(double EtaParticle, double Zvertex);
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
 double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex);
@@ -63,7 +65,7 @@ void FilldZRcut(HistoContainer *histoContainer, string selection, float weight, 
 void FilldZTrackerBarrel(HistoContainer *histoContainer, TString histname, double deltaZ, double R, float weight);
 void FilldZTrackerEndcap(HistoContainer *histoContainer, TString histname, double deltaZ, double Z, float weight);
 void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, bool &isData);
-void ProgressBar(int &percent);
+void ProgressBar(int &percent, double estimate);
 void PrintWeights();
 
 int main(int argc, char * input[]) {
@@ -71,9 +73,10 @@ int main(int argc, char * input[]) {
   bool bar = false;
   bool data = false;
   bool debug = false;
+  bool pjet = false;
   bool unweighted = false;
   double RCut = 999999;
-  float globalWeight = 5000;
+  float globalWeight = 1000;
 
   int FirstFileNum = 0;
   
@@ -112,6 +115,8 @@ int main(int argc, char * input[]) {
     outfile->cd();
     cout << "\n" << outfilename << " created." << endl;
 
+    if (outfilename.Contains("PhotonJetEMEnriched.root")) pjet=true; else pjet=false;
+    
     HistoContainer* histoContainer;
     histoContainer = new HistoContainer();
 
@@ -139,16 +144,23 @@ int main(int argc, char * input[]) {
       outfile->cd();
 
       int percent = 0;
-      
+      time_t start,now;
+      time(&start);
       for ( Long64_t i = 0; i < nentries; i++ ) {
 
         if (i % (nentries/100) == 0 && bar) {
+          time (&now);
+          double elapsed = difftime(now,start);
+          float fracdone = float(i)/float(nentries);
+          double estimate = elapsed / fracdone;
+          estimate -= elapsed;
           if (percent == 100) percent = 99;
-          ProgressBar(percent);
+          ProgressBar(percent, estimate);
         }
 
         currentTree.GetEntry(i);
-
+        if (pjet && currentTree.process_id==18) continue;
+        
         TVector3 SimVertex(0,0,0);
         vector<TVector3> PrimaryVertex;
         vector<TVector3> ConversionVertex;
@@ -377,8 +389,8 @@ int main(int argc, char * input[]) {
               FilldZTrackerBarrel(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
             }
             if (iConvDetector=="Endcap") {
-              FilldZTrackerEndcap(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Z(), weight);
-              FilldZTrackerEndcap(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Z(), weight);
+              FilldZTrackerEndcap(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              FilldZTrackerEndcap(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
             }
           }
 
@@ -586,6 +598,20 @@ int main(int argc, char * input[]) {
           if (!data) FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "simvertex", VSum_simvertex, InvMass_simvertex, cos_thetastar_simvertex);
           FillMassNewVertexHists(histoContainer, selection, weight, HiggsInWhichDetector, "nearvertex", VSum_nearvertex, InvMass_nearvertex, cos_thetastar_nearvertex);
         }
+
+        if ((diPhoCategory==2) && InvMass>100) {
+          TLorentzVector MatchedSuperCluster = SuperClusterp4[currentTree.pho_scind[photonconvindex]];
+          double deltaeta = Photonxyz[photonconvindex].Eta() - etaTransformation(ConversionRefittedPairMomentum[convindex].Eta(),currentTree.conv_zofprimvtxfromtrks[convindex]);
+          double deltaphi = DeltaPhi(Photonxyz[photonconvindex].Phi(),ConversionRefittedPairMomentum[convindex].Phi());
+          double EoP = MatchedSuperCluster.E()/ConversionRefittedPairMomentum[convindex].Mag();
+         
+          histoContainer->Fill("goodconvr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
+          histoContainer->Fill("goodconvchi2",iConvDetector,currentTree.conv_chi2_probability[convindex],weight);
+          histoContainer->Fill("goodconvdistmin",iConvDetector,currentTree.conv_distofminapproach[convindex],weight);
+          histoContainer->Fill("goodconveop",iConvDetector,EoP,weight);
+          histoContainer->Fill("goodconvdeta",iConvDetector,deltaeta,weight);
+          histoContainer->Fill("goodconvdphi",iConvDetector,deltaphi,weight);
+        }
         
         //GenMatching
         if (data) continue;
@@ -647,18 +673,14 @@ int main(int argc, char * input[]) {
 
 unsigned int DoGenMatching(sdaReader *currentTree, TVector3 Photon) {
   unsigned int ReturnValue = 999999;
-  double Pi = 3.14159265;
 
   for (unsigned int i=0; i< (unsigned int) currentTree->gp_n; i++) {
     if (currentTree->gp_pdgid[i]!=22) continue;
     TLorentzVector GenParticlep4 = (*((TLorentzVector*) currentTree->gp_p4->At(i)));
     if (GenParticlep4.Pt()<20) continue;
-    double DeltaEta = abs(Photon.Eta() - GenParticlep4.Eta());
-    double DeltaPhi = abs(Photon.Phi() - GenParticlep4.Phi());
-    
-    if (DeltaPhi>Pi) DeltaPhi = 2*Pi-DeltaPhi;
-
-    double DeltaR = sqrt(DeltaPhi*DeltaPhi + DeltaEta*DeltaEta);
+    double deltaeta = abs(Photon.Eta() - GenParticlep4.Eta());
+    double deltaphi = DeltaPhi(Photon.Phi(),GenParticlep4.Phi());
+    double DeltaR = sqrt(deltaphi*deltaphi + deltaeta*deltaeta);
 
     if (DeltaR<.1) {
       ReturnValue=i;
@@ -706,22 +728,20 @@ unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsign
 
 unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
 
-  double Pi = 3.14159265;
   unsigned int ReturnIndex = 999999;
   double MinDeltaEta = 999999;
   double MinDeltaPhi = 999999;
   
   for (unsigned int i=0; i<(unsigned int) currentTree->conv_n; i++) {
     TVector3 ConversionRefittedPairMomentum = *((TVector3*) currentTree->conv_refitted_momentum->At(i));
-    double DeltaPhi = abs(Photonxyz.Phi()-ConversionRefittedPairMomentum.Phi());
-    if (DeltaPhi>Pi) DeltaPhi = 2*Pi-DeltaPhi;
+    double deltaphi = DeltaPhi(Photonxyz.Phi(),ConversionRefittedPairMomentum.Phi());
 
     double ConvEta = etaTransformation(ConversionRefittedPairMomentum.Eta(),currentTree->conv_zofprimvtxfromtrks[i]);
-    double DeltaEta = abs(Photonxyz.Eta()-ConvEta);
+    double deltaeta = abs(Photonxyz.Eta()-ConvEta);
 
-    if (DeltaEta<MinDeltaEta && DeltaPhi<MinDeltaPhi) {
-      MinDeltaPhi=DeltaPhi;
-      MinDeltaEta=DeltaEta;
+    if (deltaeta<MinDeltaEta && deltaphi<MinDeltaPhi) {
+      MinDeltaPhi=deltaphi;
+      MinDeltaEta=deltaeta;
       ReturnIndex = i;
     }
   }
@@ -749,6 +769,14 @@ double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum) {
   double cos_thetastar = 1.0/sqrt(1.0+tg_thetas*tg_thetas);
   return cos_thetastar;
 
+}
+
+double DeltaPhi(double Phi1, double Phi2) {
+  double Pi = 3.14159265;
+  double deltaphi = Phi1 - Phi2;
+  if (deltaphi>Pi) deltaphi = 2*Pi-deltaphi;
+  if (deltaphi<-Pi) deltaphi = 2*Pi+deltaphi;
+  return deltaphi;
 }
 
 double etaTransformation(double EtaParticle, double Zvertex)  {
@@ -840,7 +868,7 @@ string DetectorPosition(sdaReader *currentTree, unsigned int index) {
  
 }
 
-void ProgressBar(int &percent) {
+void ProgressBar(int &percent, double estimate) {
   cout << "\033[100m";
   cout << "\r[";
   cout << "\033[42m";
@@ -850,6 +878,11 @@ void ProgressBar(int &percent) {
   for (int ctr = percent / 2; ctr < 49; ++ctr) cout << " ";
   cout << "]\033[0m";
   cout << " " << ++percent << "%";
+    if (int(estimate)>0) {
+    cout << " Remaining " << int(estimate) / 60 << ":";
+    if (int(estimate) % 60 < 10) cout << "0";
+    cout << int(estimate) % 60 << " ";
+  }
   cout << flush;
 }
 
@@ -999,7 +1032,14 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"RefittedZconvdZ","#deltaZ between the Refitted Z of the Primary Vertex from Conversion and Sim Vertex: region;Z (cm); Counts",100,-5,5);
   BookBarrelAndEndcap(histoContainer,"NewZconvlinear","Z of Primary Vertex using linear method: region;Z (cm); Counts",100,-20,20);
   BookBarrelAndEndcap(histoContainer,"NewZconvlineardZ","#deltaZ between the Z of the Primary Vertex using linear method and the SimVertex: region;Z (cm); Counts",100,-5,5);
-    
+
+  BookBarrelAndEndcap(histoContainer,"goodconvr","R of conversion; R (cm): region; Counts",100,0,100);
+  BookBarrelAndEndcap(histoContainer,"goodconvchi2","#Chi^2 probability of vertex; #Chi^2 Probability; Counts",100,0,1);
+  BookBarrelAndEndcap(histoContainer,"goodconvdistmin","Distantance of minimum approach of conversion tracks; cm; Counts",100,-1,1);
+  BookBarrelAndEndcap(histoContainer,"goodconveop","E over P of conversion: region; E over P; Counts",100,0,3);
+  BookBarrelAndEndcap(histoContainer,"goodconvdeta","#Delta#eta between the refitted tracks and supercluster; #Delta#eta; Counts",100,-0.2,0.2);
+  BookBarrelAndEndcap(histoContainer,"goodconvdphi","#Delta#phi between the refitted tracks and supercluster; #Delta#phi; Counts",100,-0.2,0.2);
+  
   histoContainer->Add("convdZvsEtaAll","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
   histoContainer->Add("convdZvsEtaSel","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
  
@@ -1512,7 +1552,8 @@ void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, str
 void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, bool &isData) {
 
   float BranchingFraction = 0;
-
+  float kFactor = 1.0;
+  
   if (inputstring.Contains("Data") && !inputstring.Contains("Dataweight")) {
     inputfilelist.push_back(pair<string,int> ("Data.root",4));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
@@ -1522,6 +1563,14 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     isData=true;
   }
   if (inputstring.Contains("PromptReco") && !inputstring.Contains("PromptRecoweight")) {
+    inputfilelist.push_back(pair<string,int> ("PromptReco.root",4));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_160404_161474.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_161475_163754.root",1));
+    isData=true;
+  }
+  if (inputstring.Contains("PromptReco") && !inputstring.Contains("PromptRecoTrial") && !inputstring.Contains("PromptRecoweight")) {
     inputfilelist.push_back(pair<string,int> ("PromptReco.root",4));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
@@ -1593,8 +1642,9 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/WHZHTTH_M140_2011PU.root",(0.3857+0.2172+0.06072 )*BranchingFraction/110000));
   }
   if (inputstring.Contains("PJet") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    kFactor=1.2;
     inputfilelist.push_back(pair<string,int> ("PhotonJetEMEnriched.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GJet_Pt20_2011PU.root",77100/(1182075/0.0064)));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/GJet_Pt20_2011PU.root",kFactor*77100/(1182075/0.0064)));
   }
   if (inputstring.Contains("QCD") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("QCDDoubleEMEnriched.root",2));
@@ -1602,21 +1652,24 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/QCD_Pt40_2011PU.root",18700000/(21276029/0.00216)));
   }
   if (inputstring.Contains("Born") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    kFactor = 1.15;
     inputfilelist.push_back(pair<string,int> ("Born.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt10to25_2011PU.root",236.4/522865));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt25to250_2011PU.root",22.37/537445));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt250toinf_2011PU.root",0.008072/546355));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt10to25_2011PU.root",kFactor*236.4/522865));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt25to250_2011PU.root",kFactor*22.37/537445));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBorn_Pt250toinf_2011PU.root",kFactor*0.008072/546355));
   }
   if (inputstring.Contains("Box") || inputstring.Contains("Background") || inputstring.Contains("All")) {
+    kFactor = 1.15;
     inputfilelist.push_back(pair<string,int> ("Box.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt10to25_2011PU.root",358.2/797975));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt25to250_2011PU.root",12.37/777725));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt250toinf_2011PU.root",0.000208/789470));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt10to25_2011PU.root",kFactor*358.2/797975));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt25to250_2011PU.root",kFactor*12.37/777725));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DiPhotonBox_Pt250toinf_2011PU.root",kFactor*0.000208/789470));
   }
   if (inputstring.Contains("DY") || inputstring.Contains("Background") || inputstring.Contains("All")) {
     inputfilelist.push_back(pair<string,int> ("DrellYan.root",2));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DYToEE_M10To20_2011PU.root",2659.0/1933000));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DYToEE_powheg_M20_2011PU.root",1614.0/1998990));
+    kFactor = 1.15;
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DYToEE_M10To20_2011PU.root",kFactor*2659.0/1933000));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/DYToEE_powheg_M20_2011PU.root",kFactor*1614.0/1998990));
   }
   if (inputstring.Contains("Test")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
