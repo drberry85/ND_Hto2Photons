@@ -175,7 +175,7 @@ bool convSel(
 int photonCategory (bool pixMatch, float r9) {
   
   int cate=0;
-  if ( r9>0.93 && !pixMatch ) {
+  if ( r9>0.93) {
     cate=1; // golden
   } else if ( r9<=0.93 ) {
     cate=2;  // no tracks are reconstructed

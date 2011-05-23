@@ -146,6 +146,7 @@ int main(int argc, char * input[]) {
       int percent = 0;
       time_t start,now;
       time(&start);
+
       for ( Long64_t i = 0; i < nentries; i++ ) {
 
         if (i % (nentries/100) == 0 && bar) {
@@ -558,6 +559,8 @@ int main(int argc, char * input[]) {
                       currentTree.pho_hoe[subleadindex]))) continue;
 
         histoContainer->Fill("NPhotonsSel",currentTree.pho_n,weight);
+        if (currentTree.pho_haspixseed[leadindex]==1 && convsel1==false) continue;
+        if (currentTree.pho_haspixseed[subleadindex]==1 && convsel2==false) continue;
         selection = "Sel";
 
         if (debug) cout << "Filling Photon Hists" << endl;
