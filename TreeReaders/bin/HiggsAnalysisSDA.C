@@ -32,7 +32,7 @@ using namespace std;
 
 unsigned int DoGenMatching(sdaReader *currentTree, TVector3 Photon);
 unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsigned int subleadindex);
-unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz);
+int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz);
 bool DoVertexMatching(TVector3 TestVertex, TVector3 SimVertex);
 bool sortpt(map <double, unsigned int> ptindex, int NumPhotons, double &leadpt, double &subleadpt, unsigned int &leadindex, unsigned int &subleadindex);
 double CosThetaStar(TLorentzVector VLead, TLorentzVector VSum);
@@ -56,8 +56,8 @@ void BookRCutsdZPlots(HistoContainer *histoContainer, TString histname);
 void BookTrackerdZ(HistoContainer *histoContainer, TString histname);
 void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float weight, unsigned int leadindex, unsigned int subleadindex, int leadPhoCategory, int subleadPhoCategory);
 void FillPhotonHists(sdaReader *currentTree, HistoContainer *histoContainer, string photon, unsigned int index, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, TVector3 PrimaryVertex, TVector3 SimVertex, vector<TLorentzVector> Photonp4, bool data);
-void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
-void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
+void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
+void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop);
 void FillMassHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, int diPhoCategory, TLorentzVector VSum, double InvMass, double SimInvMass, double cos_thetastar);
 void FillMassNewVertexHists(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, string vertextype, TLorentzVector VSum, double InvMass, double cos_thetastar);
 void FillMassRcut(HistoContainer *histoContainer, string selection, float weight, string HiggsInWhichDetector, double R, double InvMass);
@@ -275,13 +275,13 @@ int main(int argc, char * input[]) {
         if (debug) cout << "Matching Conversions" << endl;
         unsigned int photonconvindex = 0;
         bool validconversion = false;
-        unsigned int convindex = gettrackerconvindex(&currentTree,Photonxyz[leadindex]);
-        if (convindex!=999999) photonconvindex=leadindex;
-        if (convindex==999999) {
+        int convindex = gettrackerconvindex(&currentTree,Photonxyz[leadindex]);
+        if (convindex!=-1) photonconvindex=leadindex;
+        if (convindex==-1) {
           convindex = gettrackerconvindex(&currentTree,Photonxyz[subleadindex]);
-          if (convindex!=999999) photonconvindex=subleadindex;
+          if (convindex!=-1) photonconvindex=subleadindex;
         }
-        if (convindex!=999999) validconversion=true;
+        if (convindex!=-1) validconversion=true;
         unsigned int convscindex = (unsigned int) currentTree.pho_scind[photonconvindex];
         unsigned int nearvertexindex = 0;
         double scEnergy = Photonp4[photonconvindex].E();
@@ -730,30 +730,31 @@ unsigned int getconvindex(sdaReader *currentTree, unsigned int leadindex, unsign
   return 0;
 }
 
-unsigned int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
+int gettrackerconvindex(sdaReader *currentTree, TVector3 Photonxyz) {
 
-  unsigned int ReturnIndex = 999999;
-  double MinDeltaEta = 999999;
-  double MinDeltaPhi = 999999;
+  int ReturnIndex = -1;
+  double Mindeltaeta = 999999;
+  double Mindeltaphi = 999999;
   
-  for (unsigned int i=0; i<(unsigned int) currentTree->conv_n; i++) {
+  for (int i=0; i<currentTree->conv_n; i++) {
     TVector3 ConversionRefittedPairMomentum = *((TVector3*) currentTree->conv_refitted_momentum->At(i));
+    if (ConversionRefittedPairMomentum.Pt()<1) continue;
     double deltaphi = DeltaPhi(Photonxyz.Phi(),ConversionRefittedPairMomentum.Phi());
 
     double ConvEta = etaTransformation(ConversionRefittedPairMomentum.Eta(),currentTree->conv_zofprimvtxfromtrks[i]);
     double deltaeta = abs(Photonxyz.Eta()-ConvEta);
 
-    if (deltaeta<MinDeltaEta && deltaphi<MinDeltaPhi) {
-      MinDeltaPhi=deltaphi;
-      MinDeltaEta=deltaeta;
+    if (abs(deltaeta)<abs(Mindeltaeta) && abs(deltaphi)<abs(Mindeltaphi)) {
+      Mindeltaphi=abs(deltaphi);
+      Mindeltaeta=abs(deltaeta);
       ReturnIndex = i;
     }
   }
 
-  if (MinDeltaEta<0.1 && MinDeltaPhi<0.1) {
+  if (abs(Mindeltaeta)<0.1 && abs(Mindeltaphi)<0.1) {
     return ReturnIndex;
   } else {
-    return 999999;
+    return -1;
   }
 
 }
@@ -1350,7 +1351,7 @@ void FillCatHists(sdaReader *currentTree, HistoContainer *histoContainer, float 
   
 }
 
-void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
+void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
 
   for (unsigned int j=0; j<2; j++) {
     TString histnames[] = {"phi_conv_", "eta_conv_", "pt_conv_", "z_conv_", "r_conv_", "dz_conv_","eop_conv_"};
@@ -1376,7 +1377,7 @@ void FillConvHists(sdaReader *currentTree, HistoContainer *histoContainer, unsig
 
 }
 
-void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, unsigned int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
+void FillConvHistsInDiPho(sdaReader *currentTree, HistoContainer *histoContainer, unsigned int photonconvindex, int convindex, string selection, float weight, vector<TVector3> Photonxyz, vector<TVector3> ConversionVertex, vector<TLorentzVector> Photonp4, float zPVFromConv, TVector3 SimVertex, float eop) {
 
   for (unsigned int j=0; j<2; j++) {
     TString histnames[] = {"phi_conv_", "eta_conv_", "pt_conv_", "z_conv_", "r_conv_", "dz_conv_","eop_conv_"};
