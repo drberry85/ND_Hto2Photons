@@ -9,11 +9,12 @@ gStyle.SetCanvasColor(kWhite);
 
 print "Setting Initial Parameters."
 can = TCanvas("Plots","Plots",850,600)
-can.SetLogy(1)
+#can.SetLogy(1)
 colors = [4, 2, 5, 7, 3, 6]
 HistogramNames=["goodconvchi2Barrel","goodconvchi2Endcap","goodconvdistminBarrel","goodconvdistminEndcap"]
 HistogramNames+=["goodconveopBarrel","goodconveopEndcap","goodconvrBarrel","goodconvrEndcap"]
 HistogramNames+=["goodconvdetaBarrel","goodconvdetaEndcap","goodconvdphiBarrel","goodconvdphiEndcap"]
+HistogramNames+=["goodconvzBarrel","goodconvzEndcap","goodconveta"]
 HistogramNames+=["CosThetaStar_2gammaSelBarrel","CosThetaStar_2gammaSelEndcap"]
 HistogramNames+=["CosThetaStar_2gammaGoldenSelBarrel","CosThetaStar_2gammaGoldenSelEndcap"]
 HistogramNames+=["CosThetaStar_2gammaleftoverSelBarrel","CosThetaStar_2gammaleftoverSelEndcap"]
@@ -58,11 +59,12 @@ for i in range(len(HistogramNames)):
 		leg.AddEntry(hist[j],Legends[j])
 	if (can.GetLogy()==1): stack.SetMinimum(0.1)
 	stack.Draw()
+	if (HistogramNames[i].find("mass")!=-1): stack.GetXaxis().SetRangeUser(100,160)
 	DataHist.SetMarkerStyle(20);
 	if (stack.GetMaximum()<(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum()))): stack.SetMaximum(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum()))
 	else: stack.SetMaximum(stack.GetMaximum())
-	if can.GetLogy()==0 and HistogramNames[i].find("CosThetaStar")!=-1: stack.SetMaximum(1.5*(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum())))
-	if can.GetLogy()==1 and (HistogramNames[i].find("CosThetaStar")!=-1 or HistogramNames[i].find("mass")!=-1): stack.SetMaximum(10*(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum())))
+	if can.GetLogy()==0 and (HistogramNames[i].find("CosThetaStar")!=-1 or HistogramNames[i].find("goodconveta")!=-1): stack.SetMaximum(1.5*(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum())))
+	if can.GetLogy()==1 and (HistogramNames[i].find("CosThetaStar")!=-1 or HistogramNames[i].find("mass")!=-1 or HistogramNames[i].find("goodconveta")): stack.SetMaximum(10*(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum())))
 	leg.AddEntry(DataHist,"Data")
 	DataHist.Draw("esame")
 	leg.Draw()
