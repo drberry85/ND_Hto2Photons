@@ -26,6 +26,7 @@
 
 #include "ND_Hto2Photons/TreeReaders/interface/sdaReader.h"
 #include "ND_Hto2Photons/TreeReaders/interface/Selections.h"
+#include "ND_Hto2Photons/TreeReaders/interface/lumi.h"
 #include "ND_Hto2Photons/TreeReaders/interface/HistoContainer.cc"
 
 using namespace std;
@@ -108,7 +109,6 @@ int main(int argc, char * input[]) {
   }
   
   for (vector<pair<string, int> >::iterator itFilePair = filelist.begin(); itFilePair != filelist.end(); ++itFilePair) {
-
     TString outfilename = MakeFileName(itFilePair->first, unweighted, dataweight, RCut);
     
     TFile* outfile = new TFile(outfilename.Data(),"RECREATE");
@@ -141,15 +141,18 @@ int main(int argc, char * input[]) {
       Long64_t nentries = currentTree.fChain->GetEntries();
       cout << "TreeRead Entries " << nentries << endl;     
 
+      if (debug) cout << "Going to Outfile" << endl;
       outfile->cd();
 
       int percent = 0;
       time_t start,now;
       time(&start);
+      if (debug) cout << "Timer Started" << endl;
 
       for ( Long64_t i = 0; i < nentries; i++ ) {
 
-        if (i % (nentries/100) == 0 && bar) {
+        if (debug) cout << "Calling Bar Function" << endl;
+        if (bar && nentries>=100 && i%(nentries/100)==0) {
           time (&now);
           double elapsed = difftime(now,start);
           float fracdone = float(i)/float(nentries);
@@ -159,8 +162,10 @@ int main(int argc, char * input[]) {
           ProgressBar(percent, estimate);
         }
 
+        if (debug) cout << "Getting Tree Entry: " << i << endl;
         currentTree.GetEntry(i);
         if (pjet && currentTree.process_id==18) continue;
+        if (data && !lumiRunSelection(currentTree.run, currentTree.lumis)) continue;
         
         TVector3 SimVertex(0,0,0);
         vector<TVector3> PrimaryVertex;
@@ -208,6 +213,7 @@ int main(int argc, char * input[]) {
 
         if (currentTree.pho_n<1) continue;
         if (debug) cout << "One Photon Found" << endl;
+        if (debug) cout << "There are " << currentTree.pho_n << " photons" << endl;
         map <double, unsigned int> ptindex;
         for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
           Photonxyz.push_back(*((TVector3*) currentTree.pho_calopos->At(j)));
@@ -296,8 +302,8 @@ int main(int argc, char * input[]) {
         string selection = "All";
 
         if (debug) cout << "Getting Photon Category" << endl;
-        int leadPhoCategory = photonCategory ( currentTree.pho_haspixseed[leadindex], currentTree.pho_r9[leadindex]);
-        int subleadPhoCategory = photonCategory (currentTree.pho_haspixseed[subleadindex], currentTree.pho_r9[subleadindex]);
+        int leadPhoCategory = photonCategory(currentTree.pho_r9[leadindex], currentTree.pho_isEB[leadindex], currentTree.pho_isEE[leadindex]);
+        int subleadPhoCategory = photonCategory(currentTree.pho_r9[subleadindex], currentTree.pho_isEB[subleadindex], currentTree.pho_isEE[subleadindex]);
 
         bool convsel1 = false;
         bool convsel2 = false;
@@ -380,15 +386,65 @@ int main(int argc, char * input[]) {
             if (abs(NewZconvlinear-SimVertex.Z())<0.5) histoContainer->Fill("ZconvdZLinearLessHalfcm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
             if (abs(NewZconvlinear-SimVertex.Z())<0.3) histoContainer->Fill("ZconvdZLinearLess3mm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
             if (iConvDetector=="Barrel") {
+              if ( fabs(NewZPV-SimVertex.Z()) < 1  ) {
+                if ( ConversionVertex[convindex].Perp() <=15 )                                          
+                  histoContainer->Fill("Less10mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60)  
+                  histoContainer->Fill("Less10mmNewPVdZTib",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (ConversionVertex[convindex].Perp()>60 )  
+                  histoContainer->Fill("Less10mmNewPVdZTob",iConvDetector, NewZPV-SimVertex.Z(),weight);
+              } 
+              if ( fabs(NewZPV-SimVertex.Z()) < 0.5  ) {
+                if ( ConversionVertex[convindex].Perp() <=15 )                                          
+                  histoContainer->Fill("Less5mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60)  
+                  histoContainer->Fill("Less5mmNewPVdZTib",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (ConversionVertex[convindex].Perp()>60 )  
+                  histoContainer->Fill("Less5mmNewPVdZTob",iConvDetector, NewZPV-SimVertex.Z(),weight);
+              } 
+              if ( fabs(NewZPV-SimVertex.Z()) < 0.3  ) {
+                if ( ConversionVertex[convindex].Perp() <=15 )                                          
+                  histoContainer->Fill("Less3mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60)  
+                  histoContainer->Fill("Less3mmNewPVdZTib",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (ConversionVertex[convindex].Perp()>60 )  
+                  histoContainer->Fill("Less3mmNewPVdZTob",iConvDetector, NewZPV-SimVertex.Z(),weight);
+              } 
+
               FilldZTrackerBarrel(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
               FilldZTrackerBarrel(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
             }
             if (iConvDetector=="Endcap") {
+              if ( fabs(NewZPV-SimVertex.Z()) < 1  ) {
+                if (  fabs(ConversionVertex[convindex].Z()) <=50 )                                          
+                  histoContainer->Fill("Less10mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if ( fabs(ConversionVertex[convindex].Z()) >50 && fabs(ConversionVertex[convindex].Z())<=100)  
+                  histoContainer->Fill("Less10mmNewPVdZTid",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if ( fabs(ConversionVertex[convindex].Z())>100 )  
+                  histoContainer->Fill("Less10mmNewPVdZTec",iConvDetector, NewZPV-SimVertex.Z(),weight);
+              } 
+              if ( fabs(NewZPV-SimVertex.Z()) < 0.5  ) {
+                if (  fabs(ConversionVertex[convindex].Z()) <=50 )                                          
+                  histoContainer->Fill("Less5mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (  fabs(ConversionVertex[convindex].Z())>50 && fabs(ConversionVertex[convindex].Z())<=100)  
+                  histoContainer->Fill("Less5mmNewPVdZTid",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if (  fabs(ConversionVertex[convindex].Z())>100 )  
+                  histoContainer->Fill("Less5mmNewPVdZTec",iConvDetector, NewZPV-SimVertex.Z(),weight);
+              } 
+              if ( fabs(NewZPV-SimVertex.Z()) < 0.3  ) {
+                if ( fabs(ConversionVertex[convindex].Z()) <=50 )                                          
+                  histoContainer->Fill("Less3mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if ( fabs(ConversionVertex[convindex].Z())>50 && fabs(ConversionVertex[convindex].Z())<=100)  
+                  histoContainer->Fill("Less3mmNewPVdZTid",iConvDetector, NewZPV-SimVertex.Z(),weight);
+                else if ( fabs(ConversionVertex[convindex].Z())>100 )  
+                  histoContainer->Fill("Less3mmNewPVdZTec",iConvDetector, NewZPV-SimVertex.Z(),weight);
+              } 
+
               FilldZTrackerEndcap(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
               FilldZTrackerEndcap(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
             }
           }
-
+          
           if (validconversion) {
             if (debug) cout << "Filling Combined Conversion Plots" << endl;
             histoContainer->Fill("trackerconvr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
@@ -535,29 +591,34 @@ int main(int argc, char * input[]) {
         ///////////////////////////////  Event selection ///////////////////////////////////////
         ///////////// build the di-photon system
         if (debug) cout << "Doing Selection" << endl;
-        if (Photonp4[leadindex].Pt()<40) continue; // leading photon
-        if (Photonp4[subleadindex].Pt()<30) continue; // subleading photon
+        if (Photonp4[leadindex].Pt()<40.0) continue; // leading photon
+        if (Photonp4[subleadindex].Pt()<30.0) continue; // subleading photon
         if (fabs(Photonxyz[leadindex].Eta())>2.5 || fabs(Photonxyz[subleadindex].Eta())>2.5) continue;
 
         //isolation 
-        if (!(tightId(Photonp4[leadindex].Pt(),
-                      currentTree.pho_ecalsumetconedr04[leadindex],
-                      currentTree.pho_hcalsumetconedr04[leadindex],
-                      currentTree.pho_trksumpthollowconedr04[leadindex],
-                      (bool) currentTree.pho_isEB[leadindex],
-                      (bool) currentTree.pho_isEE[leadindex],
-                      currentTree.pho_sieie[leadindex],
-                      currentTree.pho_hoe[leadindex]))) continue;
+//         if (!(tightId(Photonp4[leadindex].Pt(),
+//                       currentTree.pho_ecalsumetconedr04[leadindex],
+//                       currentTree.pho_hcalsumetconedr04[leadindex],
+//                       currentTree.pho_trksumpthollowconedr04[leadindex],
+//                       (bool) currentTree.pho_isEB[leadindex],
+//                       (bool) currentTree.pho_isEE[leadindex],
+//                       currentTree.pho_sieie[leadindex],
+//                       currentTree.pho_hoe[leadindex]))) continue;
 
-        if (!(tightId(Photonp4[subleadindex].Pt(),
-                      currentTree.pho_ecalsumetconedr04[subleadindex],
-                      currentTree.pho_hcalsumetconedr04[subleadindex],
-                      currentTree.pho_trksumpthollowconedr04[subleadindex],
-                      (bool) currentTree.pho_isEB[subleadindex],
-                      (bool) currentTree.pho_isEE[subleadindex],
-                      currentTree.pho_sieie[subleadindex],
-                      currentTree.pho_hoe[subleadindex]))) continue;
+//         if (!(tightId(Photonp4[subleadindex].Pt(),
+//                       currentTree.pho_ecalsumetconedr04[subleadindex],
+//                       currentTree.pho_hcalsumetconedr04[subleadindex],
+//                       currentTree.pho_trksumpthollowconedr04[subleadindex],
+//                       (bool) currentTree.pho_isEB[subleadindex],
+//                       (bool) currentTree.pho_isEE[subleadindex],
+//                       currentTree.pho_sieie[subleadindex],
+//                       currentTree.pho_hoe[subleadindex]))) continue;
 
+         //New CiC Cut 4 is SuperTight
+        if (debug) for (unsigned int j=0; j<currentTree.pho_cic4cutlevel_lead->size(); j++) cout << "Index is: " << j << " and lead cut level is " << currentTree.pho_cic4cutlevel_lead->at(j) << endl;
+        if (debug) for (unsigned int j=0; j<currentTree.pho_cic4cutlevel_sublead->size(); j++) cout << "Index is: " << j << " and sublead cut level is " << currentTree.pho_cic4cutlevel_sublead->at(j) << endl;
+        if (currentTree.pho_cic4cutlevel_lead->at(leadindex)<4 && currentTree.pho_cic4cutlevel_sublead->at(subleadindex)<4) continue;
+        
         histoContainer->Fill("NPhotonsSel",currentTree.pho_n,weight);
         if (currentTree.pho_haspixseed[leadindex]==1 && convsel1==false) continue;
         if (currentTree.pho_haspixseed[subleadindex]==1 && convsel2==false) continue;
@@ -607,12 +668,41 @@ int main(int argc, char * input[]) {
           double deltaphi = DeltaPhi(Photonxyz[photonconvindex].Phi(),ConversionRefittedPairMomentum[convindex].Phi());
           double EoP = MatchedSuperCluster.E()/ConversionRefittedPairMomentum[convindex].Mag();
          
+          histoContainer->Fill("goodconveta",ConversionVertex[convindex].Eta(),weight);
           histoContainer->Fill("goodconvr",iConvDetector,ConversionVertex[convindex].Perp(),weight);
           histoContainer->Fill("goodconvchi2",iConvDetector,currentTree.conv_chi2_probability[convindex],weight);
+          histoContainer->Fill("goodconvz",iConvDetector,ConversionVertex[convindex].Z(),weight);
           histoContainer->Fill("goodconvdistmin",iConvDetector,currentTree.conv_distofminapproach[convindex],weight);
           histoContainer->Fill("goodconveop",iConvDetector,EoP,weight);
           histoContainer->Fill("goodconvdeta",iConvDetector,deltaeta,weight);
           histoContainer->Fill("goodconvdphi",iConvDetector,deltaphi,weight);
+          if (!data) histoContainer->Fill("higgsPtWhenAtLeastOneGoodConv",Higgs_p4.Pt(),weight);
+          float sigma_z=0;
+          if (iConvDetector=="Barrel") {
+
+            if ( ConversionVertex[convindex].Perp() <=15 ) {
+              sigma_z = 0.06;
+            } else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60) {
+              sigma_z= 0.67;  
+            } else if (ConversionVertex[convindex].Perp()>60 ) {
+              sigma_z=2;
+            }
+
+          } else if ( iConvDetector=="Endcap") {
+
+            if ( fabs(ConversionVertex[convindex].Z()) <=50 ) {
+              sigma_z = 0.18;
+            } else if ( fabs(ConversionVertex[convindex].Z())>50 && fabs(ConversionVertex[convindex].Z())<=100) {
+              sigma_z = 0.61;
+            } else if ( fabs(ConversionVertex[convindex].Z())>100 ) {
+              sigma_z = 0.99;
+            }
+
+          }
+
+          if ( !data && fabs(NewZconvlinear-SimVertex.Z()) < 1 )	  
+            histoContainer->Fill("higgsPtWhenAtLeastOneGoodConvZInOneSigma",Higgs_p4.Pt(),weight);
+
         }
         
         //GenMatching
@@ -1039,11 +1129,13 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"NewZconvlineardZ","#deltaZ between the Z of the Primary Vertex using linear method and the SimVertex: region;Z (cm); Counts",100,-5,5);
 
   BookBarrelAndEndcap(histoContainer,"goodconvr","R of conversion; R (cm): region; Counts",100,0,100);
+  BookBarrelAndEndcap(histoContainer,"goodconvz","Z of conversion; Z (cm): region; Counts",100,0,200);
   BookBarrelAndEndcap(histoContainer,"goodconvchi2","#Chi^2 probability of vertex; #Chi^2 Probability; Counts",100,0,1);
   BookBarrelAndEndcap(histoContainer,"goodconvdistmin","Distantance of minimum approach of conversion tracks; cm; Counts",100,-1,1);
   BookBarrelAndEndcap(histoContainer,"goodconveop","E over P of conversion: region; E over P; Counts",100,0,3);
-  BookBarrelAndEndcap(histoContainer,"goodconvdeta","#Delta#eta between the refitted tracks and supercluster; #Delta#eta; Counts",100,-0.2,0.2);
-  BookBarrelAndEndcap(histoContainer,"goodconvdphi","#Delta#phi between the refitted tracks and supercluster; #Delta#phi; Counts",100,-0.2,0.2);
+  BookBarrelAndEndcap(histoContainer,"goodconvdeta","#Delta#eta between the refitted tracks and supercluster; #Delta#eta; Counts",100,-0.1,0.1);
+  BookBarrelAndEndcap(histoContainer,"goodconvdphi","#Delta#phi between the refitted tracks and supercluster; #Delta#phi; Counts",100,-0.1,0.1);
+  histoContainer->Add("goodconveta","Conversion #eta; #eta; Counts",50,-2.5,2.5); 
   
   histoContainer->Add("convdZvsEtaAll","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
   histoContainer->Add("convdZvsEtaSel","#deltaZ of the Primary Vertex from the Conversion and the Sim Vertex vs #eta;#eta of Conversion;#deltaZ of the Primary Vertex from the Conversion from the SimVertex(cm)",60, -3.0, 3.0, 100, -5, 5);
@@ -1129,16 +1221,40 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookFourHists(histoContainer,"sublead_r9_catdummy_allEcal","subleading photon R9, selected candidates: all ECAL",100,0.,1.1);
   BookFourHists(histoContainer,"sublead_r9_catdummy_Barrel","subleading photon R9, selected candidates: Barrel",100,0.,1.1);
   BookFourHists(histoContainer,"sublead_r9_catdummy_Endcap","subleading photon R9, selected candidates: Endcap",100,0.,1.1);
-    
-  histoContainer->Add("convVtxRvsZBarrelAll"," Photon conversion vtx position all candidates Barrel",200, 0., 280., 200, 0., 80.);
-  histoContainer->Add("convVtxRvsZBarrelSel"," Photon conversion vtx position selected candidates Barrel",200, 0., 280., 200, 0., 80.);
-  histoContainer->Add("selconvVtxRvsZBarrelSel"," Photon conversion vtx position selected conversion Barrel",200, 0., 280., 200, 0., 80.);
 
+  histoContainer->Add("convVtxRvsZBarrelAll"," Photon conversion vtx position all candidates Barrel",400, -200., 200., 200, 0., 80.);
+  histoContainer->Add("convVtxRvsZBarrelSel"," Photon conversion vtx position selected candidates Barrel",400, -200., 200., 200, 0., 80.);
+  histoContainer->Add("selconvVtxRvsZBarrelSel"," Photon conversion vtx position selected conversion Barrel",400, -200., 200., 200, 0., 80.);
+  
   histoContainer->Add("GenPhotonEta","Eta of Gen Daughter Photons;#eta;Counts;",120,-6,6);
   histoContainer->Add("GenPhotonEtaBool","Is the daughter of the Higgs in the Fiducial Region;Bool Value;Counts;",2,0,2);
   histoContainer->Add("GenHiggsEta","Eta of Gen Higgs Boson;",120,-6,6);
   histoContainer->Add("GenHiggsPt","Pt of Gen Daughter Photons;#eta;Counts;",200,0,200);
+
+  histoContainer->Add("Less10mmNewPVdZPixelBarrel","",100,-5.,5.);
+  histoContainer->Add("Less10mmNewPVdZTibBarrel","",100,-5.,5.);
+  histoContainer->Add("Less10mmNewPVdZTobBarrel","",100,-5.,5.);
+  histoContainer->Add("Less10mmNewPVdZPixelEndcap","",100,-5.,5.);
+  histoContainer->Add("Less10mmNewPVdZTidEndcap","",100,-5.,5.);
+  histoContainer->Add("Less10mmNewPVdZTecEndcap","",100,-5.,5.);
+
+  histoContainer->Add("Less5mmNewPVdZPixelBarrel","",100,-5.,5.);
+  histoContainer->Add("Less5mmNewPVdZTibBarrel","",100,-5.,5.);
+  histoContainer->Add("Less5mmNewPVdZTobBarrel","",100,-5.,5.);
+  histoContainer->Add("Less5mmNewPVdZPixelEndcap","",100,-5.,5.);
+  histoContainer->Add("Less5mmNewPVdZTidEndcap","",100,-5.,5.);
+  histoContainer->Add("Less5mmNewPVdZTecEndcap","",100,-5.,5.);
   
+  histoContainer->Add("Less3mmNewPVdZPixelBarrel","",100,-5.,5.);
+  histoContainer->Add("Less3mmNewPVdZTibBarrel","",100,-5.,5.);
+  histoContainer->Add("Less3mmNewPVdZTobBarrel","",100,-5.,5.);
+  histoContainer->Add("Less3mmNewPVdZPixelEndcap","",100,-5.,5.);
+  histoContainer->Add("Less3mmNewPVdZTidEndcap","",100,-5.,5.);
+  histoContainer->Add("Less3mmNewPVdZTecEndcap","",100,-5.,5.);
+
+  histoContainer->Add("higgsPtWhenAtLeastOneGoodConv","Higgs pt when at least one good conversion;#Pt;Counts;",50,0,200);
+  histoContainer->Add("higgsPtWhenAtLeastOneGoodConvZInOneSigma","Higgs pt when at least one good conversion;#Pt;Counts;",50,0,200);
+
 }
 
 void BookMassPlots(HistoContainer *histoContainer, TString histname) {
@@ -1553,11 +1669,14 @@ void MakeFilesAndWeights(TString &inputstring, vector<pair<string, float> > &inp
     isData=true;
   }
   if (inputstring.Contains("PromptReco") && !inputstring.Contains("PromptRecoweight")) {
-    inputfilelist.push_back(pair<string,int> ("PromptReco.root",4));
+    inputfilelist.push_back(pair<string,int> ("PromptReco.root",7));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010A.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/Run2010B.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_160404_161474.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_161475_163754.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_162000_163100.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_163100_163400.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_163400_163700.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/SDA/CMSSW414/promptreco_163700_164000.root",1));
     isData=true;
   }
   if (inputstring.Contains("90GeV") || inputstring.Contains("Signal") || inputstring.Contains("All")) {
