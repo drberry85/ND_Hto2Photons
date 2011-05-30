@@ -386,62 +386,24 @@ int main(int argc, char * input[]) {
             if (abs(NewZconvlinear-SimVertex.Z())<0.5) histoContainer->Fill("ZconvdZLinearLessHalfcm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
             if (abs(NewZconvlinear-SimVertex.Z())<0.3) histoContainer->Fill("ZconvdZLinearLess3mm",iConvDetector,NewZconvlinear-SimVertex.Z(), weight);
             if (iConvDetector=="Barrel") {
-              if ( fabs(NewZPV-SimVertex.Z()) < 1  ) {
-                if ( ConversionVertex[convindex].Perp() <=15 )                                          
-                  histoContainer->Fill("Less10mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60)  
-                  histoContainer->Fill("Less10mmNewPVdZTib",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (ConversionVertex[convindex].Perp()>60 )  
-                  histoContainer->Fill("Less10mmNewPVdZTob",iConvDetector, NewZPV-SimVertex.Z(),weight);
-              } 
-              if ( fabs(NewZPV-SimVertex.Z()) < 0.5  ) {
-                if ( ConversionVertex[convindex].Perp() <=15 )                                          
-                  histoContainer->Fill("Less5mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60)  
-                  histoContainer->Fill("Less5mmNewPVdZTib",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (ConversionVertex[convindex].Perp()>60 )  
-                  histoContainer->Fill("Less5mmNewPVdZTob",iConvDetector, NewZPV-SimVertex.Z(),weight);
-              } 
-              if ( fabs(NewZPV-SimVertex.Z()) < 0.3  ) {
-                if ( ConversionVertex[convindex].Perp() <=15 )                                          
-                  histoContainer->Fill("Less3mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (ConversionVertex[convindex].Perp()>15 && ConversionVertex[convindex].Perp()<=60)  
-                  histoContainer->Fill("Less3mmNewPVdZTib",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (ConversionVertex[convindex].Perp()>60 )  
-                  histoContainer->Fill("Less3mmNewPVdZTob",iConvDetector, NewZPV-SimVertex.Z(),weight);
-              } 
-
               FilldZTrackerBarrel(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              if (abs(NewZPV-SimVertex.Z())<1.0) FilldZTrackerBarrel(histoContainer, "Less10mmNewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              if (abs(NewZPV-SimVertex.Z())<0.5) FilldZTrackerBarrel(histoContainer, "Less5mmNewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              if (abs(NewZPV-SimVertex.Z())<0.3) FilldZTrackerBarrel(histoContainer, "Less3mmNewPVdZ", NewZPV-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
               FilldZTrackerBarrel(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              if (abs(NewZconvlinear-SimVertex.Z())<1.0) FilldZTrackerBarrel(histoContainer, "Less10mmLineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              if (abs(NewZconvlinear-SimVertex.Z())<0.5) FilldZTrackerBarrel(histoContainer, "Less5mmLineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
+              if (abs(NewZconvlinear-SimVertex.Z())<0.3) FilldZTrackerBarrel(histoContainer, "Less3mmLineardZ", NewZconvlinear-SimVertex.Z(), ConversionVertex[convindex].Perp(), weight);
             }
             if (iConvDetector=="Endcap") {
-              if ( fabs(NewZPV-SimVertex.Z()) < 1  ) {
-                if (  fabs(ConversionVertex[convindex].Z()) <=50 )                                          
-                  histoContainer->Fill("Less10mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if ( fabs(ConversionVertex[convindex].Z()) >50 && fabs(ConversionVertex[convindex].Z())<=100)  
-                  histoContainer->Fill("Less10mmNewPVdZTid",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if ( fabs(ConversionVertex[convindex].Z())>100 )  
-                  histoContainer->Fill("Less10mmNewPVdZTec",iConvDetector, NewZPV-SimVertex.Z(),weight);
-              } 
-              if ( fabs(NewZPV-SimVertex.Z()) < 0.5  ) {
-                if (  fabs(ConversionVertex[convindex].Z()) <=50 )                                          
-                  histoContainer->Fill("Less5mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (  fabs(ConversionVertex[convindex].Z())>50 && fabs(ConversionVertex[convindex].Z())<=100)  
-                  histoContainer->Fill("Less5mmNewPVdZTid",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if (  fabs(ConversionVertex[convindex].Z())>100 )  
-                  histoContainer->Fill("Less5mmNewPVdZTec",iConvDetector, NewZPV-SimVertex.Z(),weight);
-              } 
-              if ( fabs(NewZPV-SimVertex.Z()) < 0.3  ) {
-                if ( fabs(ConversionVertex[convindex].Z()) <=50 )                                          
-                  histoContainer->Fill("Less3mmNewPVdZPixel",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if ( fabs(ConversionVertex[convindex].Z())>50 && fabs(ConversionVertex[convindex].Z())<=100)  
-                  histoContainer->Fill("Less3mmNewPVdZTid",iConvDetector, NewZPV-SimVertex.Z(),weight);
-                else if ( fabs(ConversionVertex[convindex].Z())>100 )  
-                  histoContainer->Fill("Less3mmNewPVdZTec",iConvDetector, NewZPV-SimVertex.Z(),weight);
-              } 
-
               FilldZTrackerEndcap(histoContainer, "NewPVdZ", NewZPV-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              if (abs(NewZPV-SimVertex.Z())<1.0) FilldZTrackerEndcap(histoContainer, "Less10mmNewPVdZ", NewZPV-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              if (abs(NewZPV-SimVertex.Z())<0.5) FilldZTrackerEndcap(histoContainer, "Less5mmNewPVdZ", NewZPV-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              if (abs(NewZPV-SimVertex.Z())<0.3) FilldZTrackerEndcap(histoContainer, "Less3mmNewPVdZ", NewZPV-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
               FilldZTrackerEndcap(histoContainer, "LineardZ", NewZconvlinear-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              if (abs(NewZconvlinear-SimVertex.Z())<1.0) FilldZTrackerEndcap(histoContainer, "Less10mmLineardZ", NewZconvlinear-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              if (abs(NewZconvlinear-SimVertex.Z())<0.5) FilldZTrackerEndcap(histoContainer, "Less5mmLineardZ", NewZconvlinear-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
+              if (abs(NewZconvlinear-SimVertex.Z())<0.3) FilldZTrackerEndcap(histoContainer, "Less3mmLineardZ", NewZconvlinear-SimVertex.Z(), abs(ConversionVertex[convindex].Z()), weight);
             }
           }
           
@@ -1094,7 +1056,13 @@ void BookHistograms(HistoContainer *histoContainer) {
   
   BookRCutsdZPlots(histoContainer,"dz_conv_");
   BookTrackerdZ(histoContainer,"NewPVdZ");
+  BookTrackerdZ(histoContainer,"Less10mmNewPVdZ");
+  BookTrackerdZ(histoContainer,"Less5mmNewPVdZ");
+  BookTrackerdZ(histoContainer,"Less3mmNewPVdZ");
   BookTrackerdZ(histoContainer,"LineardZ");
+  BookTrackerdZ(histoContainer,"Less10mmLineardZ");
+  BookTrackerdZ(histoContainer,"Less5mmLineardZ");
+  BookTrackerdZ(histoContainer,"Less3mmLineardZ");
   
   histoContainer->Add("PrimaryVertexMatchedAllEcal","#deltaZ between the Primary Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
   histoContainer->Add("NearVertexMatchedAllEcal","#deltaZ between the Near Vertex and SimVertex less than 2mm: AllEcal",2,0,2);
@@ -1230,27 +1198,6 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("GenPhotonEtaBool","Is the daughter of the Higgs in the Fiducial Region;Bool Value;Counts;",2,0,2);
   histoContainer->Add("GenHiggsEta","Eta of Gen Higgs Boson;",120,-6,6);
   histoContainer->Add("GenHiggsPt","Pt of Gen Daughter Photons;#eta;Counts;",200,0,200);
-
-  histoContainer->Add("Less10mmNewPVdZPixelBarrel","",100,-5.,5.);
-  histoContainer->Add("Less10mmNewPVdZTibBarrel","",100,-5.,5.);
-  histoContainer->Add("Less10mmNewPVdZTobBarrel","",100,-5.,5.);
-  histoContainer->Add("Less10mmNewPVdZPixelEndcap","",100,-5.,5.);
-  histoContainer->Add("Less10mmNewPVdZTidEndcap","",100,-5.,5.);
-  histoContainer->Add("Less10mmNewPVdZTecEndcap","",100,-5.,5.);
-
-  histoContainer->Add("Less5mmNewPVdZPixelBarrel","",100,-5.,5.);
-  histoContainer->Add("Less5mmNewPVdZTibBarrel","",100,-5.,5.);
-  histoContainer->Add("Less5mmNewPVdZTobBarrel","",100,-5.,5.);
-  histoContainer->Add("Less5mmNewPVdZPixelEndcap","",100,-5.,5.);
-  histoContainer->Add("Less5mmNewPVdZTidEndcap","",100,-5.,5.);
-  histoContainer->Add("Less5mmNewPVdZTecEndcap","",100,-5.,5.);
-  
-  histoContainer->Add("Less3mmNewPVdZPixelBarrel","",100,-5.,5.);
-  histoContainer->Add("Less3mmNewPVdZTibBarrel","",100,-5.,5.);
-  histoContainer->Add("Less3mmNewPVdZTobBarrel","",100,-5.,5.);
-  histoContainer->Add("Less3mmNewPVdZPixelEndcap","",100,-5.,5.);
-  histoContainer->Add("Less3mmNewPVdZTidEndcap","",100,-5.,5.);
-  histoContainer->Add("Less3mmNewPVdZTecEndcap","",100,-5.,5.);
 
   histoContainer->Add("higgsPtWhenAtLeastOneGoodConv","Higgs pt when at least one good conversion;#Pt;Counts;",50,0,200);
   histoContainer->Add("higgsPtWhenAtLeastOneGoodConvZInOneSigma","Higgs pt when at least one good conversion;#Pt;Counts;",50,0,200);
