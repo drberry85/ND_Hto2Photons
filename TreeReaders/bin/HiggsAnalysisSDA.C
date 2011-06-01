@@ -579,11 +579,12 @@ int main(int argc, char * input[]) {
          //New CiC Cut 4 is SuperTight
         if (debug) for (unsigned int j=0; j<currentTree.pho_cic4cutlevel_lead->size(); j++) cout << "Index is: " << j << " and lead cut level is " << currentTree.pho_cic4cutlevel_lead->at(j) << endl;
         if (debug) for (unsigned int j=0; j<currentTree.pho_cic4cutlevel_sublead->size(); j++) cout << "Index is: " << j << " and sublead cut level is " << currentTree.pho_cic4cutlevel_sublead->at(j) << endl;
-        if (currentTree.pho_cic4cutlevel_lead->at(leadindex)<4 && currentTree.pho_cic4cutlevel_sublead->at(subleadindex)<4) continue;
-        
-        histoContainer->Fill("NPhotonsSel",currentTree.pho_n,weight);
+        if (currentTree.pho_cic4cutlevel_lead->at(leadindex)<4) continue;
+        if (currentTree.pho_cic4cutlevel_sublead->at(subleadindex)<4) continue;
         if (currentTree.pho_haspixseed[leadindex]==1 && convsel1==false) continue;
         if (currentTree.pho_haspixseed[subleadindex]==1 && convsel2==false) continue;
+        
+        histoContainer->Fill("NPhotonsSel",currentTree.pho_n,weight);
         selection = "Sel";
 
         if (debug) cout << "Filling Photon Hists" << endl;
