@@ -134,21 +134,12 @@ bool tightControlId(
 bool convSel(
              int nTracks,
              bool convVtxValid,
-             float convVtxChi2Prob,
-             float convDPhiTracksAtVtx,
-             float convpairCotThetaSeparation,
-             float EoP,
-             float R
+             float convVtxChi2Prob
               ) {
 
   if (nTracks != 2) return false;
   if (!convVtxValid) return false;
   if (convVtxChi2Prob < 0.0005) return false;
-
-  //if (fabs(convDPhiTracksAtVtx) > 0.2) return false;
-  //if (fabs(convpairCotThetaSeparation) > 0.3) return false;
-  //if (EoP > 3.) return false;
-  //    if (PoE > 3.) return false;
 
   return true;
 
@@ -172,16 +163,21 @@ bool convSel(
   
 // }
 
-int photonCategory (bool pixMatch, float r9) {
+int photonCategory (double r9, bool EB, bool EE) {
   
   int cate=0;
-  if ( r9>0.93) {
+  if (EB && r9>0.94) {
     cate=1; // golden
-  } else if ( r9<=0.93 ) {
-    cate=2;  // no tracks are reconstructed
-    //cate=4;  // no tracks are reconstructed
+  } else if ( EB && r9<=0.94 ) {
+    cate=2;
   }
 
+  if (EE && r9>0.95) {
+    cate=1; // golden
+  } else if (EE && r9<=0.95 ) {
+    cate=2;
+  }
+  
   return cate;
   
 }
