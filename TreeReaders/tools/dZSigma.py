@@ -13,9 +13,9 @@ def Sigma(hist,width):
 		HistInt = hist.Integral(lowerbin,upperbin)/hist.Integral()
 		#print "%i %i %i %f" %(counter,lowerbin,upperbin,HistInt)
 	if len(hist.GetName())<12:
-		print "%s:\t\t%f\t%0.3f\t\t%i\t\t%i" %(hist.GetName(),hist.GetBinLowEdge(upperbin+1)-hist.GetBinLowEdge(lowerbin),HistInt,lowerbin,upperbin)
+		print "%s:\t\t%f\t%0.3f\t\t%i\t\t%i" %(hist.GetName(),(hist.GetBinLowEdge(upperbin+1)-hist.GetBinLowEdge(lowerbin))/2,HistInt,lowerbin,upperbin)
 	else:
-		print "%s:\t%f\t%0.3f\t\t%i\t\t%i" %(hist.GetName(),hist.GetBinLowEdge(upperbin+1)-hist.GetBinLowEdge(lowerbin),HistInt,lowerbin,upperbin)
+		print "%s:\t%f\t%0.3f\t\t%i\t\t%i" %(hist.GetName(),(hist.GetBinLowEdge(upperbin+1)-hist.GetBinLowEdge(lowerbin))/2,HistInt,lowerbin,upperbin)
 
 #import pdb; pdb.set_trace()
 from sys import argv
