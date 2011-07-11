@@ -311,19 +311,11 @@ int main(int argc, char * input[]) {
         if (debug) cout << "Checking for Good Conversions" << endl;
         if (photonconvindex==leadindex && validconversion) convsel1 = convSel(currentTree.conv_ntracks[convindex],
                                                            currentTree.conv_validvtx[convindex] ,  
-                                                           currentTree.conv_chi2_probability[convindex], 
-                                                           currentTree.conv_dphitrksatvtx[convindex], 
-                                                           currentTree.conv_paircotthetasep[convindex], 
-                                                           EoP,
-                                                           ConversionVertex[convindex].Perp());
+                                                                              currentTree.conv_chi2_probability[convindex]);
 	
         if (photonconvindex==subleadindex && validconversion) convsel2 = convSel(currentTree.conv_ntracks[convindex],
                                                               currentTree.conv_validvtx[convindex] ,  
-                                                              currentTree.conv_chi2_probability[convindex], 
-                                                              currentTree.conv_dphitrksatvtx[convindex], 
-                                                              currentTree.conv_paircotthetasep[convindex], 
-                                                              EoP,
-                                                              ConversionVertex[convindex].Perp());
+                                                                                 currentTree.conv_chi2_probability[convindex]);
 
         int diPhoCategory = diPhotonCategory( leadPhoCategory, subleadPhoCategory );
 
