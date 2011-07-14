@@ -5,7 +5,7 @@
 <use   name="rootminuit"/>
 <bin   name="HiggsAnalysisSDA" file="HiggsAnalysisSDA.C">
 </bin>
-<bin   name="HiggsAnalysis" file="HiggsAnalysis.C">
+<bin   name="VertexStudies" file="VertexStudies.C">
 </bin>
 <bin   name="ConversionCheck" file="ConversionCheck.C">
 </bin>

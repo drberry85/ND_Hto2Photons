@@ -47,12 +47,6 @@ public :
   Int_t           pho_isEBGap[100];   //[pho_n]
   Int_t           pho_isEEGap[100];   //[pho_n]
   Int_t           pho_isEBEEGap[100];   //[pho_n]
-  Float_t         pho_h1oe[100];   //[pho_n]
-  Float_t         pho_h2oe[100];   //[pho_n]
-  Float_t         pho_hcal1sumetconedr04[100];   //[pho_n]
-  Float_t         pho_hcal2sumetconedr04[100];   //[pho_n]
-  Float_t         pho_hcal1sumetconedr03[100];   //[pho_n]
-  Float_t         pho_hcal2sumetconedr03[100];   //[pho_n]
   Float_t         pho_zernike20[100];   //[pho_n]
   Float_t         pho_zernike42[100];   //[pho_n]
   Float_t         pho_e2nd[100];   //[pho_n]
@@ -64,7 +58,6 @@ public :
   Float_t         pho_eleft[100];   //[pho_n]
   Float_t         pho_etop[100];   //[pho_n]
   Float_t         pho_ebottom[100];   //[pho_n]
-  Float_t         pho_e2overe9[100];   //[pho_n]
   Float_t         pho_seed_time[100];   //[pho_n]
   Float_t         pho_seed_outoftimechi2[100];   //[pho_n]
   Float_t         pho_seed_chi2[100];   //[pho_n]
@@ -230,7 +223,6 @@ public :
   vector<float>   *vtx_std_sumtrv;
   vector<float>   *vtx_std_sumtwd;
   vector<float>   *vtx_std_awytwdasym;
-  Int_t           vtx_std_ninvalid_idxs;
   Int_t           vtx_std_pho1;
   Int_t           vtx_std_pho2;
   vector<int>     *pho_matchingConv;
@@ -277,12 +269,6 @@ public :
   TBranch        *b_pho_isEBGap;   //!
   TBranch        *b_pho_isEEGap;   //!
   TBranch        *b_pho_isEBEEGap;   //!
-  TBranch        *b_pho_h1oe;   //!
-  TBranch        *b_pho_h2oe;   //!
-  TBranch        *b_pho_hcal1sumetconedr04;   //!
-  TBranch        *b_pho_hcal2sumetconedr04;   //!
-  TBranch        *b_pho_hcal1sumetconedr03;   //!
-  TBranch        *b_pho_hcal2sumetconedr03;   //!
   TBranch        *b_pho_zernike20;   //!
   TBranch        *b_pho_zernike42;   //!
   TBranch        *b_pho_e2nd;   //!
@@ -294,7 +280,6 @@ public :
   TBranch        *b_pho_eleft;   //!
   TBranch        *b_pho_etop;   //!
   TBranch        *b_pho_ebottom;   //!
-  TBranch        *b_pho_e2overe9;   //!
   TBranch        *b_pho_seed_time;   //!
   TBranch        *b_pho_seed_outoftimechi2;   //!
   TBranch        *b_pho_seed_chi2;   //!
@@ -460,7 +445,6 @@ public :
   TBranch        *b_vtx_std_sumtrv;   //!
   TBranch        *b_vtx_std_sumtwd;   //!
   TBranch        *b_vtx_std_awytwdasym;   //!
-  TBranch        *b_vtx_std_ninvalid_idxs;   //!
   TBranch        *b_vtx_std_pho1;   //!
   TBranch        *b_vtx_std_pho2;   //!
   TBranch        *b_pho_matchingConv;   //!
@@ -608,12 +592,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_isEBGap", pho_isEBGap, &b_pho_isEBGap);
   fChain->SetBranchAddress("pho_isEEGap", pho_isEEGap, &b_pho_isEEGap);
   fChain->SetBranchAddress("pho_isEBEEGap", pho_isEBEEGap, &b_pho_isEBEEGap);
-  fChain->SetBranchAddress("pho_h1oe", pho_h1oe, &b_pho_h1oe);
-  fChain->SetBranchAddress("pho_h2oe", pho_h2oe, &b_pho_h2oe);
-  fChain->SetBranchAddress("pho_hcal1sumetconedr04", pho_hcal1sumetconedr04, &b_pho_hcal1sumetconedr04);
-  fChain->SetBranchAddress("pho_hcal2sumetconedr04", pho_hcal2sumetconedr04, &b_pho_hcal2sumetconedr04);
-  fChain->SetBranchAddress("pho_hcal1sumetconedr03", pho_hcal1sumetconedr03, &b_pho_hcal1sumetconedr03);
-  fChain->SetBranchAddress("pho_hcal2sumetconedr03", pho_hcal2sumetconedr03, &b_pho_hcal2sumetconedr03);
   fChain->SetBranchAddress("pho_zernike20", pho_zernike20, &b_pho_zernike20);
   fChain->SetBranchAddress("pho_zernike42", pho_zernike42, &b_pho_zernike42);
   fChain->SetBranchAddress("pho_e2nd", pho_e2nd, &b_pho_e2nd);
@@ -625,7 +603,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("pho_eleft", pho_eleft, &b_pho_eleft);
   fChain->SetBranchAddress("pho_etop", pho_etop, &b_pho_etop);
   fChain->SetBranchAddress("pho_ebottom", pho_ebottom, &b_pho_ebottom);
-  fChain->SetBranchAddress("pho_e2overe9", pho_e2overe9, &b_pho_e2overe9);
   fChain->SetBranchAddress("pho_seed_time", pho_seed_time, &b_pho_seed_time);
   fChain->SetBranchAddress("pho_seed_outoftimechi2", pho_seed_outoftimechi2, &b_pho_seed_outoftimechi2);
   fChain->SetBranchAddress("pho_seed_chi2", pho_seed_chi2, &b_pho_seed_chi2);
@@ -791,7 +768,6 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("vtx_std_sumtrv", &vtx_std_sumtrv, &b_vtx_std_sumtrv);
   fChain->SetBranchAddress("vtx_std_sumtwd", &vtx_std_sumtwd, &b_vtx_std_sumtwd);
   fChain->SetBranchAddress("vtx_std_awytwdasym", &vtx_std_awytwdasym, &b_vtx_std_awytwdasym);
-  fChain->SetBranchAddress("vtx_std_ninvalid_idxs", &vtx_std_ninvalid_idxs, &b_vtx_std_ninvalid_idxs);
   fChain->SetBranchAddress("vtx_std_pho1", &vtx_std_pho1, &b_vtx_std_pho1);
   fChain->SetBranchAddress("vtx_std_pho2", &vtx_std_pho2, &b_vtx_std_pho2);
   fChain->SetBranchAddress("pho_matchingConv", &pho_matchingConv, &b_pho_matchingConv);

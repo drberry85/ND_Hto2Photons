@@ -144,7 +144,8 @@ int main(int argc, char * input[]) {
         vector<TLorentzVector> SuperClusterp4;
         map <double, unsigned int> ptindex;
 
-        if (currentTree.pho_n<1) continue;
+        if (currentTree.pho_n<2) continue;
+
         
         for (unsigned int j=0; j<(unsigned int) currentTree.sc_p4->GetSize(); j++) SuperClusterp4.push_back(*((TLorentzVector*) currentTree.sc_p4->At(j)));
         for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
@@ -157,8 +158,23 @@ int main(int argc, char * input[]) {
           ConversionRefittedPairMomentum.push_back(*((TVector3*) currentTree.conv_refitted_momentum->At(j)));
         }
 
+        double leadpt = -1;
+        double subleadpt = -1;
+        unsigned int leadindex = 0;
+        unsigned int subleadindex = 0;
+
+        if (debug) cout << "Doing pt sorting." << endl;
+        bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
+        if (debug && !sorted) cout << "Warning: Photons not pt sorted." << endl;
+        
+        if (Photonp4[leadindex].Pt()<38.33) continue; // leading photon
+        if (Photonp4[subleadindex].Pt()<28.75) continue; // subleading photon
+        if (fabs(Photonxyz[leadindex].Eta())>2.5 || fabs(Photonxyz[subleadindex].Eta())>2.5) continue;
+        if (currentTree.pho_cic4cutlevel_lead->at(leadindex)<4 && currentTree.pho_cic4cutlevel_sublead->at(subleadindex)<4) continue;
+        
         for ( unsigned int j = 0; j < (unsigned int) currentTree.pho_n; j++) {
 
+          if (j!=leadindex && j!=subleadindex) continue;
           string PhotonDetector = DetectorPosition(&currentTree, j);
           TLorentzVector MatchedSuperCluster = SuperClusterp4[currentTree.pho_scind[j]];
           int nconv = 0;
@@ -185,9 +201,9 @@ int main(int argc, char * input[]) {
           }
           histoContainer->Fill("nconv",PhotonDetector,nconv,weight);
           
-          if (Photonp4[j].Pt()<30) continue;
-          if (abs(Photonxyz[j].Eta())>2.5) continue;
-          if (currentTree.pho_isEBEEGap[j]) continue;
+          //if (Photonp4[j].Pt()<30) continue;
+          //if (abs(Photonxyz[j].Eta())>2.5) continue;
+          //if (currentTree.pho_isEBEEGap[j]) continue;
           
           histoContainer->Fill("photoneta",Photonp4[j].Eta(),weight);
           histoContainer->Fill("photonr9",PhotonDetector,currentTree.pho_r9[j],weight);

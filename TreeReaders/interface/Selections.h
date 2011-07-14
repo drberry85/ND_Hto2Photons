@@ -134,16 +134,43 @@ bool tightControlId(
 bool convSel(
              int nTracks,
              bool convVtxValid,
-             float convVtxChi2Prob
+             float convVtxChi2Prob,
+             float lxy
               ) {
 
   if (nTracks != 2) return false;
   if (!convVtxValid) return false;
-  if (convVtxChi2Prob < 0.0005) return false;
+  if (convVtxChi2Prob < 0.000001) return false;
+  if (lxy < 2) return false;
 
   return true;
 
 }
+
+
+bool convSel(
+             int nTracks,
+             bool convVtxValid,
+             float convVtxChi2Prob,
+             std::vector<std::vector<short unsigned int> >& nHitsBeforeVtx ) {
+
+  bool result = true;
+
+  if (nTracks != 2) result=false;
+  if (!convVtxValid) result= false;
+  //if (convVtxChi2Prob < 0.0005) result=false;
+  if (convVtxChi2Prob < 0.000001) result=false;
+  // vector<vector<short unsigned int > > nHits = nHitsBeforeVtx;
+  // if (result) cout << " nHitsBeforeVtx size " << nHitsBeforeVtx.size() << endl;
+
+  //if (nHits[i][0]>1) continue;
+  //if (nHits[i][1]>1) continue;
+
+
+  return result;
+
+}
+
 
 
 // int photonCategory (bool pixMatch, float r9, int nTracks,  float convVtxChi2Prob, float etOverPt) {
