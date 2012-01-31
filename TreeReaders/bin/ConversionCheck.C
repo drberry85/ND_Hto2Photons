@@ -145,7 +145,6 @@ int main(int argc, char * input[]) {
         map <double, unsigned int> ptindex;
 
         if (currentTree.pho_n<2) continue;
-
         
         for (unsigned int j=0; j<(unsigned int) currentTree.sc_p4->GetSize(); j++) SuperClusterp4.push_back(*((TLorentzVector*) currentTree.sc_p4->At(j)));
         for (unsigned int j=0; j<(unsigned int) currentTree.pho_n; j++) {
@@ -167,8 +166,8 @@ int main(int argc, char * input[]) {
         bool sorted = sortpt(ptindex, currentTree.pho_n, leadpt, subleadpt, leadindex, subleadindex);
         if (debug && !sorted) cout << "Warning: Photons not pt sorted." << endl;
         
-        if (Photonp4[leadindex].Pt()<38.33) continue; // leading photon
-        if (Photonp4[subleadindex].Pt()<28.75) continue; // subleading photon
+        if (Photonp4[leadindex].Pt()<40) continue; // leading photon
+        if (Photonp4[subleadindex].Pt()<30) continue; // subleading photon
         if (fabs(Photonxyz[leadindex].Eta())>2.5 || fabs(Photonxyz[subleadindex].Eta())>2.5) continue;
         if (currentTree.pho_cic4cutlevel_lead->at(leadindex)<4 && currentTree.pho_cic4cutlevel_sublead->at(subleadindex)<4) continue;
         
