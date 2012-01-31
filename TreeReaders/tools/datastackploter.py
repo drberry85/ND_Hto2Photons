@@ -60,7 +60,7 @@ for i in range(len(HistogramNames)):
 	if (can.GetLogy()==1): stack.SetMinimum(0.1)
 	stack.Draw()
 	if (HistogramNames[i].find("mass")!=-1): stack.GetXaxis().SetRangeUser(100,160)
-	DataHist.SetMarkerStyle(20);
+	DataHist.SetMarkerStyle(20)
 	if (stack.GetMaximum()<(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum()))): stack.SetMaximum(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum()))
 	else: stack.SetMaximum(stack.GetMaximum())
 	if can.GetLogy()==0 and (HistogramNames[i].find("CosThetaStar")!=-1 or HistogramNames[i].find("goodconveta")!=-1): stack.SetMaximum(1.5*(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum())))

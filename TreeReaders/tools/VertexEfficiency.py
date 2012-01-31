@@ -2,23 +2,68 @@ print "Loading Root..."
 
 #import pdb; pdb.set_trace()
 from ROOT import *
+import array
 gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
 print "Setting Initial Parameters."
-can = TCanvas("Plots","Plots",850,600)
-HistogramNames=["PixelBarrelLineardZ","PixelFwdLineardZ","TECLineardZ","TIBLineardZ","TIDLineardZ","TOBLineardZ"]
-HistogramNames+=["PixelBarrelNewPVdZ","PixelFwdNewPVdZ","TECNewPVdZ","TIBNewPVdZ","TIDNewPVdZ","TOBNewPVdZ"]
-filename="UnweightedTest.root"
-pwd = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_4_1_4/src/ND_Hto2Photons/TreeReaders/"
-file=TFile(pwd+filename)
+can = TCanvas("Plots","Plots",850,650)
+can.SetGrid()
+can.SetFillColor(0)
+leg = TLegend(0.37, 0.13, 0.87, 0.28)
+leg.SetFillColor(0)
+leg.SetBorderSize(1)
+leg.SetNColumns(3)
+SuperClusterNames=["PixelBarrelSuperdZEff","TIBSuperdZEff","TOBSuperdZEff","PixelFwdSuperdZEff","TIDSuperdZEff","TECSuperdZEff"]
+ConvNames=["PixelBarrelConvdZEff","TIBConvdZEff","TOBConvdZEff","PixelFwdConvdZEff","TIDConvdZEff","TECConvdZEff"]
+MixedConversion=["PixelBarrelConvdZEff","TIBSuperdZEff","TOBSuperdZEff","PixelFwdConvdZEff","TIDConvdZEff","TECSuperdZEff"]
+#SuperClusterNames.append("deltaZcheck")
+#ConvNames.append("deltaZcheck")
+HistogramNames=[MixedConversion,MixedConversion,MixedConversion]
+legendlist=[["Pixel Barrel","TIB","TOB","Pixel Forward","TID","TEC"],["Pixel Barrel","TIB","TOB","Pixel Forward","TID","TEC"],["Pixel Barrel","TIB","TOB","Pixel Forward","TID","TEC"]]
+#legendlist=[["Pix Barrel Data","TIB Data","TOB Data","Pix FWD Data","TID Data","TEC Data","40GeV Jet"],["Pix Barrel #gamma+Jet MC","TIB #gamma+Jet MC","TOB #gamma+Jet MC","Pix FWD #gamma+Jet MC","TID #gamma+Jet MC","TEC #gamma+Jet MC","40GeV Jet #gamma+Jet MC"]]
+#legendlist=[["Pix Barrel Data","TIB Data","TOB Data","Pix FWD Data","TID Data","TEC Data","40GeV Jet"],["Pix Barrel SingleLeg","TIB SingleLeg","TOB SingleLeg","Pix FWD SingleLeg","TID SingleLeg","TEC SingleLeg","40GeV Jet SingleLeg"]]
+#OutFileNames=["SuperClusterEffData.png","ConvEffData.png"]
+OutFileNames=["MixedEffData.png","MixedEffPJet.png","MixedEffPJet_PU32.png"]
+#filenamelist=["Vertex_120GeV_SimVertex.root"]
+filenamelist=["Vertex_Data.root","Vertex_PhotonPlusJetMC.root","Vertex_PhotonPlusJetMC_PU32.root"]
+pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+graphcolor=[862,870,433,616,880,619,1]
+markers=[20,21,22,23,24,25,26]
 
-for j in range(len(HistogramNames)):
-	hist = file.Get(HistogramNames[j])
-	print "Looking at Histogram %s" %HistogramNames[j]
-	print "%s Total: %i" %(HistogramNames[j],int(hist.GetEntries()))
-	print "%s 10mm: %i" %(HistogramNames[j],int(hist.Integral(41,60)))
-	print "%s 5mm: %i" %(HistogramNames[j],int(hist.Integral(46,55)))
-	print "%s 3mm: %i" %(HistogramNames[j],int(hist.Integral(48,53)))
+for histlist,outfile,filename,legend in zip(HistogramNames,OutFileNames,filenamelist,legendlist):
+	multigraph = TMultiGraph()
+	file=TFile(pwd+filename)
+	for histname,color,marstyle,legendname in zip(histlist,graphcolor,markers,legend):
+		hist = file.Get(histname)
+		HistIntegral = hist.Integral()+hist.GetBinContent(0)+hist.GetBinContent(101)
+		print "Looking at Histogram %s" %histname
+		print "%s Total: %i" %(histname,int(HistIntegral))
+		print "%s 10mm: %i" %(histname,int(hist.Integral(41,60)))
+		print "%s 5mm: %i" %(histname,int(hist.Integral(46,55)))
+		print "%s 3mm: %i" %(histname,int(hist.Integral(48,53)))
+		points = array.array('f',[10,5,3])
+		pointserror = array.array('f',[0,0,0])
+		data = array.array('f',[hist.Integral(41,60)/HistIntegral*100, hist.Integral(46,55)/HistIntegral*100, hist.Integral(48,53)/HistIntegral*100])
+		dataerror = array.array('f',[sqrt(hist.Integral(41,60))/HistIntegral*100, sqrt(hist.Integral(46,55))/HistIntegral*100, sqrt(hist.Integral(48,53))/HistIntegral*100])
+		graph=TGraphErrors(3,points,data,pointserror,dataerror)
+		graph.SetLineColor(color)
+		graph.SetMarkerStyle(marstyle)
+		graph.SetMarkerSize(1.5)
+		graph.SetLineWidth(2)
+		#if (legendname.find("42X")==-1 and legendname.find("Data")==-1): graph.SetLineStyle(2)
+		graph.SetMarkerColor(color)
+		graph.SetFillColor(kWhite)
+		leg.AddEntry(graph,legendname)
+		multigraph.Add(graph)
+	multigraph.SetNameTitle("multigraph",";#DeltaZ Cut (mm);Efficiency (%)");
+	multigraph.SetMinimum(0)
+	multigraph.SetMaximum(100)
+	multigraph.Draw('ALP')
+	leg.Draw()
+	can.SaveAs(outfile)
+	can.Clear()
+	leg.Clear()
+	multigraph.Delete("*")
 
 print "Done"

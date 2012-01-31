@@ -2,20 +2,71 @@ print "Loading Root..."
 
 #import pdb; pdb.set_trace()
 from ROOT import *
+import array
 gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
 print "Setting Initial Parameters."
-can = TCanvas("Plots","Plots",850,600)
-HistogramNames=["convphotonr9Barrel","convphotonr9Endcap","goodconvphotonr9Barrel","goodconvphotonr9Endcap"]
-filename="Conversion_UnweightedHiggsAnalysis115GeV.root"
-pwd = "/data/ndpc2/c/HiggsGammaGamma/CMSSW_4_1_4/src/ND_Hto2Photons/TreeReaders/"
-file=TFile(pwd+filename)
+can = TCanvas("Plots","Plots",850,650)
+can.SetGrid()
+leg = TLegend(0.4, 0.9, 0.7, 0.8)
+leg.SetFillColor(0)
+leg.SetBorderSize(1)
+NumberatorHists=["ConvEta","ConvPt"]
+DenominatorHists=["PhotonEta","PhotonPt"]
+Legends=["Data RunA+B"]
+OutFileNames=["ConversionEtaEff.png","ConversionPtEff.png"]
+Maximum=[60,30]
+FileNames=["Vertex_Data.root"]
+pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+colors=[3, 2, 1, 7, 4, 6, 5, 9, 8]
 
-for j in range(len(HistogramNames)):
-	hist = file.Get(HistogramNames[j])
-	print "Looking at Histogram %s" %HistogramNames[j]
-	print "%s R9>0.93 %i" %(HistogramNames[j],int(hist.Integral(94,100)))
-	print "%s R9<0.93 %i" %(HistogramNames[j],int(hist.Integral(1,93)))
+files=[]
+for filename in FileNames:
+	files.append(TFile(pwd+filename))
+
+for numhist,denhist,outfile,max in zip(NumberatorHists,DenominatorHists,OutFileNames,Maximum):
+	top=[]
+	bottom=[]
+	for i in range(len(files)):
+		top.append(files[i].Get(numhist))
+		bottom.append(files[i].Get(denhist))
+		top[i].Sumw2()
+		bottom[i].Sumw2()
+		top[i].Divide(bottom[i])
+		top[i].Scale(100)
+		top[i].SetLineColor(colors[i])
+		top[i].SetLineWidth(2)
+		top[i].GetYaxis().SetTitle("Efficiency")
+		leg.AddEntry(top[i],Legends[i])
+		if i==0:
+			top[i].SetMinimum(0)
+			top[i].SetMaximum(max)
+			top[i].Draw("e")
+		else:
+			top[i].Draw("esame")
+	leg.Draw()
+	can.SaveAs(outfile)
+	can.Clear()
+	if (len(top)==2):
+		RatioHist=top[0]
+		RatioHist.Divide(top[1])
+		RatioHist.SetNameTitle("RatioHist",";"+top[0].GetXaxis().GetTitle()+";Data/MC Ratio");
+		RatioHist.SetMarkerStyle(20)
+		RatioHist.SetMarkerSize(1)
+		RatioHist.SetLineColor(kBlack)
+		if numhist.find("Eta") != -1:
+			RatioHist.SetMinimum(0.6)
+			RatioHist.SetMaximum(1.6)
+			RatioHist.SetNameTitle("RatioHist",";#eta;Data/MC Ratio");
+		else:
+			RatioHist.SetMinimum(0.8)
+			RatioHist.SetMaximum(1.4)
+			RatioHist.SetNameTitle("RatioHist",";Pt (GeV);Data/MC Ratio");
+		RatioHist.Draw("")
+		can.SaveAs(outfile.replace(".png","_Ratio.png"))
+		can.Clear()
+	leg.Clear()
+	gDirectory.Delete("*")
 
 print "Done"
