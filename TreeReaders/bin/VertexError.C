@@ -131,6 +131,7 @@ int main(int argc, char * input[]) {
       if (singleleg) outfilename.ReplaceAll(".root","_SingleLeg.root");
       if (doubleleg) outfilename.ReplaceAll(".root","_DoubleLeg.root");
     }
+
     TFile* outfile = new TFile(outfilename.Data(),"RECREATE");
     outfile->cd();
     cout << "\n" << outfilename << " created." << endl;
@@ -296,6 +297,25 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("ConvYvsZ",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Y(),weight);
           histoContainer->Fill("ConvRvsEta",SuperClusterxyz[scphotonindex].Eta(),ConversionVertex[convindex].Perp(),weight);
           histoContainer->Fill("ConvRvsPhi",SuperClusterxyz[scphotonindex].Phi(),ConversionVertex[convindex].Perp(),weight);
+
+          if (-3.15<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-2.80) histoContainer->Fill("ConvRvsZslice1",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-2.80<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-2.45) histoContainer->Fill("ConvRvsZslice2",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-2.45<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-2.10) histoContainer->Fill("ConvRvsZslice3",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-2.10<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-1.75) histoContainer->Fill("ConvRvsZslice4",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-1.75<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-1.40) histoContainer->Fill("ConvRvsZslice5",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-1.40<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-1.05) histoContainer->Fill("ConvRvsZslice6",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-1.05<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-0.70) histoContainer->Fill("ConvRvsZslice7",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-0.70<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-0.35) histoContainer->Fill("ConvRvsZslice8",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (-0.35<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-0.00) histoContainer->Fill("ConvRvsZslice9",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (0.00<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<0.35) histoContainer->Fill("ConvRvsZslice1",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (0.35<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<0.70) histoContainer->Fill("ConvRvsZslice2",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (0.70<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<1.05) histoContainer->Fill("ConvRvsZslice3",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (1.05<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<1.40) histoContainer->Fill("ConvRvsZslice4",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (1.40<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<1.75) histoContainer->Fill("ConvRvsZslice5",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (1.75<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<2.10) histoContainer->Fill("ConvRvsZslice6",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (2.10<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<2.45) histoContainer->Fill("ConvRvsZslice7",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (2.45<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<2.80) histoContainer->Fill("ConvRvsZslice8",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
+          if (2.80<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<3.15) histoContainer->Fill("ConvRvsZslice9",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
 
           if (-1.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.3) histoContainer->Fill("ConvR-1.5",ConversionVertex[convindex].Perp(),weight);
           if (-1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.0) histoContainer->Fill("ConvR-1.3",ConversionVertex[convindex].Perp(),weight);
@@ -786,6 +806,16 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ConvXvsZ","X of Conversion vs Z;Z (cm);X (cm)",400,-200,200,200,-100,100);
   histoContainer->Add("ConvYvsZ","Y of Conversion vs Z;Z (cm);Y (cm)",400,-200,200,200,-100,100);
 
+  histoContainer->Add("ConvRvsZslice1","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice2","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice3","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice4","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice5","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice6","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice7","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice8","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  histoContainer->Add("ConvRvsZslice9","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
+  
   histoContainer->Add("ConvRvsEta","R of Conversion vs Eta;#eta;Radius (cm)",64,-3.2,3.2,100,0,100);
   histoContainer->Add("ConvRvsPhi","R of Conversion vs phi;#phi;Radius (cm)",60,-3.0,3.0,100,0,100);
 
@@ -1068,67 +1098,67 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
 
   if (inputstring.Contains("Run2011A")) {
     inputfilelist.push_back(pair<string,int> ("Run2011A.root",6));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011A_0.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011A_0_1.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011A_1.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011A_1_1.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011A_2.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011A_2_1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0_1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1_1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2_1.root",1));
   }
   if (inputstring.Contains("Run2011B")) {
     inputfilelist.push_back(pair<string,int> ("Run2011B.root",4));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011B_0.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011B_0_1.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011B_0_2.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Run2011B_1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_1.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_2.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_1.root",1));
   } 
   if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")) {
     inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/G_Pt-15to3000_1.root",kFactor["PJet"]*WeightsMap["PJet"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/G_Pt-15to3000_2.root",kFactor["PJet"]*WeightsMap["Pjet"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/G_Pt-15to3000_3.root",kFactor["PJet"]*WeightsMap["PJet"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_1.root",kFactor["PJet"]*WeightsMap["PJet"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_2.root",kFactor["PJet"]*WeightsMap["Pjet"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_3.root",kFactor["PJet"]*WeightsMap["PJet"]));
   }
   if (inputstring.Contains("PJet_32PU")) {
     inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC_32PU.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/G_Pt-15to3000_32PU.root",kFactor["PJet"]*WeightsMap["PJet_32PU"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_32PU.root",kFactor["PJet"]*WeightsMap["PJet_32PU"]));
   }
   if (inputstring.Contains("QCD")) {
     inputfilelist.push_back(pair<string,int> ("QCDEMEnriched.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/QCD_Pt-20to30_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD20to30"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/QCD_Pt-30to80_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD30to80"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/QCD_Pt-80to170_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD80to170"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/QCD_Pt-20to30_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD20to30"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/QCD_Pt-30to80_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD30to80"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/QCD_Pt-80to170_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD80to170"]));
   }
   if (inputstring.Contains("Diphoton")) {
     inputfilelist.push_back(pair<string,int> ("Diphoton.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/DiPhotonsJets.root",kFactor["Diphoton"]*WeightsMap["Diphoton"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/DiPhotonsJets.root",kFactor["Diphoton"]*WeightsMap["Diphoton"]));
   }
   if (inputstring.Contains("Box")) {
     inputfilelist.push_back(pair<string,int> ("Box.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Box10to25.root",kFactor["Box"]*WeightsMap["Box10to25"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Box25to250.root",kFactor["Box"]*WeightsMap["Box25to250"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Box250.root",kFactor["Box"]*WeightsMap["Box250"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Box10to25.root",kFactor["Box"]*WeightsMap["Box10to25"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Box25to250.root",kFactor["Box"]*WeightsMap["Box25to250"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Box250.root",kFactor["Box"]*WeightsMap["Box250"]));
   }
   if (inputstring.Contains("WJets")) {
     inputfilelist.push_back(pair<string,int> ("WJets.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/WJets.root",kFactor["WJets"]*WeightsMap["WJets"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/WJets.root",kFactor["WJets"]*WeightsMap["WJets"]));
   }
   if (inputstring.Contains("ZJets")) {
     inputfilelist.push_back(pair<string,int> ("ZJets.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/ZJets.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/ZJets_1.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/ZJets_2.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/ZJets.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/ZJets_1.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/ZJets_2.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
   }
   if (inputstring.Contains("Signal")) {
     inputfilelist.push_back(pair<string,int> ("120GeV.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Higgs_120GeV.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Higgs_120GeV.root",1));
   }
   if (inputstring.Contains("Test") && !inputstring.Contains("TestMC")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/DataTest.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/DataTest.root",1));
   }
   if (inputstring.Contains("TestMC")) {
     inputfilelist.push_back(pair<string,int> ("TestMC.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/MCTest.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/MCTest.root",1));
   }
 
 }
@@ -1161,7 +1191,7 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
 
 void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
-  if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_PU32")){
+  if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")){
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
   } else if (inputstring.Contains("QCD")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
@@ -1183,7 +1213,7 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
 void MakeEtWeights(TString inputstring, map<int,double> &EtMap) {
 
-  if (inputstring.Contains("PJet")) {
+  if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")) {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet.h"
   } else if (inputstring.Contains("QCD")) {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/QCDEMEnriched.h"
