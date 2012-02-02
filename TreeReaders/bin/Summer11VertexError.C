@@ -1058,7 +1058,7 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   
   if (inputstring.Contains("Data")) {
     inputfilelist.push_back(pair<string,int> ("PhotonPlusJetData.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/Aug5thReReco.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Aug5thReReco.root",1));
   }
   if (inputstring.Contains("Run2011A")) {
     inputfilelist.push_back(pair<string,int> ("Run2011A.root",5));
