@@ -9,3 +9,7 @@
 </bin>
 <bin   name="VertexError" file="VertexError.C">
 </bin>
+<bin   name="VertexStudies" file="VertexStudies.C">
+</bin>
+<bin   name="Summer11VertexError" file="Summer11VertexError.C">
+</bin>
