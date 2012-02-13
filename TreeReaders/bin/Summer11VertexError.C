@@ -63,13 +63,14 @@ void ProgressBar(int &percent, double estimate);
 
 int main(int argc, char * input[]) {
 
-  gROOT->ProcessLine(".L /data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/interface/link_def.h+");
+  gROOT->ProcessLine(".L $CMSSW_BASE/src/ND_Hto2Photons/TreeReaders/interface/link_def.h+");
   //gROOT->ProcessLine("TProof")
 
   bool background = false;
   bool bar = false;
   bool debug = false;
   bool fake = false;
+  bool highpt = false;
   bool mc = true;
   bool nojet = false;
   bool onevertex = false;
@@ -80,7 +81,7 @@ int main(int argc, char * input[]) {
   bool trigger = false;
   bool unweighted = false;
   bool usesimvertex = false;
-  float globalWeight = 1078.306616393;
+  float globalWeight = 4778.0;
 
   int FirstFileNum = 0;
   
@@ -96,6 +97,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Background")) background=true;
   if (InputArgs.Contains("Debug")) debug=true;
   if (InputArgs.Contains("Fake")) fake=true;
+  if (InputArgs.Contains("HighPt")) highpt=true;
   if (InputArgs.Contains("NoJet")) nojet=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
   if (InputArgs.Contains("OnePhoton")) onephoton=true;
@@ -109,7 +111,7 @@ int main(int argc, char * input[]) {
     cout << "Exiting Program!!!!" << endl;
     return 0;
   }
-  
+
   for (vector<pair<string, int> >::iterator itFilePair = filelist.begin(); itFilePair != filelist.end(); ++itFilePair) {
 
     TString outfilename = "Vertex_";
@@ -118,6 +120,7 @@ int main(int argc, char * input[]) {
     if (background) outfilename.ReplaceAll(".root","_Background.root");
     if (onephoton) outfilename.ReplaceAll(".root","_OnePhoton.root");
     if (fake) outfilename.ReplaceAll(".root","_Fake.root");
+    if (highpt) outfilename.ReplaceAll(".root","_HighPt.root");
     if (prompt) outfilename.ReplaceAll(".root","_Prompt.root");
     if (singleleg) outfilename.ReplaceAll(".root","_SingleLeg.root");
     if (doubleleg) outfilename.ReplaceAll(".root","_DoubleLeg.root");
@@ -185,6 +188,7 @@ int main(int argc, char * input[]) {
         
         if (debug) cout << "Looking at event: " << i << endl;
         TVector3 SimVertex = mc ? *((TVector3*) gv_pos()->At(0)) : TVector3(0,0,0);
+        TVector3 DetectorOffset = mc ? TVector3(0,0,0) : TVector3(-0.147,-0.378,-0.485);
         vector<TVector3> BeamSpot;
         vector<TVector3> PrimaryVertex;
         vector<TVector3> ConversionVertex;
@@ -215,7 +219,7 @@ int main(int argc, char * input[]) {
         }
         if (debug && pho_n()>1 && Photonp4[leadphotonindex].Pt()<Photonp4[subleadphotonindex].Pt()) cout << "Warning Pt is not sorted!!!!!!!!!!!!" << endl;  
         for (unsigned int j=0; j<(unsigned int) conv_n(); j++) {
-          ConversionVertex.push_back(*((TVector3*) conv_vtx()->At(j)));
+          ConversionVertex.push_back(*((TVector3*) conv_vtx()->At(j))+DetectorOffset);
           if (conv_singleleg_momentum()!=NULL && conv_ntracks()[j]==1) ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_singleleg_momentum()->At(j))); else ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_refitted_momentum()->At(j)));
         }
         float PUWeight = PileUpMap[PrimaryVertex.size()];
@@ -232,6 +236,7 @@ int main(int argc, char * input[]) {
           int scphotonindex = pho_scind()[photonindex];
 
           if (Photonp4[photonindex].Pt()<30) continue;
+          if (highpt && Photonp4[photonindex].Pt()<60) continue;
           if (fabs(SuperClusterxyz[scphotonindex].Eta())>2.5) continue;
           if (pho_cic4cutlevel_lead()->at(photonindex).at(0)<4 && !background) continue;
           if (pho_cic4cutlevel_lead()->at(photonindex).at(0)>=4 && background) continue;
@@ -288,6 +293,11 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("ConvRvsEta",SuperClusterxyz[scphotonindex].Eta(),ConversionVertex[convindex].Perp(),weight);
           histoContainer->Fill("ConvRvsPhi",SuperClusterxyz[scphotonindex].Phi(),ConversionVertex[convindex].Perp(),weight);
 
+          if (fabs(ConversionVertex[convindex].Z())<26.0) histoContainer->Fill("ConvRTracker",ConversionVertex[convindex].Perp(),weight);
+          if (ConversionVertex[convindex].Perp()>3.5 && ConversionVertex[convindex].Perp()<19.0) histoContainer->Fill("ConvZPixel",ConversionVertex[convindex].Z(),weight);
+          
+          if (ConversionVertex[convindex].Phi()<0) histoContainer->Fill("ConvRvsZ",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
+          if (ConversionVertex[convindex].Phi()>=0) histoContainer->Fill("ConvRvsZ",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
           if (-3.15<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-2.80) histoContainer->Fill("ConvRvsZslice1",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
           if (-2.80<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-2.45) histoContainer->Fill("ConvRvsZslice2",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
           if (-2.45<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<-2.10) histoContainer->Fill("ConvRvsZslice3",ConversionVertex[convindex].Z(),-ConversionVertex[convindex].Perp(),weight);
@@ -306,31 +316,63 @@ int main(int argc, char * input[]) {
           if (2.10<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<2.45) histoContainer->Fill("ConvRvsZslice7",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
           if (2.45<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<2.80) histoContainer->Fill("ConvRvsZslice8",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
           if (2.80<=ConversionVertex[convindex].Phi() && ConversionVertex[convindex].Phi()<3.15) histoContainer->Fill("ConvRvsZslice9",ConversionVertex[convindex].Z(),ConversionVertex[convindex].Perp(),weight);
-          
+
+          if (-1.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-1.1) histoContainer->Fill("SCConvR-Mod4",ConversionVertex[convindex].Perp(),weight);
+          if (-1.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-1.3) histoContainer->Fill("SCConvR-1.5",ConversionVertex[convindex].Perp(),weight);
+          if (-1.3<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-1.1) histoContainer->Fill("SCConvR-1.3",ConversionVertex[convindex].Perp(),weight);
+          if (-1.1<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-0.8) histoContainer->Fill("SCConvR-1.1",ConversionVertex[convindex].Perp(),weight);
+          if (-0.8<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-0.5) histoContainer->Fill("SCConvR-0.8",ConversionVertex[convindex].Perp(),weight);
+          if (-0.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<0.0 ) histoContainer->Fill("SCConvR-0.5",ConversionVertex[convindex].Perp(),weight);
+          if ( 0.0<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<0.5 ) histoContainer->Fill("SCConvR0.0",ConversionVertex[convindex].Perp(),weight);
+          if ( 0.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<0.8 ) histoContainer->Fill("SCConvR0.5",ConversionVertex[convindex].Perp(),weight);
+          if ( 0.8<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.1 ) histoContainer->Fill("SCConvR0.8",ConversionVertex[convindex].Perp(),weight);
+          if ( 1.1<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.3 ) histoContainer->Fill("SCConvR1.1",ConversionVertex[convindex].Perp(),weight);
+          if ( 1.3<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.5 ) histoContainer->Fill("SCConvR1.3",ConversionVertex[convindex].Perp(),weight);
+          if ( 1.1<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.5 ) histoContainer->Fill("SCConvRMod4",ConversionVertex[convindex].Perp(),weight);
+
+          if (ConversionVertex[convindex].Perp()<25.0) {
+            if (-1.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-1.1) histoContainer->Fill("SCConvRFine-Mod4",ConversionVertex[convindex].Perp(),weight);
+            if (-1.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-1.3) histoContainer->Fill("SCConvRFine-1.5",ConversionVertex[convindex].Perp(),weight);
+            if (-1.3<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-1.1) histoContainer->Fill("SCConvRFine-1.3",ConversionVertex[convindex].Perp(),weight);
+            if (-1.1<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-0.8) histoContainer->Fill("SCConvRFine-1.1",ConversionVertex[convindex].Perp(),weight);
+            if (-0.8<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<-0.5) histoContainer->Fill("SCConvRFine-0.8",ConversionVertex[convindex].Perp(),weight);
+            if (-0.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<0.0 ) histoContainer->Fill("SCConvRFine-0.5",ConversionVertex[convindex].Perp(),weight);
+            if ( 0.0<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<0.5 ) histoContainer->Fill("SCConvRFine0.0",ConversionVertex[convindex].Perp(),weight);
+            if ( 0.5<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<0.8 ) histoContainer->Fill("SCConvRFine0.5",ConversionVertex[convindex].Perp(),weight);
+            if ( 0.8<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.1 ) histoContainer->Fill("SCConvRFine0.8",ConversionVertex[convindex].Perp(),weight);
+            if ( 1.1<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.3 ) histoContainer->Fill("SCConvRFine1.1",ConversionVertex[convindex].Perp(),weight);
+            if ( 1.3<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.5 ) histoContainer->Fill("SCConvRFine1.3",ConversionVertex[convindex].Perp(),weight);
+            if ( 1.1<=SuperClusterxyz[scphotonindex].Eta() && SuperClusterxyz[scphotonindex].Eta()<1.5 ) histoContainer->Fill("SCConvRFineMod4",ConversionVertex[convindex].Perp(),weight);
+          }
+
+          if (-1.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.1) histoContainer->Fill("ConvR-Mod4",ConversionVertex[convindex].Perp(),weight);
           if (-1.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.3) histoContainer->Fill("ConvR-1.5",ConversionVertex[convindex].Perp(),weight);
-          if (-1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.0) histoContainer->Fill("ConvR-1.3",ConversionVertex[convindex].Perp(),weight);
-          if (-1.0<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-0.8) histoContainer->Fill("ConvR-1.0",ConversionVertex[convindex].Perp(),weight);
+          if (-1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.1) histoContainer->Fill("ConvR-1.3",ConversionVertex[convindex].Perp(),weight);
+          if (-1.1<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-0.8) histoContainer->Fill("ConvR-1.1",ConversionVertex[convindex].Perp(),weight);
           if (-0.8<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-0.5) histoContainer->Fill("ConvR-0.8",ConversionVertex[convindex].Perp(),weight);
           if (-0.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<0.0 ) histoContainer->Fill("ConvR-0.5",ConversionVertex[convindex].Perp(),weight);
           if ( 0.0<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<0.5 ) histoContainer->Fill("ConvR0.0",ConversionVertex[convindex].Perp(),weight);
           if ( 0.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<0.8 ) histoContainer->Fill("ConvR0.5",ConversionVertex[convindex].Perp(),weight);
-          if ( 0.8<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.0 ) histoContainer->Fill("ConvR0.8",ConversionVertex[convindex].Perp(),weight);
-          if ( 1.0<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.3 ) histoContainer->Fill("ConvR1.0",ConversionVertex[convindex].Perp(),weight);
+          if ( 0.8<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.1 ) histoContainer->Fill("ConvR0.8",ConversionVertex[convindex].Perp(),weight);
+          if ( 1.1<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.3 ) histoContainer->Fill("ConvR1.1",ConversionVertex[convindex].Perp(),weight);
           if ( 1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.5 ) histoContainer->Fill("ConvR1.3",ConversionVertex[convindex].Perp(),weight);
+          if ( 1.1<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.5 ) histoContainer->Fill("ConvRMod4",ConversionVertex[convindex].Perp(),weight);
 
           if (ConversionVertex[convindex].Perp()<25.0) {
+            if (-1.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.1) histoContainer->Fill("ConvRFine-Mod4",ConversionVertex[convindex].Perp(),weight);
             if (-1.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.3) histoContainer->Fill("ConvRFine-1.5",ConversionVertex[convindex].Perp(),weight);
-            if (-1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.0) histoContainer->Fill("ConvRFine-1.3",ConversionVertex[convindex].Perp(),weight);
-            if (-1.0<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-0.8) histoContainer->Fill("ConvRFine-1.0",ConversionVertex[convindex].Perp(),weight);
+            if (-1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-1.1) histoContainer->Fill("ConvRFine-1.3",ConversionVertex[convindex].Perp(),weight);
+            if (-1.1<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-0.8) histoContainer->Fill("ConvRFine-1.1",ConversionVertex[convindex].Perp(),weight);
             if (-0.8<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<-0.5) histoContainer->Fill("ConvRFine-0.8",ConversionVertex[convindex].Perp(),weight);
             if (-0.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<0.0 ) histoContainer->Fill("ConvRFine-0.5",ConversionVertex[convindex].Perp(),weight);
             if ( 0.0<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<0.5 ) histoContainer->Fill("ConvRFine0.0",ConversionVertex[convindex].Perp(),weight);
             if ( 0.5<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<0.8 ) histoContainer->Fill("ConvRFine0.5",ConversionVertex[convindex].Perp(),weight);
-            if ( 0.8<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.0 ) histoContainer->Fill("ConvRFine0.8",ConversionVertex[convindex].Perp(),weight);
-            if ( 1.0<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.3 ) histoContainer->Fill("ConvRFine1.0",ConversionVertex[convindex].Perp(),weight);
+            if ( 0.8<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.1 ) histoContainer->Fill("ConvRFine0.8",ConversionVertex[convindex].Perp(),weight);
+            if ( 1.1<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.3 ) histoContainer->Fill("ConvRFine1.1",ConversionVertex[convindex].Perp(),weight);
             if ( 1.3<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.5 ) histoContainer->Fill("ConvRFine1.3",ConversionVertex[convindex].Perp(),weight);
+            if ( 1.1<=ConversionVertex[convindex].Eta() && ConversionVertex[convindex].Eta()<1.5 ) histoContainer->Fill("ConvRFineMod4",ConversionVertex[convindex].Perp(),weight);
           }
-          
+
           if (!onevertex && !nojet && MaxJetP4.Pt()<30) continue;
 
           TLorentzVector PJet = MaxJetP4+Photonp4[photonindex];
@@ -739,41 +781,79 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ConvPhi","#phi of Conversion;#phi;Counts",64,-3.2,3.2);
   histoContainer->Add("ConvR","Radius of Conversion;Radius (cm);Counts",100,0,100);
 
+  histoContainer->Add("ConvRTracker","Radius of Conversion;Radius (cm) |z|<26cm;Conversions/0.2cm",300,0,60);
+  histoContainer->Add("ConvZPixel","Z Position of Conversion;Radius (cm) 3.5cm<R<19cm;Converisons/1.0cm",120,-60,60);
+
   histoContainer->Add("ConvR-0.5","Radius of Conversion -0.5<=#eta<0.0;#eta;Counts",100,0,100);
   histoContainer->Add("ConvR-0.8","Radius of Conversion -0.8<=#eta<-0.5;#eta;Counts",100,0,100);
-  histoContainer->Add("ConvR-1.0","Radius of Conversion -1.0<=#eta<-0.8;#eta;Counts",100,0,100);
-  histoContainer->Add("ConvR-1.3","Radius of Conversion -1.3<=#eta<-1.0;#eta;Counts",100,0,100);
+  histoContainer->Add("ConvR-1.1","Radius of Conversion -1.1<=#eta<-0.8;#eta;Counts",100,0,100);
+  histoContainer->Add("ConvR-1.3","Radius of Conversion -1.3<=#eta<-1.1;#eta;Counts",100,0,100);
   histoContainer->Add("ConvR-1.5","Radius of Conversion -1.5<=#eta<-1.3;#eta;Counts",100,0,100);
   histoContainer->Add("ConvR0.0","Radius of Conversion 0.0<=#eta<0.5;#eta;Counts",100,0,100);
   histoContainer->Add("ConvR0.5","Radius of Conversion 0.5<=#eta<0.8;#eta;Counts",100,0,100);
-  histoContainer->Add("ConvR0.8","Radius of Conversion 0.8<=#eta<1.0;#eta;Counts",100,0,100);
-  histoContainer->Add("ConvR1.0","Radius of Conversion 1.0<=#eta<1.3;#eta;Counts",100,0,100);
+  histoContainer->Add("ConvR0.8","Radius of Conversion 0.8<=#eta<1.1;#eta;Counts",100,0,100);
+  histoContainer->Add("ConvR1.1","Radius of Conversion 1.1<=#eta<1.3;#eta;Counts",100,0,100);
   histoContainer->Add("ConvR1.3","Radius of Conversion 1.3<=#eta<1.5;#eta;Counts",100,0,100);
+
+  histoContainer->Add("ConvRMod4","Radius of Conversion 1.1<=#eta<1.5;#eta;Counts",100,0,100);
+  histoContainer->Add("ConvR-Mod4","Radius of Conversion -1.1<=#eta<-1.5;#eta;Counts",100,0,100);
 
   histoContainer->Add("ConvRFine-0.5","Radius of Conversion -0.5<=#eta<0.0;#eta;Counts",100,0,25);
   histoContainer->Add("ConvRFine-0.8","Radius of Conversion -0.8<=#eta<-0.5;#eta;Counts",100,0,25);
-  histoContainer->Add("ConvRFine-1.0","Radius of Conversion -1.0<=#eta<-0.8;#eta;Counts",100,0,25);
-  histoContainer->Add("ConvRFine-1.3","Radius of Conversion -1.3<=#eta<-1.0;#eta;Counts",100,0,25);
+  histoContainer->Add("ConvRFine-1.1","Radius of Conversion -1.1<=#eta<-0.8;#eta;Counts",100,0,25);
+  histoContainer->Add("ConvRFine-1.3","Radius of Conversion -1.3<=#eta<-1.1;#eta;Counts",100,0,25);
   histoContainer->Add("ConvRFine-1.5","Radius of Conversion -1.5<=#eta<-1.3;#eta;Counts",100,0,25);
   histoContainer->Add("ConvRFine0.0","Radius of Conversion 0.0<=#eta<0.5;#eta;Counts",100,0,25);
   histoContainer->Add("ConvRFine0.5","Radius of Conversion 0.5<=#eta<0.8;#eta;Counts",100,0,25);
-  histoContainer->Add("ConvRFine0.8","Radius of Conversion 0.8<=#eta<1.0;#eta;Counts",100,0,25);
-  histoContainer->Add("ConvRFine1.0","Radius of Conversion 1.0<=#eta<1.3;#eta;Counts",100,0,25);
+  histoContainer->Add("ConvRFine0.8","Radius of Conversion 0.8<=#eta<1.1;#eta;Counts",100,0,25);
+  histoContainer->Add("ConvRFine1.1","Radius of Conversion 1.1<=#eta<1.3;#eta;Counts",100,0,25);
   histoContainer->Add("ConvRFine1.3","Radius of Conversion 1.3<=#eta<1.5;#eta;Counts",100,0,25);
-  
+
+  histoContainer->Add("ConvRFineMod4","Radius of Conversion 1.1<=#eta<1.5;#eta;Counts",100,0,25);
+  histoContainer->Add("ConvRFine-Mod4","Radius of Conversion -1.1<=#eta<-1.5;#eta;Counts",100,0,25);
+
+  histoContainer->Add("SCConvR-0.5","Radius of Conversion -0.5<=SC_{#eta}<0.0;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR-0.8","Radius of Conversion -0.8<=SC_{#eta}<-0.5;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR-1.1","Radius of Conversion -1.1<=SC_{#eta}<-0.8;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR-1.3","Radius of Conversion -1.3<=SC_{#eta}<-1.1;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR-1.5","Radius of Conversion -1.5<=SC_{#eta}<-1.3;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR0.0","Radius of Conversion 0.0<=SC_{#eta}<0.5;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR0.5","Radius of Conversion 0.5<=SC_{#eta}<0.8;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR0.8","Radius of Conversion 0.8<=SC_{#eta}<1.1;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR1.1","Radius of Conversion 1.1<=SC_{#eta}<1.3;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR1.3","Radius of Conversion 1.3<=SC_{#eta}<1.5;SC_{#eta};Counts",100,0,100);
+
+  histoContainer->Add("SCConvRMod4","Radius of Conversion 1.1<=#eta<1.5;SC_{#eta};Counts",100,0,100);
+  histoContainer->Add("SCConvR-Mod4","Radius of Conversion -1.1<=#eta<-1.5;SC_{#eta};Counts",100,0,100);
+
+  histoContainer->Add("SCConvRFine-0.5","Radius of Conversion -0.5<=SC_{#eta}<0.0;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine-0.8","Radius of Conversion -0.8<=SC_{#eta}<-0.5;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine-1.1","Radius of Conversion -1.1<=SC_{#eta}<-0.8;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine-1.3","Radius of Conversion -1.3<=SC_{#eta}<-1.1;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine-1.5","Radius of Conversion -1.5<=SC_{#eta}<-1.3;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine0.0","Radius of Conversion 0.0<=SC_{#eta}<0.5;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine0.5","Radius of Conversion 0.5<=SC_{#eta}<0.8;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine0.8","Radius of Conversion 0.8<=SC_{#eta}<1.1;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine1.1","Radius of Conversion 1.1<=SC_{#eta}<1.3;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine1.3","Radius of Conversion 1.3<=SC_{#eta}<1.5;SC_{#eta};Counts",100,0,25);
+
+  histoContainer->Add("SCConvRFineMod4","Radius of Conversion 1.1<=#eta<1.5;SC_{#eta};Counts",100,0,25);
+  histoContainer->Add("SCConvRFine-Mod4","Radius of Conversion -1.1<=#eta<-1.5;SC_{#eta};Counts",100,0,25);
+
   histoContainer->Add("ConvXvsZ","X of Conversion vs Z;Z (cm);X (cm)",400,-200,200,200,-100,100);
   histoContainer->Add("ConvYvsZ","Y of Conversion vs Z;Z (cm);Y (cm)",400,-200,200,200,-100,100);
 
-  histoContainer->Add("ConvRvsZslice1","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice2","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice3","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice4","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice5","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice6","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice7","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice8","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  histoContainer->Add("ConvRvsZslice9","R of Conversion vs Z;Z (cm);R (cm)",40,-200,200,20,-100,100);
-  
+  histoContainer->Add("ConvRvsZ","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice1","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice2","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice3","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice4","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice5","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice6","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice7","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice8","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+  histoContainer->Add("ConvRvsZslice9","R of Conversion vs Z;Z (cm);R (cm)",200,-200,200,100,-100,100);
+
   histoContainer->Add("ConvRvsEta","R of Conversion vs Eta;#eta;Radius (cm)",64,-3.2,3.2,100,0,100);
   histoContainer->Add("ConvRvsPhi","R of Conversion vs phi;#phi;Radius (cm)",60,-3.0,3.0,100,0,100);
 
@@ -785,7 +865,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("limpulltoconv","Pull to Conversion;Pull;Counts",40,0,10);
   histoContainer->Add("MVAValue","Output BDT value;Counts;BDT Value",50,-1,1);
   histoContainer->Add("MVARes","Resolution MVA Value;Counts;Per Event ",50,-1,1);
-  
+
   histoContainer->Add("sumpt2bad","Sum Pt^2 of other Verticies;Sum Pt^2;Counts",100,0,1000);
   histoContainer->Add("logsumpt2bad","Log Sum Pt^2 of other Verticies;log(Sum Pt^2);Counts",60,-5,15);
   histoContainer->Add("ptasymmbad","Pt Asymmetry of other Verticies;ptasymm;Counts",50,-1,1);
@@ -794,7 +874,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("limpulltoconvbad","Pull to Converison of other Verticies;Pull;Counts",40,0,10);
   histoContainer->Add("MVAValuebad","Output BDT value;Counts;BDT Value",50,-1,1);
   histoContainer->Add("MVAResbad","Resolution MVA Value;Counts;Per Event ",50,-1,1);
-  
+
   histoContainer->Add("deltaEta","Delta Eta Between Supercluster and Conversion Vertex;#Delta#eta;Counts",100,-0.1,0.1);
   histoContainer->Add("ZPV","Z of Primary Vertex;Z (cm);Counts",100,-20,20);
   histoContainer->Add("dZcheck","#DeltaZ of Primary Vertex and the Sim Vertex;#DeltaZ (cm);Counts",100,-5,5);
@@ -833,12 +913,12 @@ void BookHistograms(HistoContainer *histoContainer) {
 
   histoContainer->Add("MixdZPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon Pt;Pt (GeV);#DeltaZ (cm)",20,0,200,100,-5,5);
   histoContainer->Add("MixdZEta","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon #eta;#eta;#DeltaZ (cm)",25,0,2.5,100,-5,5);
-  histoContainer->Add("MixdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",30,0,30,100,-5,5);
+  histoContainer->Add("MixdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,100,-5,5);
   histoContainer->Add("MixdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,100,-5,5);
 
   histoContainer->Add("MVAdZ","#DeltaZ of Primary Vertex and Primary Vertex MVA;Counts;#DeltaZ (cm)",100,-5,5);
-  histoContainer->Add("MVAdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",30,0,30,100,-5,5);
-  histoContainer->Add("MVAdZNVtx_short","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",25,0,25,100,-5,5);
+  histoContainer->Add("MVAdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,100,-5,5);
+  histoContainer->Add("MVAdZNVtx_short","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",30,0,30,100,-5,5);
   histoContainer->Add("MVAdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,100,-5,5);
 
   histoContainer->Add("ConvdZvsR","#deltaZ between the Z of the Primary Vertex from Conversion and the Primary Vertex versus R of Conversion;R (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,0,100,100, -5, 5);
@@ -846,7 +926,7 @@ void BookHistograms(HistoContainer *histoContainer) {
 
   histoContainer->Add("SuperdZvsR","#deltaZ between the Z of the Primary Vertex from Conversion and the Primary Vertex versus R of Conversion;R (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,0,100,100, -5, 5);
   histoContainer->Add("SuperdZvsZ","#deltaZ between the Z of the Primary Vertex from Conversion and the Primary Vertex versus Z of Conversion;Z (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,-220,220,100, -5, 5);
-  
+
 }
 
 void BookEtadZ(HistoContainer *histoContainer, TString histname) {
@@ -1076,9 +1156,9 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   } 
   if (inputstring.Contains("PJet")) {
     kFactor=1.3;
-    inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC.root",12));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-0to15_TuneZ2.root",kFactor*1/2080768.0*84200000.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-15to30_TuneZ2.root",kFactor*1/2046119.0*172000.0));
+    inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC.root",10));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-0to15_TuneZ2.root",kFactor*1/2080768.0*84200000.0));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-15to30_TuneZ2.root",kFactor*1/2046119.0*172000.0));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-30to50_TuneZ2.root",kFactor*1/2187260.0*16700.0));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-50to80_TuneZ2.root",kFactor*1/2036704.0*2720.0));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-80to120_TuneZ2.root",kFactor*1/2046637.0*447.0));
@@ -1139,7 +1219,7 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
 
 void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
-  /*  if (inputstring.Contains("PJet")) {
+  if (inputstring.Contains("PJet")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
   } else if (inputstring.Contains("QCD")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
@@ -1153,30 +1233,20 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/120GeV.h"
   } else {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
-    }*/
-
-  if (inputstring.Contains("PJet")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
-  } else if (inputstring.Contains("QCD")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
-  } else if (inputstring.Contains("Signal")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/120GeV.h"
-  } else {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
   }
-  
+
 }
 
 void MakeEtWeights(TString inputstring, map<int,double> &EtMap) {
 
   if (inputstring.Contains("PJet")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet.h"
+    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet_Summer11.h"
   } else if (inputstring.Contains("QCD")) {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/QCDEMEnriched.h"
   } else {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/Dummy.h"
   }
-  
+
 }
 
 void ProgressBar(int &percent, double estimate) {
