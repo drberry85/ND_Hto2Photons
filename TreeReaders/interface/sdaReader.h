@@ -23,6 +23,8 @@ public :
   Int_t           lumis;
   Int_t           run;
   Int_t           bx;
+  Int_t           jet_algoPF1_n;
+  TClonesArray    *jet_algoPF1_p4;
   TClonesArray    *sc_p4;
   TClonesArray    *sc_xyz;
   Int_t           pho_n;
@@ -245,6 +247,8 @@ public :
   TBranch        *b_lumis;   //!
   TBranch        *b_run;   //!
   TBranch        *b_bx;   //!
+  TBranch        *b_jet_algoPF1_n;   //!
+  TBranch        *b_jet_algoPF1_p4;   //!
   TBranch        *b_sc_p4;   //!
   TBranch        *b_sc_xyz;   //!
   TBranch        *b_pho_n;   //!
@@ -496,6 +500,7 @@ void sdaReader::Init(TFile *currentFile)
   TTree * tree = (TTree *) currentFile->Get("event");
   
   // Set object pointer
+  jet_algoPF1_p4 = 0;
   sc_p4 = 0;
   sc_xyz = 0;
   pho_p4 = 0;
@@ -568,6 +573,8 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("lumis", &lumis, &b_lumis);
   fChain->SetBranchAddress("run", &run, &b_run);
   fChain->SetBranchAddress("bx", &bx, &b_bx);
+  if (fChain->FindLeaf("jet_algoPF1_n")!=NULL) fChain->SetBranchAddress("jet_algoPF1_n", &jet_algoPF1_n, &b_jet_algoPF1_n);
+  if (fChain->FindLeaf("jet_algoPF1_p4")!=NULL) fChain->SetBranchAddress("jet_algoPF1_p4", &jet_algoPF1_p4, &b_jet_algoPF1_p4);
   fChain->SetBranchAddress("sc_p4", &sc_p4, &b_sc_p4);
   fChain->SetBranchAddress("sc_xyz", &sc_xyz, &b_sc_xyz);
   fChain->SetBranchAddress("pho_n", &pho_n, &b_pho_n);
@@ -729,23 +736,23 @@ void sdaReader::Init(TFile *currentFile)
   fChain->SetBranchAddress("bs_sigmaZ0Error", &bs_sigmaZ0Error, &b_bs_sigmaZ0Error);
   fChain->SetBranchAddress("met_tcmet", &met_tcmet, &b_met_tcmet);
   fChain->SetBranchAddress("met_phi_tcmet", &met_phi_tcmet, &b_met_phi_tcmet);
-  fChain->SetBranchAddress("hlt1_bit", &hlt1_bit, &b_hlt1_bit);
-  fChain->SetBranchAddress("hlt_n", &hlt_n, &b_hlt_n);
-  fChain->SetBranchAddress("hlt_candpath", &hlt_candpath, &b_hlt_candpath);
-  fChain->SetBranchAddress("hlt_path_names_HLT1", &hlt_path_names_HLT1, &b_hlt_path_names_HLT1);
-  fChain->SetBranchAddress("hlt_p4", &hlt_p4, &b_hlt_p4);
-  fChain->SetBranchAddress("l1emiso_n", &l1emiso_n, &b_l1emiso_n);
-  fChain->SetBranchAddress("l1emiso_et", l1emiso_et, &b_l1emiso_et);
-  fChain->SetBranchAddress("l1emiso_eta", l1emiso_eta, &b_l1emiso_eta);
-  fChain->SetBranchAddress("l1emiso_phi", l1emiso_phi, &b_l1emiso_phi);
-  fChain->SetBranchAddress("l1emnoniso_n", &l1emnoniso_n, &b_l1emnoniso_n);
-  fChain->SetBranchAddress("l1emnoniso_et", l1emnoniso_et, &b_l1emnoniso_et);
-  fChain->SetBranchAddress("l1emnoniso_eta", l1emnoniso_eta, &b_l1emnoniso_eta);
-  fChain->SetBranchAddress("l1emnoniso_phi", l1emnoniso_phi, &b_l1emnoniso_phi);
-  fChain->SetBranchAddress("l1bits_phy", &l1bits_phy, &b_l1bits_phy);
-  fChain->SetBranchAddress("l1_labels", &l1_labels_, &b_l1_labels_);
-  fChain->SetBranchAddress("l1_labels.first", &l1_labels_first, &b_l1_labels_first);
-  fChain->SetBranchAddress("l1_labels.second", &l1_labels_second, &b_l1_labels_second);
+  if (fChain->FindLeaf("hlt1_bit")!=NULL) fChain->SetBranchAddress("hlt1_bit", &hlt1_bit, &b_hlt1_bit);
+  if (fChain->FindLeaf("hlt_n")!=NULL) fChain->SetBranchAddress("hlt_n", &hlt_n, &b_hlt_n);
+  if (fChain->FindLeaf("hlt_candpath")!=NULL) fChain->SetBranchAddress("hlt_candpath", &hlt_candpath, &b_hlt_candpath);
+  if (fChain->FindLeaf("hlt_path_names_HLT1")!=NULL) fChain->SetBranchAddress("hlt_path_names_HLT1", &hlt_path_names_HLT1, &b_hlt_path_names_HLT1);
+  if (fChain->FindLeaf("hlt_p4")!=NULL) fChain->SetBranchAddress("hlt_p4", &hlt_p4, &b_hlt_p4);
+  if (fChain->FindLeaf("l1emiso_n")!=NULL) fChain->SetBranchAddress("l1emiso_n", &l1emiso_n, &b_l1emiso_n);
+  if (fChain->FindLeaf("l1emiso_et")!=NULL) fChain->SetBranchAddress("l1emiso_et", l1emiso_et, &b_l1emiso_et);
+  if (fChain->FindLeaf("l1emiso_eta")!=NULL) fChain->SetBranchAddress("l1emiso_eta", l1emiso_eta, &b_l1emiso_eta);
+  if (fChain->FindLeaf("l1emiso_phi")!=NULL) fChain->SetBranchAddress("l1emiso_phi", l1emiso_phi, &b_l1emiso_phi);
+  if (fChain->FindLeaf("l1emnoniso_n")!=NULL) fChain->SetBranchAddress("l1emnoniso_n", &l1emnoniso_n, &b_l1emnoniso_n);
+  if (fChain->FindLeaf("l1emnoniso_et")!=NULL) fChain->SetBranchAddress("l1emnoniso_et", l1emnoniso_et, &b_l1emnoniso_et);
+  if (fChain->FindLeaf("l1emnoniso_eta")!=NULL) fChain->SetBranchAddress("l1emnoniso_eta", l1emnoniso_eta, &b_l1emnoniso_eta);
+  if (fChain->FindLeaf("l1emnoniso_phi")!=NULL) fChain->SetBranchAddress("l1emnoniso_phi", l1emnoniso_phi, &b_l1emnoniso_phi);
+  if (fChain->FindLeaf("l1bits_phy")!=NULL) fChain->SetBranchAddress("l1bits_phy", &l1bits_phy, &b_l1bits_phy);
+  if (fChain->FindLeaf("l1_labels")!=NULL) fChain->SetBranchAddress("l1_labels", &l1_labels_, &b_l1_labels_);
+  if (fChain->FindLeaf("l1_labels.first")!=NULL) fChain->SetBranchAddress("l1_labels.first", &l1_labels_first, &b_l1_labels_first);
+  if (fChain->FindLeaf("l1_labels.second")!=NULL) fChain->SetBranchAddress("l1_labels.second", &l1_labels_second, &b_l1_labels_second);
   fChain->SetBranchAddress("vtx_std_diphopt", &vtx_std_diphopt, &b_vtx_std_diphopt);
   fChain->SetBranchAddress("vtx_std_nch", &vtx_std_nch, &b_vtx_std_nch);
   fChain->SetBranchAddress("vtx_std_ptmax", &vtx_std_ptmax, &b_vtx_std_ptmax);

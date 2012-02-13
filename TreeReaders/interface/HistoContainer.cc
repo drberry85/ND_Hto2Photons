@@ -10,11 +10,13 @@ HistoContainer::~HistoContainer()
 
 void HistoContainer::Add(string name, int bins, float xmin, float xmax) {
   TH1F temp(name.c_str(), name.c_str(), bins, xmin, xmax);
+  temp.Sumw2();
   h1[name] = temp;
 }
 
 void HistoContainer::Add(string name, string title, int bins, float xmin, float xmax) {
   TH1F temp(name.c_str(), title.c_str(), bins, xmin, xmax);
+  temp.Sumw2();
   h1[name] = temp;
 }
 
@@ -22,6 +24,7 @@ void HistoContainer::Add(string name, int binsx, float xmin, float xmax,
 			 int binsy, float ymin, float ymax) {
 		       
   TH2F temp(name.c_str(), name.c_str(), binsx, xmin, xmax, binsy, ymin, ymax);
+  temp.Sumw2();
   h2[name] = temp;
 }
 
@@ -29,6 +32,7 @@ void HistoContainer::Add(string name, string title, int binsx, float xmin, float
 			 int binsy, float ymin, float ymax) {
 		       
   TH2F temp(name.c_str(), title.c_str(), binsx, xmin, xmax, binsy, ymin, ymax);
+  temp.Sumw2();
   h2[name] = temp;
 }
 
@@ -36,6 +40,7 @@ void HistoContainer::Add(string name, int binsx, float xmin, float xmax,
 			 float ymin, float ymax) {
 		       
   TProfile temp(name.c_str(), name.c_str(), binsx, xmin, xmax, ymin, ymax);
+  temp.Sumw2();
   hp[name] = temp;
 } 
 
@@ -43,6 +48,7 @@ void HistoContainer::Add(string name, string title, int binsx, float xmin, float
 			 float ymin, float ymax) {
 		       
   TProfile temp(name.c_str(), title.c_str(), binsx, xmin, xmax, ymin, ymax);
+  temp.Sumw2();
   hp[name] = temp;
 }
 
@@ -149,6 +155,29 @@ void HistoContainer::Fill(string name, string addon, float valuex, float valuey,
   }
 
   std::cerr << "ERROR !: histogram " << name << " is nor a TH2F" << std::endl;
+}
+
+double HistoContainer::UpperLimit(string name) {
+
+  std::map<string, TH1F>::const_iterator it = h1.find(name);
+  if (it != h1.end()) {
+    return h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+  }
+
+  std::cerr << "ERROR !: histogram " << name << " is not a TH1F." << std::endl;
+  return -999;
+
+}
+
+double HistoContainer::LowerLimit(string name) {
+
+  std::map<string, TH1F>::const_iterator it = h1.find(name);
+  if (it != h1.end()) {
+    return h1[name].GetBinLowEdge(1);
+  }
+
+  std::cerr << "ERROR !: histogram " << name << " is not a TH1F." << std::endl;
+  return -999;
 }
 
 void HistoContainer::Save() {

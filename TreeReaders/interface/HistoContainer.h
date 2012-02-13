@@ -27,6 +27,9 @@ class HistoContainer {
   void Fill(string, string, float);
   void Fill(string, string, float, float);
   void Fill(string, string, float, float, float);
+
+  double UpperLimit(string);
+  double LowerLimit(string);
   
   void Save();
   
