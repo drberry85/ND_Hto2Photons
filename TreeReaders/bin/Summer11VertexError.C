@@ -1229,8 +1229,6 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/WJets.h"
   } else if (inputstring.Contains("ZJets")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZJets.h"
-  } else if (inputstring.Contains("Signal")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/120GeV.h"
   } else {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
   }
