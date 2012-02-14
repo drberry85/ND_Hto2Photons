@@ -66,6 +66,7 @@ int main(int argc, char * input[]) {
   gROOT->ProcessLine(".L $CMSSW_BASE/src/ND_Hto2Photons/TreeReaders/interface/link_def.h+");
   //gROOT->ProcessLine("TProof")
 
+  TString InputArgs(input[1]);
   bool background = false;
   bool bar = false;
   bool debug = false;
@@ -81,16 +82,9 @@ int main(int argc, char * input[]) {
   bool trigger = false;
   bool unweighted = false;
   bool usesimvertex = false;
-  float globalWeight = 4778.0;
+  float globalweight = 4778.0;
 
   int FirstFileNum = 0;
-  
-  vector<pair<string, float> > filesAndWeights;
-  vector<pair<string, int> > filelist;
-  TString InputArgs(input[1]);
-
-  //PrintWeights();
-  MakeFilesAndWeights(InputArgs, filesAndWeights, filelist);
 
   if (InputArgs.Contains("Unweighted")) unweighted=true;
   if (InputArgs.Contains("Bar")) bar=true;
@@ -106,6 +100,13 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("DoubleLeg")) doubleleg=true; 
   if (InputArgs.Contains("SimVertex")) usesimvertex=true;
   if (InputArgs.Contains("Trigger")) trigger=true;
+
+  vector<pair<string, float> > filesAndWeights;
+  vector<pair<string, int> > filelist;
+
+  if (debug) cout << "argc is: " << argc << endl;
+  MakeFilesAndWeights(InputArgs, filesAndWeights, filelist);
+  
   if (filesAndWeights.size()==0) {
     cout << "Warning!!!! No valid inputs!!!! Please one of the following: Data, PromptReco, 90GeV, 95GeV, 100GeV, 105GeV, 110GeV, 115GeV, 120GeV, 130GeV, 140GeV, PJet, QCD, DY, Born, or Box." << endl;
     cout << "Exiting Program!!!!" << endl;
@@ -137,7 +138,7 @@ int main(int argc, char * input[]) {
     for (int itFile = FirstFileNum; itFile<itFilePair->second+FirstFileNum; itFile++) {
 
       string file = filesAndWeights[itFile].first;
-      float fileweight = filesAndWeights[itFile].second * globalWeight;
+      float fileweight = filesAndWeights[itFile].second * globalweight;
       if (itFilePair->first=="PhotonPlusJetData.root" || itFilePair->first=="Photon_Data.root" || unweighted) fileweight=1;
       
       TChain* filechain = new TChain("event");
@@ -210,7 +211,7 @@ int main(int argc, char * input[]) {
         for (unsigned int j=0; j<(unsigned int) bs_xyz()->GetSize(); j++) BeamSpot.push_back(*((TVector3*) bs_xyz()->At(j)));
         for (unsigned int j=0; j<(unsigned int) pho_n(); j++) {
           Photonp4.push_back(*((TLorentzVector*) pho_p4()->At(j)));
-          if (pho_n()>1 && Photonp4[j].Pt()>Photonp4[leadphotonindex].Pt()) {
+          if (pho_n()>1 && Photonp4[j].Pt()>Photonp4[leadphotonindex].Pt() && pho_cic4cutlevel_lead()->at(j).at(0)>=4) {
             subleadphotonindex=leadphotonindex;
             leadphotonindex=j;
           }
@@ -1223,6 +1224,8 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
   } else if (inputstring.Contains("QCD")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
+  } else if (inputstring.Contains("Box")) {
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Box.h"
   } else if (inputstring.Contains("Diphoton")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Diphoton.h"
   } else if (inputstring.Contains("WJets")) {

@@ -40,7 +40,7 @@ double FindNewZConvLinear(TVector3 convvtx, TVector3 superclustervtx, TVector3 p
 double JacksonAngle(TLorentzVector p1, TLorentzVector p2);
 string DetectorPosition(unsigned int index);
 map<TString,double> GetkFactor();
-map<TString,double> GetWeightsMap(map<TString,double> kFactor);
+map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweight);
 template <class type> string makestring(type value);
 string GetConversionRegion(HistoContainer *histoContainer, double Z, double R, bool isEB);
 TString MakeFileName(string filename, bool unweighted, bool onevertex);
@@ -85,7 +85,7 @@ int main(int argc, char * input[]) {
   bool trigger = false;
   bool unweighted = false;
   bool usesimvertex = false;
-  float globalWeight = 4778.0;
+  float globalweight = 4778.0;
 
   int FirstFileNum = 0;
 
@@ -108,7 +108,7 @@ int main(int argc, char * input[]) {
   vector<pair<string, int> > filelist;
 
   map<TString,double> kFactor=GetkFactor();
-  map<TString,double> WeightsMap=GetWeightsMap(kFactor);
+  map<TString,double> WeightsMap=GetWeightsMap(kFactor, globalweight);
     
   if (debug) cout << "argc is: " << argc << endl;
   if (argc==2) MakeFilesAndWeights(InputArgs, filesAndWeights, filelist, kFactor, WeightsMap);
@@ -152,7 +152,7 @@ int main(int argc, char * input[]) {
     for (int itFile = FirstFileNum; itFile<itFilePair->second+FirstFileNum; itFile++) {
 
       string file = filesAndWeights[itFile].first;
-      float fileweight = filesAndWeights[itFile].second * globalWeight;
+      float fileweight = filesAndWeights[itFile].second * globalweight;
       if (itFilePair->first=="PhotonPlusJetData.root" || itFilePair->first=="Photon_Data.root" || unweighted) fileweight=1;
       
       TChain* filechain = new TChain("event");
@@ -225,7 +225,7 @@ int main(int argc, char * input[]) {
         for (unsigned int j=0; j<(unsigned int) bs_xyz()->GetSize(); j++) BeamSpot.push_back(*((TVector3*) bs_xyz()->At(j)));
         for (unsigned int j=0; j<(unsigned int) pho_n(); j++) {
           Photonp4.push_back(*((TLorentzVector*) pho_p4()->At(j)));
-          if (pho_n()>1 && Photonp4[j].Pt()>Photonp4[leadphotonindex].Pt()) {
+          if (pho_n()>1 && Photonp4[j].Pt()>Photonp4[leadphotonindex].Pt() && pho_cic4cutlevel_lead()->at(j).at(0)>=4) {
             subleadphotonindex=leadphotonindex;
             leadphotonindex=j;
           }
@@ -652,9 +652,10 @@ map<TString,double> GetkFactor() {
   
 }
 
-map<TString,double> GetWeightsMap(map<TString,double> kFactor) {
+map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweight) {
 
   map<TString,double> WeightsMap;
+  WeightsMap["None"]=1/globalweight;
   WeightsMap["PJet"]=kFactor["PJet"]*1/10566516.0*191975.0;
   WeightsMap["PJet_32PU"]=kFactor["PJet"]*1/624799.0*191975.0;
   WeightsMap["QCD20to30"]=kFactor["QCD"]*1/35721833.0*236100000.0*0.0106;
@@ -1183,19 +1184,19 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
 
   if (inputstring.Contains("Run2011A")) {
     inputfilelist.push_back(pair<string,int> ("Run2011A.root",6));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0_1.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1_1.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2_1.root",1/4778.0));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0_1.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1_1.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2_1.root",WeightsMap["None"]));
   }
   if (inputstring.Contains("Run2011B")) {
     inputfilelist.push_back(pair<string,int> ("Run2011B.root",4));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_1.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_2.root",1/4778.0));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_1.root",1/4778.0));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_1.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_2.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_1.root",WeightsMap["None"]));
   } 
   if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")) {
     inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC.root",3));
@@ -1235,15 +1236,15 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   }
   if (inputstring.Contains("Signal")) {
     inputfilelist.push_back(pair<string,int> ("120GeV.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Higgs_120GeV.root",1/4778.0));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Higgs_120GeV.root",WeightsMap["None"]));
   }
   if (inputstring.Contains("Test") && !inputstring.Contains("TestMC")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/DataTest.root",1/4778.0));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/DataTest.root",WeightsMap["None"]));
   }
   if (inputstring.Contains("TestMC")) {
     inputfilelist.push_back(pair<string,int> ("TestMC.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/MCTest.root",1/4778.0));
+    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/MCTest.root",WeightsMap["None"]));
   }
 
 }
@@ -1255,8 +1256,8 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   else outfile=infile;
   
   inputfilelist.push_back(pair<string,int> (outfile,1));
-  if (inputstring.Contains("Run2011A")) inputvector.push_back(pair<string,float> (infile,1/4778.0));
-  if (inputstring.Contains("Run2011B")) inputvector.push_back(pair<string,float> (infile,1/4778.0));
+  if (inputstring.Contains("Run2011A")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("Run2011B")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
   if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet"]));
   if (inputstring.Contains("PJet_32PU")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet_32PU"]));
   if (inputstring.Contains("QCD20to30")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD20to30"]));
@@ -1268,9 +1269,9 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   if (inputstring.Contains("Box250")) inputvector.push_back(pair<string,float> (infile,kFactor["Box"]*WeightsMap["Box250"]));
   if (inputstring.Contains("WJets")) inputvector.push_back(pair<string,float> (infile,kFactor["WJets"]*WeightsMap["WJets"]));
   if (inputstring.Contains("ZJets")) inputvector.push_back(pair<string,float> (infile,kFactor["ZJets"]*WeightsMap["ZJets"]));
-  if (inputstring.Contains("Signal")) inputvector.push_back(pair<string,float> (infile,1/4778.0));
-  if (inputstring.Contains("Test") && !inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,1/4778.0));
-  if (inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,1/4778.0));
+  if (inputstring.Contains("Signal")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("Test") && !inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
     
 }
 
@@ -1296,14 +1297,13 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
 void MakeEtWeights(TString inputstring, map<int,double> &EtMap) {
 
-  /*if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")) {
+  if (inputstring.Contains("PJet") && !inputstring.Contains("PJet_32PU")) {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet.h"
   } else if (inputstring.Contains("QCD")) {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/QCDEMEnriched.h"
   } else {
     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/Dummy.h"
-    }*/
-  #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/Dummy.h"
+  }
 
 }
 
