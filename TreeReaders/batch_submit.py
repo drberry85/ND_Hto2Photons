@@ -18,7 +18,7 @@ InputFiles = os.popen("nsfind "+options.inputdir+" | grep .root").readlines()
 print "Submitting %i jobs for directory %s" %(len(InputFiles),options.inputdir)
 for infile in InputFiles:
 	logfile = options.logdir+"/"+infile.strip("\n")[infile.rfind("/"):]+".log"
-	bsubcommand = "bsub -q "+options.queue+" -o "+logfile+" batch_submit.sh "+HomeDir+" \""+options.command+"\" "+infile.strip("\n")+" "+options.outputdir
+	bsubcommand = "bsub -e /dev/null -q "+options.queue+" -o "+logfile+" batch_submit.sh "+HomeDir+" \""+options.command+"\" "+infile.strip("\n")+" "+options.outputdir
 	bsubcommand = bsubcommand.replace("//","/")
 	if options.debug: print bsubcommand
 	if not options.dryrun: os.popen(bsubcommand)

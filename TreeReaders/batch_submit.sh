@@ -5,11 +5,25 @@
 #4 Output Directory
 REMOTEDIR=$PWD
 cd $1
-rfcp $3 $REMOTEDIR
 eval `scramv1 runtime -sh`
+STAGE_SVCCLASS=default
+
+#echo "#### Begin Debug Output ####"
+#date
+#id
+#env | grep RFIO
+#env | grep STAGE
+#env | grep PATH
+#which rfdir
+#echo "#### End Debug Output ####"
+
+cd -
+rfdir $3
+rfcp $3 $REMOTEDIR
 FILENAME=`basename $3`
-VertexError "$2" $REMOTEDIR/$FILENAME
-if [ ! -d "$4" ]; then
-	mkdir $4
+/bin/ls *.root
+VertexError "$2" $FILENAME
+if [ ! -d "$1/$4" ]; then
+	mkdir $1/$4
 fi
-mv "Vertex_$FILENAME" $4
+cp "Vertex_$FILENAME" $1/$4
