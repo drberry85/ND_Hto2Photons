@@ -724,7 +724,6 @@ int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
   for (int i=0; i<conv_n(); i++) {
     TVector3 ConversionRefittedPairMomentum = conv_singleleg_momentum()!=NULL && conv_ntracks()[i]==1 ? *((TVector3*) conv_singleleg_momentum()->At(i)) : *((TVector3*) conv_refitted_momentum()->At(i));
     TVector3 ConversionVertex = *((TVector3*) conv_vtx()->At(i));
-    if (conv_ntracks()[i]==1) 
     if (conv_ntracks()[i]!=2 && conv_ntracks()[i]!=1) continue;
     if (conv_ntracks()[i]==2 && (conv_chi2_probability()[i]<0.000001 || ConversionRefittedPairMomentum.Pt()<1)) continue;
     if (conv_ntracks()[i]==1 && ConversionRefittedPairMomentum.Pt()<1) continue;
@@ -1203,7 +1202,7 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
     inputfilelist.push_back(pair<string,int> ("120GeV.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/GluGluToHToGG_M-120.root",1/1078.306616393));
   }
-  if (inputstring.Contains("13GeV")) {
+  if (inputstring.Contains("130GeV")) {
     inputfilelist.push_back(pair<string,int> ("130GeV.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/130GeVHiggs.root",1/1078.306616393));
   }
