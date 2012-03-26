@@ -234,7 +234,7 @@ SharedHandle<vector<vector<float> >*> vtx_std_awytwdasym( "vtx_std_awytwdasym", 
 SharedHandle<Int_t> vtx_std_pho1( "vtx_std_pho1", &m_entry_number);
 SharedHandle<Int_t> vtx_std_pho2( "vtx_std_pho2", &m_entry_number);
 SharedHandle<vector<int>*> pho_matchingConv( "pho_matchingConv", &m_entry_number);
-SharedHandle<vector<int>*> vtx_std_ranked_list( "vtx_std_ranked_list", &m_entry_number);
+SharedHandle<vector<vector<int> >*> vtx_std_ranked_list( "vtx_std_ranked_list", &m_entry_number);
 SharedHandle<Int_t> vtx_std_sel( "vtx_std_sel", &m_entry_number);
 SharedHandle<vector<vector<float> >*> pho_tkiso_recvtx_030_002_0000_10_01( "pho_tkiso_recvtx_030_002_0000_10_01", &m_entry_number);
 SharedHandle<Float_t*> pho_tkiso_badvtx_040_002_0000_10_01( "pho_tkiso_badvtx_040_002_0000_10_01", &m_entry_number, 100);
