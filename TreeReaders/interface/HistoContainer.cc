@@ -157,6 +157,66 @@ void HistoContainer::Fill(string name, string addon, float valuex, float valuey,
   std::cerr << "ERROR !: histogram " << name << " is nor a TH2F" << std::endl;
 }
 
+
+void HistoContainer::Fill(string name, string addon1, string addon2, float value) {
+
+  name.append(addon1);
+  name.append(addon2);
+  std::map<string, TH1F>::const_iterator it = h1.find(name);
+  if (it != h1.end()) {
+    h1[name].Fill(value);
+    return;
+  }
+
+  std::cerr << "ERROR !: histogram " << name << " is not a TH1F." << std::endl;
+}
+
+void HistoContainer::Fill(string name, string addon1, string addon2, float valuex, float valuey) { 
+
+  name.append(addon1);
+  name.append(addon2);
+  std::map<string, TH1F>::const_iterator it = h1.find(name);
+  if (it != h1.end()) {
+    h1[name].Fill(valuex,valuey);
+    return;
+  }
+  
+  std::map<string, TH2F>::const_iterator it2 = h2.find(name);
+  if (it2 != h2.end()) {
+    h2[name].Fill(valuex, valuey);
+    return;
+  }
+
+  std::map<string, TProfile>::const_iterator itp = hp.find(name);
+  if (itp != hp.end()) {
+    hp[name].Fill(valuex, valuey);
+    return;
+  }
+  
+  std::cerr << "ERROR !: histogram " << name << " is nor a TH2F nor a TProfile." << std::endl;
+}
+
+void HistoContainer::Fill(string name, string addon1, string addon2, float valuex, float valuey, float weight) { 
+
+  name.append(addon1);
+  name.append(addon2);
+  std::map<string, TH2F>::const_iterator it2 = h2.find(name);
+  if (it2 != h2.end()) {
+    h2[name].Fill(valuex, valuey, weight);
+    return;
+  }
+
+  std::map<string, TProfile>::const_iterator itp = hp.find(name);
+  if (itp != hp.end()) {
+    hp[name].Fill(valuex, valuey, weight);
+    return;
+  }
+
+  std::cerr << "ERROR !: histogram " << name << " is nor a TH2F" << std::endl;
+}
+
+
+
 double HistoContainer::UpperLimit(string name) {
 
   std::map<string, TH1F>::const_iterator it = h1.find(name);

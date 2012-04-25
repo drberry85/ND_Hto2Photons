@@ -228,7 +228,7 @@ int main(int argc, char * input[]) {
           //if (fabs(mu_glo_d0()[j])>0.2) continue;
           if (mu_glo_tkiso03()[j]>3.0) continue;
           //if (debug) cout << "Has GSF Track: " << mu_glo_hasgsftrack()[j] << endl;
-          if (mu_glo_hasgsftrack()[j]) continue;
+          //if (mu_glo_hasgsftrack()[j]) continue;
           if (Muon_p4.Pt()<10.0) continue;
           if (fabs(Muon_p4.Eta())>2.4) continue;
           MuonPtMap[Muon_p4.Pt()]=j;
@@ -243,7 +243,7 @@ int main(int argc, char * input[]) {
           if (mu_glo_validhits()[j]<11) continue;
           if (mu_glo_pixelhits()[j]<1) continue;
           if (mu_glo_tkiso03()[j]>3.0) continue;
-          if (mu_glo_hasgsftrack()[j]) continue;
+          //if (mu_glo_hasgsftrack()[j]) continue;
           if (LeadMuon_p4.Pt()<10.0) continue;
           if (fabs(LeadMuon_p4.Eta())>2.4) continue;
           if (debug) cout << "Lead Passing Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
@@ -256,7 +256,7 @@ int main(int argc, char * input[]) {
             if (mu_glo_validhits()[k]<11) continue;
             if (mu_glo_pixelhits()[k]<1) continue;
             if (mu_glo_tkiso03()[k]>3.0) continue;
-            if (mu_glo_hasgsftrack()[k]) continue;
+            //if (mu_glo_hasgsftrack()[k]) continue;
             if (SubLeadMuon_p4.Pt()<10.0) continue;
             if (fabs(SubLeadMuon_p4.Eta())>2.4) continue;
             if (mu_glo_charge()[j]+mu_glo_charge()[k]!=0) continue;
@@ -307,7 +307,7 @@ int main(int argc, char * input[]) {
         histoContainer->Fill("MuMuMass",MuMuSystem.M());
 
         if (pho_isEBEEGap()[PhotonIndex]) continue;
-        if (!nocuts && pho_cic4cutlevel_lead()->at(PhotonIndex).at(0)<=4) continue;
+        //if (!nocuts && pho_cic4cutlevel_lead()->at(PhotonIndex).at(0)<=4) continue;
 
         string region=DetectorPosition(PhotonIndex);
         if (debug) cout << "Filling MVA Quantities" << endl;
@@ -361,8 +361,8 @@ int main(int argc, char * input[]) {
         //if (pho_isEE()[PhotonIndex] && (subleadmu_deltaeta<0.08 || subleadmu_deltaphi<0.3) ) continue;
         //if (subleadmu_deltaR<0.3) continue;
 
-        //if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
-        //if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
+        if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
+        if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
         if (leadmu_deltaR<subleadmu_deltaR && MuonP4[SubLeadMuonIndex].Pt()<30.0) continue;
         if (leadmu_deltaR>subleadmu_deltaR && MuonP4[LeadMuonIndex].Pt()<30.0) continue;
  
