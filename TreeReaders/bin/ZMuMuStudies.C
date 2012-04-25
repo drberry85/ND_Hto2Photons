@@ -31,6 +31,7 @@
 using namespace std;
 
 bool GenMatch(TVector3 Photon);
+bool PhotonPreSelection(unsigned int PhotonIndex);
 double etaTransformation(double EtaParticle, double Zvertex);
 double DeltaPhi(double Phi1, double Phi2);
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
@@ -60,6 +61,7 @@ int main(int argc, char * input[]) {
   bool bar = false;
   bool debug = false;
   bool fake = false;
+  bool higgs = false;
   bool highpt = false;
   bool mc = true;
   bool nocuts = false;
@@ -81,6 +83,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Background")) background=true;
   if (InputArgs.Contains("Debug")) debug=true;
   if (InputArgs.Contains("Fake")) fake=true;
+  if (InputArgs.Contains("Higgs")) higgs=true;
   if (InputArgs.Contains("HighPt")) highpt=true;
   if (InputArgs.Contains("NoCuts")) nocuts=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
@@ -199,6 +202,7 @@ int main(int argc, char * input[]) {
         vector<TLorentzVector> Photonp4;
         vector<TLorentzVector> MuonP4;
         map<double,unsigned int> MuonPtMap;
+        map<double,unsigned int> PhotonPtMap;
         map<double,vector<unsigned int> > TripletMassIndex;
         if (pho_n()<1) continue;
         for (unsigned int j=0; j!=(unsigned int) vtx_std_xyz()->GetSize(); j++) PrimaryVertex.push_back(*((TVector3*) vtx_std_xyz()->At(j)));
@@ -212,6 +216,7 @@ int main(int argc, char * input[]) {
         for (unsigned int j=0; j<(unsigned int) bs_xyz()->GetSize(); j++) BeamSpot.push_back(*((TVector3*) bs_xyz()->At(j)));
         for (unsigned int j=0; j<(unsigned int) pho_n(); j++) {
           Photonp4.push_back(*((TLorentzVector*) pho_p4()->At(j)));
+          PhotonPtMap[((TLorentzVector*) pho_p4()->At(j))->Pt()]=j;
           Photonxyz.push_back(*((TVector3*) pho_calopos()->At(j)));
         }
         for (unsigned int j=0; j<(unsigned int) conv_n(); j++) {
@@ -233,183 +238,201 @@ int main(int argc, char * input[]) {
           if (fabs(Muon_p4.Eta())>2.4) continue;
           MuonPtMap[Muon_p4.Pt()]=j;
         }
-        if (MuonPtMap.size()<2) continue;
-        if (debug) cout << "MuonPt Map Filled: " << MuonPtMap.size() << endl;
-        for (unsigned int j=0; j<(unsigned int) mu_glo_n(); j++) {
-          TLorentzVector LeadMuon_p4 = *((TLorentzVector*) mu_glo_p4()->At(j));
-          if (debug) cout << "Lead Trial Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
-          if (mu_glo_type()[j]<1100) continue;
-          if (mu_glo_chi2()[j]/mu_glo_dof()[j]>10.0) continue;
-          if (mu_glo_validhits()[j]<11) continue;
-          if (mu_glo_pixelhits()[j]<1) continue;
-          if (mu_glo_tkiso03()[j]>3.0) continue;
-          //if (mu_glo_hasgsftrack()[j]) continue;
-          if (LeadMuon_p4.Pt()<10.0) continue;
-          if (fabs(LeadMuon_p4.Eta())>2.4) continue;
-          if (debug) cout << "Lead Passing Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
-          for (unsigned int k=0; k<(unsigned int) mu_glo_n(); k++) {
-            TLorentzVector SubLeadMuon_p4 = *((TLorentzVector*) mu_glo_p4()->At(k));
-            if (debug) cout << "SubLead Trial Muon: " << k << " Pt: " << SubLeadMuon_p4.Pt() << endl;
-            if (j<=k) continue;
-            if (mu_glo_type()[k]<1100) continue;
-            if (mu_glo_chi2()[k]/mu_glo_dof()[k]>10.0) continue;
-            if (mu_glo_validhits()[k]<11) continue;
-            if (mu_glo_pixelhits()[k]<1) continue;
-            if (mu_glo_tkiso03()[k]>3.0) continue;
-            //if (mu_glo_hasgsftrack()[k]) continue;
-            if (SubLeadMuon_p4.Pt()<10.0) continue;
-            if (fabs(SubLeadMuon_p4.Eta())>2.4) continue;
-            if (mu_glo_charge()[j]+mu_glo_charge()[k]!=0) continue;
-            TLorentzVector MuMuSystem = MuonP4[j]+MuonP4[k];
-            if (MuMuSystem.M()<40 || MuMuSystem.M()>80) continue;
-            if (debug) cout << "SubLead Passing Muon: " << k << " Pt: " << SubLeadMuon_p4.Pt() << endl;
-            for (unsigned int l=0; l<(unsigned int) pho_n(); l++) {
-              TLorentzVector TestCandidate = LeadMuon_p4+SubLeadMuon_p4+Photonp4[l];
-              if (debug) cout << "Trial Photon: " << l << " Pt: " << Photonp4[l].Pt() << " Mass: " << TestCandidate.M() << endl;
-              if (LeadMuon_p4.Pt() > SubLeadMuon_p4.Pt()) {
-                vector<unsigned int> indexvector;
-                indexvector.push_back(j);
-                indexvector.push_back(k);
-                indexvector.push_back(l);
-                TripletMassIndex[TestCandidate.M()] = indexvector;
-              }
-              else if (LeadMuon_p4.Pt() < SubLeadMuon_p4.Pt()) {
-                vector<unsigned int> indexvector;
-                indexvector.push_back(k);
-                indexvector.push_back(j);
-                indexvector.push_back(l);
-                TripletMassIndex[TestCandidate.M()] = indexvector;
+        unsigned int LeadMuonIndex,SubLeadMuonIndex,ZMuMuPhotonIndex,LeadPhotonIndex,SubLeadPhotonIndex;
+        if (!higgs) {
+          if (MuonPtMap.size()<2) continue;
+          if (debug) cout << "MuonPt Map Filled: " << MuonPtMap.size() << endl;
+          for (unsigned int j=0; j<(unsigned int) mu_glo_n(); j++) {
+            TLorentzVector LeadMuon_p4 = *((TLorentzVector*) mu_glo_p4()->At(j));
+            if (debug) cout << "Lead Trial Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
+            if (mu_glo_type()[j]<1100) continue;
+            if (mu_glo_chi2()[j]/mu_glo_dof()[j]>10.0) continue;
+            if (mu_glo_validhits()[j]<11) continue;
+            if (mu_glo_pixelhits()[j]<1) continue;
+            if (mu_glo_tkiso03()[j]>3.0) continue;
+            //if (mu_glo_hasgsftrack()[j]) continue;
+            if (LeadMuon_p4.Pt()<10.0) continue;
+            if (fabs(LeadMuon_p4.Eta())>2.4) continue;
+            if (debug) cout << "Lead Passing Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
+            for (unsigned int k=0; k<(unsigned int) mu_glo_n(); k++) {
+              TLorentzVector SubLeadMuon_p4 = *((TLorentzVector*) mu_glo_p4()->At(k));
+              if (debug) cout << "SubLead Trial Muon: " << k << " Pt: " << SubLeadMuon_p4.Pt() << endl;
+              if (j<=k) continue;
+              if (mu_glo_type()[k]<1100) continue;
+              if (mu_glo_chi2()[k]/mu_glo_dof()[k]>10.0) continue;
+              if (mu_glo_validhits()[k]<11) continue;
+              if (mu_glo_pixelhits()[k]<1) continue;
+              if (mu_glo_tkiso03()[k]>3.0) continue;
+              //if (mu_glo_hasgsftrack()[k]) continue;
+              if (SubLeadMuon_p4.Pt()<10.0) continue;
+              if (fabs(SubLeadMuon_p4.Eta())>2.4) continue;
+              if (mu_glo_charge()[j]+mu_glo_charge()[k]!=0) continue;
+              TLorentzVector MuMuSystem = MuonP4[j]+MuonP4[k];
+              if (MuMuSystem.M()<40 || MuMuSystem.M()>80) continue;
+              if (debug) cout << "SubLead Passing Muon: " << k << " Pt: " << SubLeadMuon_p4.Pt() << endl;
+              for (unsigned int l=0; l<(unsigned int) pho_n(); l++) {
+                TLorentzVector TestCandidate = LeadMuon_p4+SubLeadMuon_p4+Photonp4[l];
+                if (debug) cout << "Trial Photon: " << l << " Pt: " << Photonp4[l].Pt() << " Mass: " << TestCandidate.M() << endl;
+                if (LeadMuon_p4.Pt() > SubLeadMuon_p4.Pt()) {
+                  vector<unsigned int> indexvector;
+                  indexvector.push_back(j);
+                  indexvector.push_back(k);
+                  indexvector.push_back(l);
+                  TripletMassIndex[TestCandidate.M()] = indexvector;
+                }
+                else if (LeadMuon_p4.Pt() < SubLeadMuon_p4.Pt()) {
+                  vector<unsigned int> indexvector;
+                  indexvector.push_back(k);
+                  indexvector.push_back(j);
+                  indexvector.push_back(l);
+                  TripletMassIndex[TestCandidate.M()] = indexvector;
+                }
               }
             }
           }
-        }
-        if (debug) cout << "Triplete Map Filled: " << TripletMassIndex.size() << endl;
-        if (TripletMassIndex.size()==0) continue;
-        double ZMassKey = 0;
-        double ZMassDelta = 9999;
-        for (map<double,vector<unsigned int> >::iterator MassIterator=TripletMassIndex.begin(); MassIterator!=TripletMassIndex.end(); ++MassIterator) {
-          double TrialZMassDelta = fabs(MassIterator->first-RealZMass);
-          if (TrialZMassDelta<ZMassDelta) {
-            ZMassDelta=TrialZMassDelta;
-            ZMassKey=MassIterator->first;
+          if (debug) cout << "Triplete Map Filled: " << TripletMassIndex.size() << endl;
+          if (TripletMassIndex.size()==0) continue;
+          double ZMassKey = 0;
+          double ZMassDelta = 9999;
+          for (map<double,vector<unsigned int> >::iterator MassIterator=TripletMassIndex.begin(); MassIterator!=TripletMassIndex.end(); ++MassIterator) {
+            double TrialZMassDelta = fabs(MassIterator->first-RealZMass);
+            if (TrialZMassDelta<ZMassDelta) {
+              ZMassDelta=TrialZMassDelta;
+              ZMassKey=MassIterator->first;
+            }
           }
+          if (debug) cout << "Triplete Selected: " << ZMassKey << endl;
+          unsigned int LeadMuonIndex = TripletMassIndex[ZMassKey][0];
+          unsigned int SubLeadMuonIndex = TripletMassIndex[ZMassKey][1];
+          unsigned int ZMuMuPhotonIndex = TripletMassIndex[ZMassKey][2];
+          //unsigned int SCIndex = pho_scind()[PhotonIndex];
+
+          if (debug) cout << "Filling MuonCharge" << endl;
+          int NetCharge = mu_glo_charge()[LeadMuonIndex]+mu_glo_charge()[SubLeadMuonIndex];
+          histoContainer->Fill("NetCharge",NetCharge);
+          TLorentzVector MuMuSystem = MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
+          histoContainer->Fill("MuMuMass",MuMuSystem.M());
+        } else {
+          if (PhotonPtMap.size()<2) continue;
+          map<double,unsigned int>::reverse_iterator PhotonIterator=PhotonPtMap.rbegin();
+          unsigned int LeadPhotonIndex=PhotonIterator->second;
+          ++PhotonIterator;
+          unsigned int SubLeadPhotonIndex=PhotonIterator->second;
         }
-        if (debug) cout << "Triplete Selected: " << ZMassKey << endl;
-        unsigned int LeadMuonIndex = TripletMassIndex[ZMassKey][0];
-        unsigned int SubLeadMuonIndex = TripletMassIndex[ZMassKey][1];
-        unsigned int PhotonIndex = TripletMassIndex[ZMassKey][2];
-        //unsigned int SCIndex = pho_scind()[PhotonIndex];
-
-        if (debug) cout << "Filling MuonCharge" << endl;
-        int NetCharge = mu_glo_charge()[LeadMuonIndex]+mu_glo_charge()[SubLeadMuonIndex];
-        histoContainer->Fill("NetCharge",NetCharge);
-        TLorentzVector MuMuSystem = MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
-        histoContainer->Fill("MuMuMass",MuMuSystem.M());
-
-        if (pho_isEBEEGap()[PhotonIndex]) continue;
-        //if (!nocuts && pho_cic4cutlevel_lead()->at(PhotonIndex).at(0)<=4) continue;
-
-        string region=DetectorPosition(PhotonIndex);
-        if (debug) cout << "Filling MVA Quantities" << endl;
-        histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_phiwidth",region,pho_tmva_id_mit_phiwidth()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_nvtx",region,pho_tmva_id_mit_nvtx()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_preshower",region,pho_tmva_id_mit_preshower()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_sceta",region,pho_tmva_id_mit_sceta()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_hoe",region,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
-        histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex],weight);
-
-//         if (pixel && pho_isEE()[PhotonIndex]) continue;
-//         if (pixel && (pho_isEE()[PhotonIndex] || pho_r9()[PhotonIndex]>1.0 || pho_hoe()[PhotonIndex]>0.05 || pho_sieie()[PhotonIndex]>0.011 ||
-//                       pho_ecalsumetconedr03()[PhotonIndex]+pho_hcalsumetconedr03()[PhotonIndex]+pho_trksumpthollowconedr03()[PhotonIndex]>6.0+.1211*rho())) continue;
-        //if (pho_r9()[PhotonIndex]<0.3) continue;
-        //if (pho_hoe()[PhotonIndex]>0.1) continue;
-        //if (pho_isEB()[PhotonIndex] && pho_sieie()[PhotonIndex]>0.01) continue;
-        //if (pho_isEE()[PhotonIndex] && pho_sieie()[PhotonIndex]>0.03) continue;
-        //if (pho_trksumpthollowconedr03()[PhotonIndex]>2.0) continue;
-        //if (pho_ecalsumetconedr03()[PhotonIndex]>4.0) continue;
-        //if (pho_hcalsumetconedr03()[PhotonIndex]>5.0) continue;
-          
-        string PassValue = "Fail";
-        if (!pixel && pho_isconv()[PhotonIndex]==1) PassValue = "Pass";
-        if (pixel && pho_haspixseed()[PhotonIndex]==0) PassValue = "Pass";
         
-        string Category = GetPhotonCat(PhotonIndex);
+        for (unsigned int PhotonIndex=0; PhotonIndex<(unsigned int) pho_n(); PhotonIndex++) {
 
-        double leadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[LeadMuonIndex].Phi()));
-        double leadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[LeadMuonIndex].Eta());
-        double leadmu_deltaR=leadmu_deltaeta*leadmu_deltaeta+leadmu_deltaphi*leadmu_deltaphi;
-        histoContainer->Fill("LeadMuDeltaPhi",leadmu_deltaphi,weight);
-        histoContainer->Fill("LeadMuDeltaEta",leadmu_deltaeta,weight);
-        //if (pho_isEB()[PhotonIndex] && (leadmu_deltaeta<0.04 || leadmu_deltaphi<0.3) ) continue;
-        //if (pho_isEE()[PhotonIndex] && (leadmu_deltaeta<0.08 || leadmu_deltaphi<0.3) ) continue;
-        //if (leadmu_deltaR<0.3) continue;
+          if (!higgs && PhotonIndex!=ZMuMuPhotonIndex) continue;
+          if (higgs && (PhotonIndex!=LeadPhotonIndex || PhotonIndex!=SubLeadPhotonIndex)) continue;
+          if (pho_isEBEEGap()[PhotonIndex]) continue;
+          if (!nocuts && PhotonPreSelection(PhotonIndex)) continue;
+          //if (!nocuts && pho_cic4cutlevel_lead()->at(PhotonIndex).at(0)<=4) continue;
+
+          string region=DetectorPosition(PhotonIndex);
+          if (debug) cout << "Filling MVA Quantities" << endl;
+          histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_phiwidth",region,pho_tmva_id_mit_phiwidth()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_nvtx",region,pho_tmva_id_mit_nvtx()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_preshower",region,pho_tmva_id_mit_preshower()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_sceta",region,pho_tmva_id_mit_sceta()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_hoe",region,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex],weight);
+
+          //         if (pixel && pho_isEE()[PhotonIndex]) continue;
+          //         if (pixel && (pho_isEE()[PhotonIndex] || pho_r9()[PhotonIndex]>1.0 || pho_hoe()[PhotonIndex]>0.05 || pho_sieie()[PhotonIndex]>0.011 ||
+          //                       pho_ecalsumetconedr03()[PhotonIndex]+pho_hcalsumetconedr03()[PhotonIndex]+pho_trksumpthollowconedr03()[PhotonIndex]>6.0+.1211*rho())) continue;
+          //if (pho_r9()[PhotonIndex]<0.3) continue;
+          //if (pho_hoe()[PhotonIndex]>0.1) continue;
+          //if (pho_isEB()[PhotonIndex] && pho_sieie()[PhotonIndex]>0.01) continue;
+          //if (pho_isEE()[PhotonIndex] && pho_sieie()[PhotonIndex]>0.03) continue;
+          //if (pho_trksumpthollowconedr03()[PhotonIndex]>2.0) continue;
+          //if (pho_ecalsumetconedr03()[PhotonIndex]>4.0) continue;
+          //if (pho_hcalsumetconedr03()[PhotonIndex]>5.0) continue;
           
-        double subleadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[SubLeadMuonIndex].Phi()));
-        double subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
-        double subleadmu_deltaR=subleadmu_deltaeta*subleadmu_deltaeta+subleadmu_deltaphi*subleadmu_deltaphi;
-        histoContainer->Fill("SubLeadMuDeltaPhi",subleadmu_deltaphi,weight);
-        histoContainer->Fill("SubLeadMuDeltaEta",subleadmu_deltaeta,weight);
-        //if (pho_isEB()[PhotonIndex] && (subleadmu_deltaeta<0.04 || subleadmu_deltaphi<0.3) ) continue;
-        //if (pho_isEE()[PhotonIndex] && (subleadmu_deltaeta<0.08 || subleadmu_deltaphi<0.3) ) continue;
-        //if (subleadmu_deltaR<0.3) continue;
+          string PassValue = "Fail";
+          if (!pixel && pho_isconv()[PhotonIndex]==1) PassValue = "Pass";
+          if (pixel && pho_haspixseed()[PhotonIndex]==0) PassValue = "Pass";
+        
+          string Category = GetPhotonCat(PhotonIndex);
 
-        if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
-        if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
-        if (leadmu_deltaR<subleadmu_deltaR && MuonP4[SubLeadMuonIndex].Pt()<30.0) continue;
-        if (leadmu_deltaR>subleadmu_deltaR && MuonP4[LeadMuonIndex].Pt()<30.0) continue;
+          TLorentzVector ZCandidate;
+          if (!higgs) {
+          double leadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[LeadMuonIndex].Phi()));
+          double leadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[LeadMuonIndex].Eta());
+          double leadmu_deltaR=leadmu_deltaeta*leadmu_deltaeta+leadmu_deltaphi*leadmu_deltaphi;
+          histoContainer->Fill("LeadMuDeltaPhi",leadmu_deltaphi,weight);
+          histoContainer->Fill("LeadMuDeltaEta",leadmu_deltaeta,weight);
+          //if (pho_isEB()[PhotonIndex] && (leadmu_deltaeta<0.04 || leadmu_deltaphi<0.3) ) continue;
+          //if (pho_isEE()[PhotonIndex] && (leadmu_deltaeta<0.08 || leadmu_deltaphi<0.3) ) continue;
+          //if (leadmu_deltaR<0.3) continue;
+          
+          double subleadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[SubLeadMuonIndex].Phi()));
+          double subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
+          double subleadmu_deltaR=subleadmu_deltaeta*subleadmu_deltaeta+subleadmu_deltaphi*subleadmu_deltaphi;
+          histoContainer->Fill("SubLeadMuDeltaPhi",subleadmu_deltaphi,weight);
+          histoContainer->Fill("SubLeadMuDeltaEta",subleadmu_deltaeta,weight);
+          //if (pho_isEB()[PhotonIndex] && (subleadmu_deltaeta<0.04 || subleadmu_deltaphi<0.3) ) continue;
+          //if (pho_isEE()[PhotonIndex] && (subleadmu_deltaeta<0.08 || subleadmu_deltaphi<0.3) ) continue;
+          //if (subleadmu_deltaR<0.3) continue;
+
+          if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
+          if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
+          if (leadmu_deltaR<subleadmu_deltaR && MuonP4[SubLeadMuonIndex].Pt()<30.0) continue;
+          if (leadmu_deltaR>subleadmu_deltaR && MuonP4[LeadMuonIndex].Pt()<30.0) continue;
  
-        TLorentzVector ZCandidate = Photonp4[PhotonIndex]+MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
-        //if (ZCandidate.M()<75.0 && ZCandidate.M()>105.0) continue;
-        if (debug && (ZCandidate.M()<87.2 || ZCandidate.M()>95.2)) cout << run() << ":" << lumis() << ":" << (unsigned int) event() << ":" << Photonp4[PhotonIndex].Pt() << endl;
+          ZCandidate = Photonp4[PhotonIndex]+MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
+          //if (ZCandidate.M()<75.0 && ZCandidate.M()>105.0) continue;
+          if (debug && (ZCandidate.M()<87.2 || ZCandidate.M()>95.2)) cout << run() << ":" << lumis() << ":" << (unsigned int) event() << ":" << Photonp4[PhotonIndex].Pt() << endl;
           
-        if (debug) cout << "Lead Muon Pt: " << MuonP4[LeadMuonIndex].Pt() << " SubLead Muon Pt: " << MuonP4[SubLeadMuonIndex].Pt() << endl;
-        if (debug) cout << "Photon Pt: " << Photonp4[PhotonIndex].Pt() << " ZMass: " << ZCandidate.M() << endl;
+          if (debug) cout << "Lead Muon Pt: " << MuonP4[LeadMuonIndex].Pt() << " SubLead Muon Pt: " << MuonP4[SubLeadMuonIndex].Pt() << endl;
+          if (debug) cout << "Photon Pt: " << Photonp4[PhotonIndex].Pt() << " ZMass: " << ZCandidate.M() << endl;
+          
+          histoContainer->Fill("LeadMuPt",MuonP4[LeadMuonIndex].Pt(),weight);
+          histoContainer->Fill("SubLeadMuPt",MuonP4[SubLeadMuonIndex].Pt(),weight);
+          histoContainer->Fill("LeadMuDeltaR",leadmu_deltaR,weight);
+          histoContainer->Fill("SubLeadMuDeltaR",subleadmu_deltaR,weight);
 
-        histoContainer->Fill("LeadMuPt",MuonP4[LeadMuonIndex].Pt(),weight);
-        histoContainer->Fill("SubLeadMuPt",MuonP4[SubLeadMuonIndex].Pt(),weight);
-        histoContainer->Fill("LeadMuDeltaR",leadmu_deltaR,weight);
-        histoContainer->Fill("SubLeadMuDeltaR",subleadmu_deltaR,weight);
+          }
+          
+          histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
+          histoContainer->Fill("PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill("PhotonEt",Photonp4[PhotonIndex].Et(),weight);
+          histoContainer->Fill("PhotonEta",Photonp4[PhotonIndex].Eta(),weight);
+          histoContainer->Fill("PhotonPhi",Photonp4[PhotonIndex].Phi(),weight);
+          histoContainer->Fill("ZMass",ZCandidate.M(),weight);
+          histoContainer->Fill("ZMassZoom",ZCandidate.M(),weight);
 
-        histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
-        histoContainer->Fill("PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
-        histoContainer->Fill("PhotonEt",Photonp4[PhotonIndex].Et(),weight);
-        histoContainer->Fill("PhotonEta",Photonp4[PhotonIndex].Eta(),weight);
-        histoContainer->Fill("PhotonPhi",Photonp4[PhotonIndex].Phi(),weight);
-        histoContainer->Fill("ZMass",ZCandidate.M(),weight);
-        histoContainer->Fill("ZMassZoom",ZCandidate.M(),weight);
+          histoContainer->Fill("Numvtx",Category,PrimaryVertex.size(),weight);
+          histoContainer->Fill("PhotonPt",Category,Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill("PhotonEt",Category,Photonp4[PhotonIndex].Et(),weight);
+          histoContainer->Fill("PhotonEta",Category,Photonp4[PhotonIndex].Eta(),weight);
+          histoContainer->Fill("PhotonPhi",Category,Photonp4[PhotonIndex].Phi(),weight);
+          histoContainer->Fill("ZMass",Category,ZCandidate.M(),weight);
+          histoContainer->Fill("ZMassZoom",Category,ZCandidate.M(),weight);
 
-        histoContainer->Fill("Numvtx",Category,PrimaryVertex.size(),weight);
-        histoContainer->Fill("PhotonPt",Category,Photonp4[PhotonIndex].Pt(),weight);
-        histoContainer->Fill("PhotonEt",Category,Photonp4[PhotonIndex].Et(),weight);
-        histoContainer->Fill("PhotonEta",Category,Photonp4[PhotonIndex].Eta(),weight);
-        histoContainer->Fill("PhotonPhi",Category,Photonp4[PhotonIndex].Phi(),weight);
-        histoContainer->Fill("ZMass",Category,ZCandidate.M(),weight);
-        histoContainer->Fill("ZMassZoom",Category,ZCandidate.M(),weight);
+          histoContainer->Fill(PassValue,"Numvtx",PrimaryVertex.size(),weight);
+          histoContainer->Fill(PassValue,"PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill(PassValue,"PhotonEt",Photonp4[PhotonIndex].Et(),weight);
+          histoContainer->Fill(PassValue,"PhotonEta",Photonp4[PhotonIndex].Eta(),weight);
+          histoContainer->Fill(PassValue,"PhotonPhi",Photonp4[PhotonIndex].Phi(),weight);
+          histoContainer->Fill(PassValue,"ZMass",ZCandidate.M(),weight);
+          histoContainer->Fill(PassValue,"ZMassZoom",ZCandidate.M(),weight);
 
-        histoContainer->Fill(PassValue,"Numvtx",PrimaryVertex.size(),weight);
-        histoContainer->Fill(PassValue,"PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
-        histoContainer->Fill(PassValue,"PhotonEt",Photonp4[PhotonIndex].Et(),weight);
-        histoContainer->Fill(PassValue,"PhotonEta",Photonp4[PhotonIndex].Eta(),weight);
-        histoContainer->Fill(PassValue,"PhotonPhi",Photonp4[PhotonIndex].Phi(),weight);
-        histoContainer->Fill(PassValue,"ZMass",ZCandidate.M(),weight);
-        histoContainer->Fill(PassValue,"ZMassZoom",ZCandidate.M(),weight);
-
-        histoContainer->Fill(PassValue,"Numvtx",Category,PrimaryVertex.size(),weight);
-        histoContainer->Fill(PassValue,"PhotonPt",Category,Photonp4[PhotonIndex].Pt(),weight);
-        histoContainer->Fill(PassValue,"PhotonEt",Category,Photonp4[PhotonIndex].Et(),weight);
-        histoContainer->Fill(PassValue,"PhotonEta",Category,Photonp4[PhotonIndex].Eta(),weight);
-        histoContainer->Fill(PassValue,"PhotonPhi",Category,Photonp4[PhotonIndex].Phi(),weight);
-        histoContainer->Fill(PassValue,"ZMass",Category,ZCandidate.M(),weight);
-        histoContainer->Fill(PassValue,"ZMassZoom",Category,ZCandidate.M(),weight);
-        
+          histoContainer->Fill(PassValue,"Numvtx",Category,PrimaryVertex.size(),weight);
+          histoContainer->Fill(PassValue,"PhotonPt",Category,Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill(PassValue,"PhotonEt",Category,Photonp4[PhotonIndex].Et(),weight);
+          histoContainer->Fill(PassValue,"PhotonEta",Category,Photonp4[PhotonIndex].Eta(),weight);
+          histoContainer->Fill(PassValue,"PhotonPhi",Category,Photonp4[PhotonIndex].Phi(),weight);
+          histoContainer->Fill(PassValue,"ZMass",Category,ZCandidate.M(),weight);
+          histoContainer->Fill(PassValue,"ZMassZoom",Category,ZCandidate.M(),weight);
+        }
       }    
 
       delete filechain;
@@ -442,6 +465,39 @@ bool GenMatch(TVector3 Photon) {
   }
 
   return false;
+}
+
+bool PhotonPreSelection(unsigned int PhotonIndex) {
+
+  TLorentzVector PhotonP4 = *((TLorentzVector*) pho_p4()->At(PhotonIndex));
+  double EtCorrEcalIso = pho_ecalsumetconedr03()[PhotonIndex] - 0.012*PhotonP4.Pt();
+  double EtCorrHcalIso = pho_hcalsumetconedr03()[PhotonIndex] - 0.005*PhotonP4.Pt();
+  double EtCorrTrkIso = pho_trksumpthollowconedr03()[PhotonIndex] - 0.002*PhotonP4.Pt();
+  double PuCorrHcalEcal = pho_ecalsumetconedr03()[PhotonIndex] + pho_hcalsumetconedr03()[PhotonIndex] - rho()*0.17;
+  double AbsTrkIsoCIC = pho_tkiso_recvtx_030_002_0000_10_01()->at(PhotonIndex).at(0);
+  
+  if (pho_r9()[PhotonIndex]<=0.9) {
+    if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.014)) return false;
+    if (pho_isEE()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.034)) return false;
+    if (EtCorrEcalIso>4.0) return false;
+    if (EtCorrHcalIso>4.0) return false;
+    if (EtCorrTrkIso>4.0) return false;
+    if (PuCorrHcalEcal>3.0) return false;
+    if (AbsTrkIsoCIC>2.8) return false;
+    if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    return true;
+  } else {
+    if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.082 || pho_sieie()[PhotonIndex]>0.014)) return false;
+    if (pho_isEE()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.034)) return false;
+    if (EtCorrEcalIso>50.0) return false;
+    if (EtCorrHcalIso>50.0) return false;
+    if (EtCorrTrkIso>50.0) return false;
+    if (PuCorrHcalEcal>3.0) return false;
+    if (AbsTrkIsoCIC>2.8) return false;
+    if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    return true;
+  }
+
 }
 
 double etaTransformation(double EtaParticle, double Zvertex)  {
@@ -549,6 +605,7 @@ map<TString,double> GetkFactor() {
 
   kFactor["ZMuMu"]=1.0;
   kFactor["TTJets"]=1.0;
+  kFactor["Higgs120GeV"]=1.0;
   return kFactor;
   
 }
@@ -560,6 +617,8 @@ map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweig
   WeightsMap["ZMuMu_Summer11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
   WeightsMap["ZMuMu_Fall11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
   WeightsMap["TTJets"]=kFactor["TTJets"]*94.76/3701947.0;
+  WeightsMap["HiggsS4"]=kFactor["Higgs120GeV"]*16.63/105132;
+  WeightsMap["HiggsS6"]=kFactor["Higgs120GeV"]*16.63/105132;
   return WeightsMap;
   
 }
@@ -732,15 +791,23 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   }
   if (inputstring.Contains("Fall11")) {
     inputfilelist.push_back(pair<string,int> ("Fall11.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Fall11.root",kFactor["ZMuMu"]*WeightsMap["ZMuMu_Fall11"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Fall11.root",WeightsMap["ZMuMu_Fall11"]));
   }
   if (inputstring.Contains("Summer11")) {
     inputfilelist.push_back(pair<string,int> ("Summer11.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Summer11.root",kFactor["ZMuMu"]*WeightsMap["ZMuMu_Summer11"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Summer11.root",WeightsMap["ZMuMu_Summer11"]));
   }
   if (inputstring.Contains("TTJets")) {
     inputfilelist.push_back(pair<string,int> ("TTJets.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/TTJets.root",kFactor["TTJets"]*WeightsMap["TTJets"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/TTJets.root",WeightsMap["TTJets"]));
+  }
+  if (inputstring.Contains("HiggsS4")) {
+    inputfilelist.push_back(pair<string,int> ("HiggsS4.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/120GeVHiggs_S4.root",WeightsMap["HiggsS4"]));
+  }
+  if (inputstring.Contains("HiggsS6")) {
+    inputfilelist.push_back(pair<string,int> ("HiggsS6.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/120GeVHiggs_S6.root",WeightsMap["HiggsS6"]));
   }
 
 }
@@ -753,9 +820,11 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   
   inputfilelist.push_back(pair<string,int> (outfile,1));
   if (inputstring.Contains("Run2011A") || inputstring.Contains("Run2011B") || inputstring.Contains("Data")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("TTJets")) inputvector.push_back(pair<string,float> (infile,kFactor["TTJets"]*WeightsMap["TTJets"]));
-  if (inputstring.Contains("Fall11")) inputvector.push_back(pair<string,float> (infile,kFactor["ZMuMu"]*WeightsMap["ZMuMu_Fall11"]));
-  if (inputstring.Contains("Summer11")) inputvector.push_back(pair<string,float> (infile,kFactor["ZMuMu"]*WeightsMap["ZMuMu_Summer11"]));
+  if (inputstring.Contains("TTJets")) inputvector.push_back(pair<string,float> (infile,WeightsMap["TTJets"]));
+  if (inputstring.Contains("Fall11")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Fall11"]));
+  if (inputstring.Contains("Summer11")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Summer11"]));
+  if (inputstring.Contains("HiggsS4")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS4"]));
+  if (inputstring.Contains("HiigsS6")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS6"]));
 
 }
 
