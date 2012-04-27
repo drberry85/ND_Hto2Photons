@@ -63,6 +63,7 @@ int main(int argc, char * input[]) {
   bool fake = false;
   bool higgs = false;
   bool highpt = false;
+  bool presel = false;
   bool mc = true;
   bool nocuts = false;
   bool onevertex = false;
@@ -85,6 +86,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Fake")) fake=true;
   if (InputArgs.Contains("Higgs")) higgs=true;
   if (InputArgs.Contains("HighPt")) highpt=true;
+  if (InputArgs.Contains("PreSel")) presel=true;
   if (InputArgs.Contains("NoCuts")) nocuts=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
   if (InputArgs.Contains("OnePhoton")) onephoton=true;
@@ -124,6 +126,7 @@ int main(int argc, char * input[]) {
       if (usesimvertex) outfilename.ReplaceAll(".root","_SimVertex.root");
       if (background) outfilename.ReplaceAll(".root","_Background.root");
       if (nocuts) outfilename.ReplaceAll(".root","_NoCuts.root");
+      if (presel) outfilename.ReplaceAll(".root","_PhoPresel.root");
       if (onephoton) outfilename.ReplaceAll(".root","_OnePhoton.root");
       if (fake) outfilename.ReplaceAll(".root","_Fake.root");
       if (highpt) outfilename.ReplaceAll(".root","_HighPt.root");
@@ -238,6 +241,7 @@ int main(int argc, char * input[]) {
           if (fabs(Muon_p4.Eta())>2.4) continue;
           MuonPtMap[Muon_p4.Pt()]=j;
         }
+	map<double,unsigned int>::reverse_iterator PhotonIterator;
         unsigned int LeadMuonIndex,SubLeadMuonIndex,ZMuMuPhotonIndex,LeadPhotonIndex,SubLeadPhotonIndex;
         if (!higgs) {
           if (MuonPtMap.size()<2) continue;
@@ -289,7 +293,7 @@ int main(int argc, char * input[]) {
                 }
               }
             }
-          }
+	  }
           if (debug) cout << "Triplete Map Filled: " << TripletMassIndex.size() << endl;
           if (TripletMassIndex.size()==0) continue;
           double ZMassKey = 0;
@@ -302,48 +306,43 @@ int main(int argc, char * input[]) {
             }
           }
           if (debug) cout << "Triplete Selected: " << ZMassKey << endl;
-          unsigned int LeadMuonIndex = TripletMassIndex[ZMassKey][0];
-          unsigned int SubLeadMuonIndex = TripletMassIndex[ZMassKey][1];
-          unsigned int ZMuMuPhotonIndex = TripletMassIndex[ZMassKey][2];
+	  LeadMuonIndex = TripletMassIndex[ZMassKey][0];
+          SubLeadMuonIndex = TripletMassIndex[ZMassKey][1];
+          ZMuMuPhotonIndex = TripletMassIndex[ZMassKey][2];
           //unsigned int SCIndex = pho_scind()[PhotonIndex];
-
+          if (debug) cout << "  LeadMuonIndex " <<  LeadMuonIndex << "  SubLeadMuonIndex " << SubLeadMuonIndex << endl;
+          if (debug) cout << " Lead  pt " << MuonP4[LeadMuonIndex].Pt() << " SubLead Pt: " << MuonP4[SubLeadMuonIndex].Pt() << endl;
           if (debug) cout << "Filling MuonCharge" << endl;
           int NetCharge = mu_glo_charge()[LeadMuonIndex]+mu_glo_charge()[SubLeadMuonIndex];
           histoContainer->Fill("NetCharge",NetCharge);
           TLorentzVector MuMuSystem = MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
           histoContainer->Fill("MuMuMass",MuMuSystem.M());
-        } else {
+        }else { // higgs selection
           if (PhotonPtMap.size()<2) continue;
-          map<double,unsigned int>::reverse_iterator PhotonIterator=PhotonPtMap.rbegin();
-          unsigned int LeadPhotonIndex=PhotonIterator->second;
+          PhotonIterator=PhotonPtMap.rbegin();
+	  LeadPhotonIndex=PhotonIterator->second;
           ++PhotonIterator;
-          unsigned int SubLeadPhotonIndex=PhotonIterator->second;
+          SubLeadPhotonIndex=PhotonIterator->second;
         }
-        
+
+	if (debug)  cout << " Lead " << LeadPhotonIndex << " Sub " << SubLeadPhotonIndex << "Higgs " << higgs<< endl;        
         for (unsigned int PhotonIndex=0; PhotonIndex<(unsigned int) pho_n(); PhotonIndex++) {
 
           if (!higgs && PhotonIndex!=ZMuMuPhotonIndex) continue;
-          if (higgs && (PhotonIndex!=LeadPhotonIndex || PhotonIndex!=SubLeadPhotonIndex)) continue;
+          if (debug)  cout << " pho index " << PhotonIndex << endl;
+          if ( higgs && debug ) {
+            if ( PhotonIndex == LeadPhotonIndex ) cout << " Here we are with Lead " << endl; 
+            if ( PhotonIndex == SubLeadPhotonIndex ) cout << " Here we are with Sub " << endl; 
+
+	  }
+	  //	  if (higgs &&  (PhotonIndex!=LeadPhotonIndex || PhotonIndex!=SubLeadPhotonIndex)) continue;
+          
+          if (debug)  cout << " I am  passing from here " << endl;
           if (pho_isEBEEGap()[PhotonIndex]) continue;
-          if (!nocuts && PhotonPreSelection(PhotonIndex)) continue;
+	  if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
+          if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
           //if (!nocuts && pho_cic4cutlevel_lead()->at(PhotonIndex).at(0)<=4) continue;
 
-          string region=DetectorPosition(PhotonIndex);
-          if (debug) cout << "Filling MVA Quantities" << endl;
-          histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_phiwidth",region,pho_tmva_id_mit_phiwidth()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_nvtx",region,pho_tmva_id_mit_nvtx()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_preshower",region,pho_tmva_id_mit_preshower()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_sceta",region,pho_tmva_id_mit_sceta()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_hoe",region,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex],weight);
 
           //         if (pixel && pho_isEE()[PhotonIndex]) continue;
           //         if (pixel && (pho_isEE()[PhotonIndex] || pho_r9()[PhotonIndex]>1.0 || pho_hoe()[PhotonIndex]>0.05 || pho_sieie()[PhotonIndex]>0.011 ||
@@ -371,7 +370,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("LeadMuDeltaEta",leadmu_deltaeta,weight);
           //if (pho_isEB()[PhotonIndex] && (leadmu_deltaeta<0.04 || leadmu_deltaphi<0.3) ) continue;
           //if (pho_isEE()[PhotonIndex] && (leadmu_deltaeta<0.08 || leadmu_deltaphi<0.3) ) continue;
-          //if (leadmu_deltaR<0.3) continue;
+	  // if (leadmu_deltaR<0.3) continue;
           
           double subleadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[SubLeadMuonIndex].Phi()));
           double subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
@@ -401,6 +400,28 @@ int main(int argc, char * input[]) {
 
           }
           
+
+          string region=DetectorPosition(PhotonIndex);
+          if (debug) cout << "Filling MVA Quantities" << endl;
+	  histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_phiwidth",region,pho_tmva_id_mit_phiwidth()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_nvtx",region,pho_tmva_id_mit_nvtx()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_preshower",region,pho_tmva_id_mit_preshower()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_sceta",region,pho_tmva_id_mit_sceta()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_hoe",region,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex],weight);
+
+
+
+
           histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
           histoContainer->Fill("PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
           histoContainer->Fill("PhotonEt",Photonp4[PhotonIndex].Et(),weight);
@@ -757,6 +778,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookCutsAndCategories(histoContainer,"ZMass","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",30,75,105);
   BookCutsAndCategories(histoContainer,"ZMassZoom","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",16,87.2,95.2);
 
+  BookBarrelAndEndcap(histoContainer,"pho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_idmva","pho_idmva: region;idmva value;Counts",150,-1,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso1: region;tmva_id_mit_tiso1;Counts",110,-10,100);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso2","pho_tmva_id_mit_tiso2: region;tmva_id_mit_tiso2;Counts",110,-10,100);
