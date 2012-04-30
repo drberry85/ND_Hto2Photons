@@ -66,6 +66,7 @@ int main(int argc, char * input[]) {
   bool presel = false;
   bool mc = true;
   bool nocuts = false;
+  bool  nearMuonDRcut = false; 
   bool onevertex = false;
   bool onephoton = false;
   bool pixel = false;
@@ -87,6 +88,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Higgs")) higgs=true;
   if (InputArgs.Contains("HighPt")) highpt=true;
   if (InputArgs.Contains("PreSel")) presel=true;
+  if (InputArgs.Contains("NearMuonDRCut")) nearMuonDRcut=true;
   if (InputArgs.Contains("NoCuts")) nocuts=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
   if (InputArgs.Contains("OnePhoton")) onephoton=true;
@@ -127,6 +129,7 @@ int main(int argc, char * input[]) {
       if (background) outfilename.ReplaceAll(".root","_Background.root");
       if (nocuts) outfilename.ReplaceAll(".root","_NoCuts.root");
       if (presel) outfilename.ReplaceAll(".root","_PhoPresel.root");
+      if (nearMuonDRcut ) outfilename.ReplaceAll(".root","_NearMuonDRCut.root");
       if (onephoton) outfilename.ReplaceAll(".root","_OnePhoton.root");
       if (fake) outfilename.ReplaceAll(".root","_Fake.root");
       if (highpt) outfilename.ReplaceAll(".root","_HighPt.root");
@@ -242,7 +245,8 @@ int main(int argc, char * input[]) {
           MuonPtMap[Muon_p4.Pt()]=j;
         }
 	map<double,unsigned int>::reverse_iterator PhotonIterator;
-        unsigned int LeadMuonIndex,SubLeadMuonIndex,ZMuMuPhotonIndex,LeadPhotonIndex,SubLeadPhotonIndex;
+        unsigned int LeadMuonIndex,SubLeadMuonIndex,ZMuMuPhotonIndex,LeadPhotonIndex,SubLeadPhotonIndex = 0;
+        unsigned int NearMuonIndex,FarMuonIndex =0 ;
         if (!higgs) {
           if (MuonPtMap.size()<2) continue;
           if (debug) cout << "MuonPt Map Filled: " << MuonPtMap.size() << endl;
@@ -380,11 +384,25 @@ int main(int argc, char * input[]) {
           //if (pho_isEB()[PhotonIndex] && (subleadmu_deltaeta<0.04 || subleadmu_deltaphi<0.3) ) continue;
           //if (pho_isEE()[PhotonIndex] && (subleadmu_deltaeta<0.08 || subleadmu_deltaphi<0.3) ) continue;
           //if (subleadmu_deltaR<0.3) continue;
+	  if (leadmu_deltaR<subleadmu_deltaR) {
+              NearMuonIndex=LeadMuonIndex;
+	      FarMuonIndex= SubLeadMuonIndex;
+	  } else {
+	    NearMuonIndex=SubLeadMuonIndex;
+            FarMuonIndex = LeadMuonIndex;
+	  }
+	  if ( mu_glo_hasgsftrack()[NearMuonIndex]) continue;
+          if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
+       
+	  double nearmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[NearMuonIndex].Phi()));
+	  double nearmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[NearMuonIndex].Eta());
+          double nearmu_deltaR=nearmu_deltaeta*nearmu_deltaeta+nearmu_deltaphi*nearmu_deltaphi;
+	  if ( nearMuonDRcut && nearmu_deltaR<0.2) continue; 
 
-          if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
-          if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
-          if (leadmu_deltaR<subleadmu_deltaR && MuonP4[SubLeadMuonIndex].Pt()<30.0) continue;
-          if (leadmu_deltaR>subleadmu_deltaR && MuonP4[LeadMuonIndex].Pt()<30.0) continue;
+	  //          if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
+          // if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
+	  //          if (leadmu_deltaR<subleadmu_deltaR && MuonP4[SubLeadMuonIndex].Pt()<30.0) continue;
+          //if (leadmu_deltaR>subleadmu_deltaR && MuonP4[LeadMuonIndex].Pt()<30.0) continue;
  
           ZCandidate = Photonp4[PhotonIndex]+MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
           //if (ZCandidate.M()<75.0 && ZCandidate.M()>105.0) continue;
@@ -395,8 +413,10 @@ int main(int argc, char * input[]) {
           
           histoContainer->Fill("LeadMuPt",MuonP4[LeadMuonIndex].Pt(),weight);
           histoContainer->Fill("SubLeadMuPt",MuonP4[SubLeadMuonIndex].Pt(),weight);
+          histoContainer->Fill("NearMuPt",MuonP4[NearMuonIndex].Pt(),weight);
           histoContainer->Fill("LeadMuDeltaR",leadmu_deltaR,weight);
           histoContainer->Fill("SubLeadMuDeltaR",subleadmu_deltaR,weight);
+          histoContainer->Fill("NearMuDeltaR",nearmu_deltaR,weight);
 
           }
           
@@ -769,6 +789,8 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("SubLeadMuDeltaR","#DeltaR to sublead #mu;#DeltaR;Counts",30,0,6);
   histoContainer->Add("LeadMuPt","Pt of Lead Muon;Pt (GeV);Counts",100,0,100);
   histoContainer->Add("SubLeadMuPt","Pt of SubLead Muon;Pt (GeV);Counts",100,0,100);
+  histoContainer->Add("NearMuPt","Pt of Near Muon;Pt (GeV);Counts",100,0,100);
+  histoContainer->Add("NearMuDeltaR","Near Muon #DeltaR  #mu;#DeltaR;Counts",30,0,6);
 
   BookCutsAndCategories(histoContainer,"Numvtx","Number of Primary Verticies:Cuts:Cat;Number of Vertices;Counts",100,0,100);
   BookCutsAndCategories(histoContainer,"PhotonPt","Pt of Photon:Cuts:Cat;Pt (GeV);Counts",100,0,200);
