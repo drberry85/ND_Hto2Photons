@@ -323,6 +323,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("MuMuMass",MuMuSystem.M());
         }else { // higgs selection
           if (PhotonPtMap.size()<2) continue;
+          if (debug) for (map<double,unsigned int>::reverse_iterator itPhotonPtMap=PhotonPtMap.rbegin(); itPhotonPtMap!=PhotonPtMap.rend(); itPhotonPtMap++) cout << "Photon Pt:" << itPhotonPtMap->first <<  "Photon Index: " << itPhotonPtMap->second << endl;
           PhotonIterator=PhotonPtMap.rbegin();
           LeadPhotonIndex=PhotonIterator->second;
           ++PhotonIterator;
@@ -339,7 +340,7 @@ int main(int argc, char * input[]) {
             if ( PhotonIndex == SubLeadPhotonIndex ) cout << " Here we are with Sub " << endl; 
 
           }
-          //if (higgs &&  (PhotonIndex!=LeadPhotonIndex || PhotonIndex!=SubLeadPhotonIndex)) continue;
+          if (higgs && PhotonIndex!=LeadPhotonIndex && PhotonIndex!=SubLeadPhotonIndex) continue;
           
           if (debug)  cout << " I am  passing from here " << endl;
           if (pho_isEBEEGap()[PhotonIndex]) continue;
@@ -882,6 +883,10 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Summer11.h"
   } else if (inputstring.Contains("Fall11")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Fall11.h"
+  } else if (inputstring.Contains("HiggsS4")) {
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_HiggsS4.h"
+  } else if (inputstring.Contains("HiggsS6")) {
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_HiggsS6.h"
   } else {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
   }
