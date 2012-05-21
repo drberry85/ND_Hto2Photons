@@ -871,7 +871,7 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   if (inputstring.Contains("Fall11")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Fall11"]));
   if (inputstring.Contains("Summer11")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Summer11"]));
   if (inputstring.Contains("HiggsS4")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS4"]));
-  if (inputstring.Contains("HiigsS6")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS6"]));
+  if (inputstring.Contains("HiggsS6")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS6"]));
 
 }
 
