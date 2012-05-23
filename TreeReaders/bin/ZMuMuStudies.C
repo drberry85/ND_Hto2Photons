@@ -46,6 +46,7 @@ TLorentzVector dgieuler(TLorentzVector parent, TLorentzVector daughter);
 TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
 int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
+void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,int binsb, float lowerlimitb, float upperlimitb);
 void BookHistograms(HistoContainer *histoContainer);
 void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap);
 void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap);
@@ -245,8 +246,13 @@ int main(int argc, char * input[]) {
           MuonPtMap[Muon_p4.Pt()]=j;
         }
         map<double,unsigned int>::reverse_iterator PhotonIterator;
-        unsigned int LeadMuonIndex,SubLeadMuonIndex,ZMuMuPhotonIndex,LeadPhotonIndex,SubLeadPhotonIndex = 0;
-        unsigned int NearMuonIndex,FarMuonIndex =0 ;
+        unsigned int LeadMuonIndex=0;
+        unsigned int SubLeadMuonIndex=0;
+        unsigned int ZMuMuPhotonIndex=0;
+        unsigned int LeadPhotonIndex=0;
+        unsigned int SubLeadPhotonIndex = 0;
+        unsigned int NearMuonIndex=0;
+        unsigned int FarMuonIndex =0 ;
         if (!higgs) {
           if (MuonPtMap.size()<2) continue;
           if (debug) cout << "MuonPt Map Filled: " << MuonPtMap.size() << endl;
@@ -345,21 +351,51 @@ int main(int argc, char * input[]) {
           if (debug)  cout << " I am  passing from here " << endl;
           if (pho_isEBEEGap()[PhotonIndex]) continue;
           if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
+	  string region=DetectorPosition(PhotonIndex);
+
+
+
+	  double leadmu_deltaphi=-1;
+	  double leadmu_deltaeta=-1;
+	  double leadmu_deltaR=-1;
+	  double subleadmu_deltaphi=-1;
+	  double subleadmu_deltaeta=-1;
+	  double subleadmu_deltaR=-1;
+	  double nearmu_deltaphi=-1;
+	  double nearmu_deltaeta =-1;
+	  double nearmu_deltaR=-1;
+          if (!higgs) { // define muon quantities if not an higgs sample
+            leadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[LeadMuonIndex].Phi()));
+            leadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[LeadMuonIndex].Eta());
+            leadmu_deltaR=sqrt(leadmu_deltaeta*leadmu_deltaeta+leadmu_deltaphi*leadmu_deltaphi);
+
+            subleadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[SubLeadMuonIndex].Phi()));
+	    subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
+            subleadmu_deltaR=sqrt(subleadmu_deltaeta*subleadmu_deltaeta+subleadmu_deltaphi*subleadmu_deltaphi);
+
+            if (leadmu_deltaR<subleadmu_deltaR) {
+              NearMuonIndex=LeadMuonIndex;
+              FarMuonIndex= SubLeadMuonIndex;
+            } else {
+              NearMuonIndex=SubLeadMuonIndex;
+              FarMuonIndex = LeadMuonIndex;
+            }
+
+            nearmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[NearMuonIndex].Phi()));
+	    nearmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[NearMuonIndex].Eta());
+	    nearmu_deltaR=sqrt(nearmu_deltaeta*nearmu_deltaeta+nearmu_deltaphi*nearmu_deltaphi);
+
+
+	  } // end of !higgs
+
+
+	  histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
+	  histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
+	  histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
+
+
           if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
-          //if (!nocuts && pho_cic4cutlevel_lead()->at(PhotonIndex).at(0)<=4) continue;
 
-
-          //         if (pixel && pho_isEE()[PhotonIndex]) continue;
-          //         if (pixel && (pho_isEE()[PhotonIndex] || pho_r9()[PhotonIndex]>1.0 || pho_hoe()[PhotonIndex]>0.05 || pho_sieie()[PhotonIndex]>0.011 ||
-          //                       pho_ecalsumetconedr03()[PhotonIndex]+pho_hcalsumetconedr03()[PhotonIndex]+pho_trksumpthollowconedr03()[PhotonIndex]>6.0+.1211*rho())) continue;
-          //if (pho_r9()[PhotonIndex]<0.3) continue;
-          //if (pho_hoe()[PhotonIndex]>0.1) continue;
-          //if (pho_isEB()[PhotonIndex] && pho_sieie()[PhotonIndex]>0.01) continue;
-          //if (pho_isEE()[PhotonIndex] && pho_sieie()[PhotonIndex]>0.03) continue;
-          //if (pho_trksumpthollowconedr03()[PhotonIndex]>2.0) continue;
-          //if (pho_ecalsumetconedr03()[PhotonIndex]>4.0) continue;
-          //if (pho_hcalsumetconedr03()[PhotonIndex]>5.0) continue;
-          
           string PassValue = "Fail";
           if (!pixel && pho_isconv()[PhotonIndex]==1) PassValue = "Pass";
           if (pixel && pho_haspixseed()[PhotonIndex]==0) PassValue = "Pass";
@@ -368,43 +404,27 @@ int main(int argc, char * input[]) {
 
           TLorentzVector ZCandidate;
           if (!higgs) {
-            double leadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[LeadMuonIndex].Phi()));
-            double leadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[LeadMuonIndex].Eta());
-            double leadmu_deltaR=leadmu_deltaeta*leadmu_deltaeta+leadmu_deltaphi*leadmu_deltaphi;
             histoContainer->Fill("LeadMuDeltaPhi",leadmu_deltaphi,weight);
             histoContainer->Fill("LeadMuDeltaEta",leadmu_deltaeta,weight);
-            //if (pho_isEB()[PhotonIndex] && (leadmu_deltaeta<0.04 || leadmu_deltaphi<0.3) ) continue;
-            //if (pho_isEE()[PhotonIndex] && (leadmu_deltaeta<0.08 || leadmu_deltaphi<0.3) ) continue;
-            // if (leadmu_deltaR<0.3) continue;
-          
-            double subleadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[SubLeadMuonIndex].Phi()));
-            double subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
-            double subleadmu_deltaR=subleadmu_deltaeta*subleadmu_deltaeta+subleadmu_deltaphi*subleadmu_deltaphi;
             histoContainer->Fill("SubLeadMuDeltaPhi",subleadmu_deltaphi,weight);
             histoContainer->Fill("SubLeadMuDeltaEta",subleadmu_deltaeta,weight);
-            //if (pho_isEB()[PhotonIndex] && (subleadmu_deltaeta<0.04 || subleadmu_deltaphi<0.3) ) continue;
-            //if (pho_isEE()[PhotonIndex] && (subleadmu_deltaeta<0.08 || subleadmu_deltaphi<0.3) ) continue;
-            //if (subleadmu_deltaR<0.3) continue;
-            if (leadmu_deltaR<subleadmu_deltaR) {
-              NearMuonIndex=LeadMuonIndex;
-              FarMuonIndex= SubLeadMuonIndex;
-            } else {
-              NearMuonIndex=SubLeadMuonIndex;
-              FarMuonIndex = LeadMuonIndex;
-            }
+
             if ( mu_glo_hasgsftrack()[NearMuonIndex]) continue;
             if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
-       
-            double nearmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[NearMuonIndex].Phi()));
-            double nearmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[NearMuonIndex].Eta());
-            double nearmu_deltaR=nearmu_deltaeta*nearmu_deltaeta+nearmu_deltaphi*nearmu_deltaphi;
-            if ( nearMuonDRcut && nearmu_deltaR<0.2) continue; 
 
-            //          if (leadmu_deltaR<subleadmu_deltaR && mu_glo_hasgsftrack()[LeadMuonIndex]) continue;
-            // if (leadmu_deltaR>subleadmu_deltaR && mu_glo_hasgsftrack()[SubLeadMuonIndex]) continue;
-            //          if (leadmu_deltaR<subleadmu_deltaR && MuonP4[SubLeadMuonIndex].Pt()<30.0) continue;
-            //if (leadmu_deltaR>subleadmu_deltaR && MuonP4[LeadMuonIndex].Pt()<30.0) continue;
- 
+            histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
+            histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
+            histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
+            histoContainer->Fill("NearMuDeltaRBeforeCut",nearmu_deltaR,weight);
+	    histoContainer->Fill("NearMuDeltaEtaDeltaPhiBeforeCut",nearmu_deltaeta,nearmu_deltaphi,weight);
+
+	    if ( nearMuonDRcut && nearmu_deltaR<0.4) continue; 
+	    //	    if ( nearMuonDRcut && ( nearmu_deltaphi < 0.1 &&   nearmu_deltaeta < 0.3 ) ) continue;
+
+	    histoContainer->Fill("NearMuDeltaRAfterCut",nearmu_deltaR,weight);
+	    histoContainer->Fill("NearMuDeltaEtaDeltaPhiAfterCut",nearmu_deltaeta,nearmu_deltaphi,weight);
+
+
             ZCandidate = Photonp4[PhotonIndex]+MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
             //if (ZCandidate.M()<75.0 && ZCandidate.M()>105.0) continue;
             if (debug && (ZCandidate.M()<87.2 || ZCandidate.M()>95.2)) cout << run() << ":" << lumis() << ":" << (unsigned int) event() << ":" << Photonp4[PhotonIndex].Pt() << endl;
@@ -417,30 +437,48 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("NearMuPt",MuonP4[NearMuonIndex].Pt(),weight);
             histoContainer->Fill("LeadMuDeltaR",leadmu_deltaR,weight);
             histoContainer->Fill("SubLeadMuDeltaR",subleadmu_deltaR,weight);
-            histoContainer->Fill("NearMuDeltaR",nearmu_deltaR,weight);
 
           }
           
 
-          string region=DetectorPosition(PhotonIndex);
+          
           if (debug) cout << "Filling MVA Quantities" << endl;
           histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
           histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex],weight);
+          float r9W=1.;
+          float etawidthW=1.;
+          float phiwidthW=1.;
+          float sietaietaW=1.;
+          float sietaietaSlope=0.;
+	  if (InputArgs.Contains("HiggsS6") || InputArgs.Contains("Fall11" ) )  {
+	    r9W*=1.0035;
+	    etawidthW*=0.99;
+	    phiwidthW*=0.99;
+            if ( region=="Barrel") {
+	      sietaietaW*=0.87; 
+	      sietaietaSlope=0.0011;
+	    } else {
+	      sietaietaW*=0.99;
+	    }
+	  }
+
+
+	  histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex]*r9W,weight);
           histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_phiwidth",region,pho_tmva_id_mit_phiwidth()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex]*etawidthW,weight);
+          histoContainer->Fill("pho_tmva_id_mit_phiwidth",region,pho_tmva_id_mit_phiwidth()[PhotonIndex]*phiwidthW,weight);
           histoContainer->Fill("pho_tmva_id_mit_nvtx",region,pho_tmva_id_mit_nvtx()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_preshower",region,pho_tmva_id_mit_preshower()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_sceta",region,pho_tmva_id_mit_sceta()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_hoe",region,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex],weight);
-
-
+	  if ( region=="Barrel") 
+	    histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);	
+	  else 
+	    histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW,weight);
 
 
           histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
@@ -758,6 +796,17 @@ void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TStri
   }
 }
 
+void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita, int binsb, float lowerlimitb, float upperlimitb ) {
+  TString Regions[2] = {"Barrel","Endcap"};
+  for (int i=0; i<2; i++) {
+    TString histnametemp = histname;
+    TString histtitletemp = histtitle;
+    histnametemp += Regions[i];
+    histtitletemp.ReplaceAll("region",Regions[i]);
+    histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),binsa,lowerlimita,upperlimita,binsb,lowerlimitb,upperlimitb);
+  }
+}
+
 void BookCutsAndCategories(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
 
   TString Cuts[3] = {"","Pass","Fail"};
@@ -793,7 +842,21 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("LeadMuPt","Pt of Lead Muon;Pt (GeV);Counts",100,0,100);
   histoContainer->Add("SubLeadMuPt","Pt of SubLead Muon;Pt (GeV);Counts",100,0,100);
   histoContainer->Add("NearMuPt","Pt of Near Muon;Pt (GeV);Counts",100,0,100);
-  histoContainer->Add("NearMuDeltaR","Near Muon #DeltaR  #mu;#DeltaR;Counts",30,0,6);
+  histoContainer->Add("NearMuDeltaRBeforeCut","Near Muon #DeltaR  #mu;#DeltaR;Counts",30,0,1);
+  histoContainer->Add("NearMuDeltaEtaDeltaPhiBeforeCut","Near Muon #Delta#phi vs #Delta#eta   #mu;#Delta#eta;#Delta#phi",30,0.,1.,30,0.,1. );
+  histoContainer->Add("NearMuDeltaRAfterCut","Near Muon #DeltaR  #mu;#DeltaR;Counts",30,0,1);
+  histoContainer->Add("NearMuDeltaEtaDeltaPhiAfterCut","Near Muon #Delta#phi vs #Delta#eta   #mu;#Delta#eta;#Delta#phi",30,0.,1.,30,0.,1. );
+
+ 
+  BookBarrelAndEndcap2D(histoContainer,"pho_hcalIso_vs_nearMuonDRBeforePhoPresel","pho_hcalIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hcal;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforePhoPresel","pho_hoeIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
+  BookBarrelAndEndcap2D(histoContainer,"pho_tiso2_vs_nearMuonDRBeforePhoPresel","pho_tiso2_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_tiso2;",30,0.,1.,50, -10., 100.);
+
+  BookBarrelAndEndcap2D(histoContainer,"pho_hcalIso_vs_nearMuonDRBeforeCut","pho_hcalIso_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_hcal;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforeCut","pho_hoeIso_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
+  BookBarrelAndEndcap2D(histoContainer,"pho_tiso2_vs_nearMuonDRBeforeCut","pho_tiso2_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_tiso2;",30,0.,1.,50, -10., 100.);
+
+
 
   BookCutsAndCategories(histoContainer,"Numvtx","Number of Primary Verticies:Cuts:Cat;Number of Vertices;Counts",100,0,100);
   BookCutsAndCategories(histoContainer,"PhotonPt","Pt of Photon:Cuts:Cat;Pt (GeV);Counts",100,0,200);
@@ -805,19 +868,24 @@ void BookHistograms(HistoContainer *histoContainer) {
 
   BookBarrelAndEndcap(histoContainer,"pho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_idmva","pho_idmva: region;idmva value;Counts",150,-1,0.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso1: region;tmva_id_mit_tiso1;Counts",110,-10,100);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso1: region;tmva_id_mit_tiso1;Counts",60,-10,50);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso2","pho_tmva_id_mit_tiso2: region;tmva_id_mit_tiso2;Counts",110,-10,100);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso3","pho_tmva_id_mit_tiso3: region;tmva_id_mit_tiso3;Counts",110,-10,100);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso3","pho_tmva_id_mit_tiso3: region;tmva_id_mit_tiso3;Counts",30,-10,20);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_r9","pho_tmva_id_mit_r9: region;tmva_id_mit_r9;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_ecal","pho_tmva_id_mit_ecal: region;tmva_id_mit_ecal;Counts",50,-10,40);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_hcal","pho_tmva_id_mit_hcal: region;tmva_id_mit_hcal;Counts",40,-10,30);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_etawidth","pho_tmva_id_mit_etawidth: region;tmva_id_mit_etawidth;Counts",100,0,0.1);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_ecal","pho_tmva_id_mit_ecal: region;tmva_id_mit_ecal;Counts",20,-10,10);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_hcal","pho_tmva_id_mit_hcal: region;tmva_id_mit_hcal;Counts",20,-10,10);
+  histoContainer->Add("pho_tmva_id_mit_etawidthBarrel","pho_tmva_id_mit_etawidth: Barrel;tmva_id_mit_etawidth;Counts",50,0,0.02);
+  histoContainer->Add("pho_tmva_id_mit_etawidthEndcap","pho_tmva_id_mit_etawidth: Endcap;tmva_id_mit_etawidth;Counts",50,0,0.05);
+
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_phiwidth","pho_tmva_id_mit_phiwidth: region;tmva_id_mit_phiwidth;Counts",100,0,0.2);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_nvtx","pho_tmva_id_mit_nvtx: region;tmva_id_mit_nvtx;Counts",50,0,50);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_preshower","pho_tmva_id_mit_preshower: region;tmva_id_mit_preshower;Counts",50,0,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_sceta","pho_tmva_id_mit_sceta: region;tmva_id_mit_sceta;Counts",68,-3.4,3.4);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_hoe","pho_tmva_id_mit_hoe: region;tmva_id_mit_hoe;Counts",60,0,0.6);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_sieie","pho_tmva_id_mit_sieie: region;tmva_id_mit_sieie;Counts",100,0,0.1);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_hoe","pho_tmva_id_mit_hoe: region;tmva_id_mit_hoe;Counts",20,0,0.2);
+ 
+  histoContainer->Add("pho_tmva_id_mit_sieieBarrel","pho_tmva_id_mit_sieie: Barrel;tmva_id_mit_sieie;Counts",100,0,0.02);
+  histoContainer->Add("pho_tmva_id_mit_sieieEndcap","pho_tmva_id_mit_sieie: Endcap;tmva_id_mit_sieie;Counts",100,0,0.04);
+
 
 }
 
