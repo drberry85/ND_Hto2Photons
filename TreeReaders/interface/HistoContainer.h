@@ -9,32 +9,32 @@
 
 class HistoContainer {
 
- public:
+public:
   HistoContainer();
   ~HistoContainer();
-    
-  void Add(string, int, float, float);
-  void Add(string, string, int, float, float);
-  void Add(string, int, float, float, int, float, float);
-  void Add(string, string, int, float, float, int, float, float);
-  void Add(string, int, float, float, float, float);
-  void Add(string, string, int, float, float, float, float);
 
-  void Fill(string, float);
-  void Fill(string, float, float);
-  void Fill(string, float, float, float);
+  void Add(string name, int bins, float xmin, float xmax);
+  void Add(string name, string title, int bins, float xmin, float xmax);
+  void Add(string name, int binsx, float xmin, float xmax, int binsy, float ymin, float ymax);
+  void Add(string name, string title, int binsx, float xmin, float xmax, int binsy, float ymin, float ymax);
+  void Add(string name, int binsx, float xmin, float xmax, float ymin, float ymax);
+  void Add(string name, string title, int binsx, float xmin, float xmax, float ymin, float ymax);
 
-  void Fill(string, string, float);
-  void Fill(string, string, float, float);
-  void Fill(string, string, float, float, float);
+  void Fill(string name, float value, bool overflow);
+  void Fill(string name, float valuex, float valuey, bool overflow);
+  void Fill(string name, float valuex, float valuey, float weight);
 
-  void Fill(string, string, string, float);
-  void Fill(string, string, string, float, float);
-  void Fill(string, string, string, float, float, float);
-  
-  double UpperLimit(string);
-  double LowerLimit(string);
-  
+  void Fill(string name, string addon, float value, bool overflow);
+  void Fill(string name, string addon, float valuex, float valuey, bool overflow);
+  void Fill(string name, string addon, float valuex, float valuey, float weight);
+
+  void Fill(string name, string addon1, string addon2, float value, bool overflow);
+  void Fill(string name, string addon1, string addon2, float valuex, float valuey, bool overflow);
+  void Fill(string name, string addon1, string addon2, float valuex, float valuey, float weight);
+
+  double UpperLimit(string name);
+  double LowerLimit(string name);
+
   void Save();
   
  private:

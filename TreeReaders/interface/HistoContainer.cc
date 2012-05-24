@@ -52,10 +52,16 @@ void HistoContainer::Add(string name, string title, int binsx, float xmin, float
   hp[name] = temp;
 }
 
-void HistoContainer::Fill(string name, float value) {
+void HistoContainer::Fill(string name, float value, bool overflow=false) {
 
   std::map<string, TH1F>::const_iterator it = h1.find(name);
   if (it != h1.end()) {
+    if (overflow) {
+      float upperlimit=h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+      float lowerlimit=h1[name].GetBinLowEdge(1);
+      if (value>=upperlimit) value=upperlimit-0.000001;
+      if (value<=lowerlimit) value=lowerlimit-0.000001;
+    }
     h1[name].Fill(value);
     return;
   }
@@ -63,10 +69,16 @@ void HistoContainer::Fill(string name, float value) {
   std::cerr << "ERROR !: histogram " << name << " is not a TH1F." << std::endl;
 }
 
-void HistoContainer::Fill(string name, float valuex, float valuey) { 
+void HistoContainer::Fill(string name, float valuex, float valuey, bool overflow=false) { 
 
   std::map<string, TH1F>::const_iterator it = h1.find(name);
   if (it != h1.end()) {
+    if (overflow) {
+      float upperlimit=h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+      float lowerlimit=h1[name].GetBinLowEdge(1);
+      if (valuex>=upperlimit) valuex=upperlimit-0.000001;
+      if (valuex<=lowerlimit) valuex=lowerlimit-0.000001;
+    }
     h1[name].Fill(valuex,valuey);
     return;
   }
@@ -103,11 +115,17 @@ void HistoContainer::Fill(string name, float valuex, float valuey, float weight)
   std::cerr << "ERROR !: histogram " << name << " is nor a TH2F" << std::endl;
 }
 
-void HistoContainer::Fill(string name, string addon, float value) {
+void HistoContainer::Fill(string name, string addon, float value, bool overflow=false) {
 
   name.append(addon);
   std::map<string, TH1F>::const_iterator it = h1.find(name);
   if (it != h1.end()) {
+    if (overflow) {
+      float upperlimit=h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+      float lowerlimit=h1[name].GetBinLowEdge(1);
+      if (value>=upperlimit) value=upperlimit-0.000001;
+      if (value<=lowerlimit) value=lowerlimit-0.000001;
+    }
     h1[name].Fill(value);
     return;
   }
@@ -115,11 +133,17 @@ void HistoContainer::Fill(string name, string addon, float value) {
   std::cerr << "ERROR !: histogram " << name << " is not a TH1F." << std::endl;
 }
 
-void HistoContainer::Fill(string name, string addon, float valuex, float valuey) { 
+void HistoContainer::Fill(string name, string addon, float valuex, float valuey, bool overflow=false) { 
 
   name.append(addon);
   std::map<string, TH1F>::const_iterator it = h1.find(name);
   if (it != h1.end()) {
+    if (overflow) {
+      float upperlimit=h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+      float lowerlimit=h1[name].GetBinLowEdge(1);
+      if (valuex>=upperlimit) valuex=upperlimit-0.000001;
+      if (valuex<=lowerlimit) valuex=lowerlimit-0.000001;
+    }
     h1[name].Fill(valuex,valuey);
     return;
   }
@@ -158,12 +182,18 @@ void HistoContainer::Fill(string name, string addon, float valuex, float valuey,
 }
 
 
-void HistoContainer::Fill(string name, string addon1, string addon2, float value) {
+void HistoContainer::Fill(string name, string addon1, string addon2, float value, bool overflow=false) {
 
   name.append(addon1);
   name.append(addon2);
   std::map<string, TH1F>::const_iterator it = h1.find(name);
   if (it != h1.end()) {
+    if (overflow) {
+      float upperlimit=h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+      float lowerlimit=h1[name].GetBinLowEdge(1);
+      if (value>=upperlimit) value=upperlimit-0.000001;
+      if (value<=lowerlimit) value=lowerlimit-0.000001;
+    }
     h1[name].Fill(value);
     return;
   }
@@ -171,12 +201,18 @@ void HistoContainer::Fill(string name, string addon1, string addon2, float value
   std::cerr << "ERROR !: histogram " << name << " is not a TH1F." << std::endl;
 }
 
-void HistoContainer::Fill(string name, string addon1, string addon2, float valuex, float valuey) { 
+void HistoContainer::Fill(string name, string addon1, string addon2, float valuex, float valuey, bool overflow=false) { 
 
   name.append(addon1);
   name.append(addon2);
   std::map<string, TH1F>::const_iterator it = h1.find(name);
   if (it != h1.end()) {
+    if (overflow) {
+      float upperlimit=h1[name].GetBinLowEdge(h1[name].GetNbinsX()+1);
+      float lowerlimit=h1[name].GetBinLowEdge(1);
+      if (valuex>=upperlimit) valuex=upperlimit-0.000001;
+      if (valuex<=lowerlimit) valuex=lowerlimit-0.000001;
+    }
     h1[name].Fill(valuex,valuey);
     return;
   }
