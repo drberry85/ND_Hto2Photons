@@ -47,6 +47,7 @@ TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
 int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,int binsb, float lowerlimitb, float upperlimitb);
+void BookBarrelAndEndcapProfiles(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita, float lowerlimitb, float upperlimitb);
 void BookHistograms(HistoContainer *histoContainer);
 void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap);
 void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap);
@@ -255,8 +256,7 @@ int main(int argc, char * input[]) {
         unsigned int FarMuonIndex =0 ;
         if (!higgs) {
           if (MuonPtMap.size()<2) continue;
-          if (debug) cout << "MuonPt Map Filled: " << MuonPtMap.size() << endl;
-          for (unsigned int j=0; j<(unsigned int) mu_glo_n(); j++) {
+	  for (unsigned int j=0; j<(unsigned int) mu_glo_n(); j++) {
             TLorentzVector LeadMuon_p4 = *((TLorentzVector*) mu_glo_p4()->At(j));
             if (debug) cout << "Lead Trial Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
             if (mu_glo_type()[j]<1100) continue;
@@ -394,6 +394,7 @@ int main(int argc, char * input[]) {
 	  histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
 
 
+	  histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
           if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
 
           string PassValue = "Fail";
@@ -512,12 +513,23 @@ int main(int argc, char * input[]) {
           histoContainer->Fill(PassValue,"PhotonPhi",Category,Photonp4[PhotonIndex].Phi(),weight);
           histoContainer->Fill(PassValue,"ZMass",Category,ZCandidate.M(),weight);
           histoContainer->Fill(PassValue,"ZMassZoom",Category,ZCandidate.M(),weight);
+
+          float MVAcut=-0.013;
+          if ( region == "Endcap" ) 
+	    MVAcut=-0.011;
+
+          histoContainer->Fill("pho_idmva_vsPt",region,Photonp4[PhotonIndex].Pt(), pho_idmva()[PhotonIndex], weight);          
+          if ( pho_idmva()[PhotonIndex] < MVAcut ) continue;
+	  histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
+
+
         }
       }    
 
       delete filechain;
 
     }
+
 
     histoContainer->Save();
     delete histoContainer;
@@ -807,6 +819,19 @@ void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TSt
   }
 }
 
+
+
+void BookBarrelAndEndcapProfiles(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,float lowerlimitb, float upperlimitb ) {
+  TString Regions[2] = {"Barrel","Endcap"};
+  for (int i=0; i<2; i++) {
+    TString histnametemp = histname;
+    TString histtitletemp = histtitle;
+    histnametemp += Regions[i];
+    histtitletemp.ReplaceAll("region",Regions[i]);
+    histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),binsa,lowerlimita,upperlimita,lowerlimitb,upperlimitb);
+  }
+}
+
 void BookCutsAndCategories(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
 
   TString Cuts[3] = {"","Pass","Fail"};
@@ -848,6 +873,8 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("NearMuDeltaEtaDeltaPhiAfterCut","Near Muon #Delta#phi vs #Delta#eta   #mu;#Delta#eta;#Delta#phi",30,0.,1.,30,0.,1. );
 
  
+
+ 
   BookBarrelAndEndcap2D(histoContainer,"pho_hcalIso_vs_nearMuonDRBeforePhoPresel","pho_hcalIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hcal;",30,0.,1.,20,-10,10);
   BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforePhoPresel","pho_hoeIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
   BookBarrelAndEndcap2D(histoContainer,"pho_tiso2_vs_nearMuonDRBeforePhoPresel","pho_tiso2_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_tiso2;",30,0.,1.,50, -10., 100.);
@@ -866,7 +893,13 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookCutsAndCategories(histoContainer,"ZMass","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",30,75,105);
   BookCutsAndCategories(histoContainer,"ZMassZoom","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",16,87.2,95.2);
 
+  BookBarrelAndEndcap(histoContainer,"allpho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"pho_pt_afterMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
+
+  BookBarrelAndEndcapProfiles(histoContainer,"pho_idmva_vsPt","pho_idmva: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
+
+
   BookBarrelAndEndcap(histoContainer,"pho_idmva","pho_idmva: region;idmva value;Counts",150,-1,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso1: region;tmva_id_mit_tiso1;Counts",60,-10,50);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso2","pho_tmva_id_mit_tiso2: region;tmva_id_mit_tiso2;Counts",110,-10,100);
