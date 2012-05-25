@@ -98,7 +98,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Prompt")) prompt=true;
   if (InputArgs.Contains("SimVertex")) usesimvertex=true;
   if (InputArgs.Contains("Trigger")) trigger=true;
-
+  if (InputArgs.Contains("Summer12") || InputArgs.Contains("Run2012A")) globalweight=346.604;
   vector<pair<string, float> > filesAndWeights;
   vector<pair<string, int> > filelist;
 
@@ -110,7 +110,7 @@ int main(int argc, char * input[]) {
   else if (argc>2) MakeFilesAndWeights(string(input[2]), InputArgs, filesAndWeights, filelist, kFactor, WeightsMap);
   
   if (filesAndWeights.size()==0) {
-    cout << "Warning!!!! No valid inputs!!!! Please one of the following: Data, ZMuMu, or TTJets." << endl;
+    cout << "Warning!!!! No valid inputs!!!! Please one of the following: Run2011A, Run2011B, Run2011, Run2012A, ZMuMu, or TTJets." << endl;
     cout << "Exiting Program!!!!" << endl;
     return 0;
   }
@@ -256,7 +256,7 @@ int main(int argc, char * input[]) {
         unsigned int FarMuonIndex =0 ;
         if (!higgs) {
           if (MuonPtMap.size()<2) continue;
-	  for (unsigned int j=0; j<(unsigned int) mu_glo_n(); j++) {
+          for (unsigned int j=0; j<(unsigned int) mu_glo_n(); j++) {
             TLorentzVector LeadMuon_p4 = *((TLorentzVector*) mu_glo_p4()->At(j));
             if (debug) cout << "Lead Trial Muon: " << j << " Pt: " << LeadMuon_p4.Pt() << endl;
             if (mu_glo_type()[j]<1100) continue;
@@ -351,26 +351,25 @@ int main(int argc, char * input[]) {
           if (debug)  cout << " I am  passing from here " << endl;
           if (pho_isEBEEGap()[PhotonIndex]) continue;
           if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
-	  string region=DetectorPosition(PhotonIndex);
 
+          string region=DetectorPosition(PhotonIndex);
 
-
-	  double leadmu_deltaphi=-1;
-	  double leadmu_deltaeta=-1;
-	  double leadmu_deltaR=-1;
-	  double subleadmu_deltaphi=-1;
-	  double subleadmu_deltaeta=-1;
-	  double subleadmu_deltaR=-1;
-	  double nearmu_deltaphi=-1;
-	  double nearmu_deltaeta =-1;
-	  double nearmu_deltaR=-1;
+          double leadmu_deltaphi=-1;
+          double leadmu_deltaeta=-1;
+          double leadmu_deltaR=-1;
+          double subleadmu_deltaphi=-1;
+          double subleadmu_deltaeta=-1;
+          double subleadmu_deltaR=-1;
+          double nearmu_deltaphi=-1;
+          double nearmu_deltaeta =-1;
+          double nearmu_deltaR=-1;
           if (!higgs) { // define muon quantities if not an higgs sample
             leadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[LeadMuonIndex].Phi()));
             leadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[LeadMuonIndex].Eta());
             leadmu_deltaR=sqrt(leadmu_deltaeta*leadmu_deltaeta+leadmu_deltaphi*leadmu_deltaphi);
 
             subleadmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[SubLeadMuonIndex].Phi()));
-	    subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
+            subleadmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[SubLeadMuonIndex].Eta());
             subleadmu_deltaR=sqrt(subleadmu_deltaeta*subleadmu_deltaeta+subleadmu_deltaphi*subleadmu_deltaphi);
 
             if (leadmu_deltaR<subleadmu_deltaR) {
@@ -382,19 +381,16 @@ int main(int argc, char * input[]) {
             }
 
             nearmu_deltaphi=fabs(DeltaPhi(Photonp4[PhotonIndex].Phi(),MuonP4[NearMuonIndex].Phi()));
-	    nearmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[NearMuonIndex].Eta());
-	    nearmu_deltaR=sqrt(nearmu_deltaeta*nearmu_deltaeta+nearmu_deltaphi*nearmu_deltaphi);
+            nearmu_deltaeta=fabs(Photonp4[PhotonIndex].Eta()-MuonP4[NearMuonIndex].Eta());
+            nearmu_deltaR=sqrt(nearmu_deltaeta*nearmu_deltaeta+nearmu_deltaphi*nearmu_deltaphi);
 
+          } // end of !higgs
 
-	  } // end of !higgs
+          histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
+          histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
 
-
-	  histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
-	  histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
-	  histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
-
-
-	  histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
           if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
 
           string PassValue = "Fail";
@@ -417,14 +413,13 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
             histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
             histoContainer->Fill("NearMuDeltaRBeforeCut",nearmu_deltaR,weight);
-	    histoContainer->Fill("NearMuDeltaEtaDeltaPhiBeforeCut",nearmu_deltaeta,nearmu_deltaphi,weight);
+            histoContainer->Fill("NearMuDeltaEtaDeltaPhiBeforeCut",nearmu_deltaeta,nearmu_deltaphi,weight);
 
-	    if ( nearMuonDRcut && nearmu_deltaR<0.4) continue; 
-	    //	    if ( nearMuonDRcut && ( nearmu_deltaphi < 0.1 &&   nearmu_deltaeta < 0.3 ) ) continue;
+            if ( nearMuonDRcut && nearmu_deltaR<0.4) continue; 
+            //	    if ( nearMuonDRcut && ( nearmu_deltaphi < 0.1 &&   nearmu_deltaeta < 0.3 ) ) continue;
 
-	    histoContainer->Fill("NearMuDeltaRAfterCut",nearmu_deltaR,weight);
-	    histoContainer->Fill("NearMuDeltaEtaDeltaPhiAfterCut",nearmu_deltaeta,nearmu_deltaphi,weight);
-
+            histoContainer->Fill("NearMuDeltaRAfterCut",nearmu_deltaR,weight);
+            histoContainer->Fill("NearMuDeltaEtaDeltaPhiAfterCut",nearmu_deltaeta,nearmu_deltaphi,weight);
 
             ZCandidate = Photonp4[PhotonIndex]+MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
             //if (ZCandidate.M()<75.0 && ZCandidate.M()>105.0) continue;
@@ -441,8 +436,6 @@ int main(int argc, char * input[]) {
 
           }
           
-
-          
           if (debug) cout << "Filling MVA Quantities" << endl;
           histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
           histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
@@ -454,20 +447,19 @@ int main(int argc, char * input[]) {
           float phiwidthW=1.;
           float sietaietaW=1.;
           float sietaietaSlope=0.;
-	  if (InputArgs.Contains("HiggsS6") || InputArgs.Contains("Fall11" ) )  {
-	    r9W*=1.0035;
-	    etawidthW*=0.99;
-	    phiwidthW*=0.99;
+          if (InputArgs.Contains("Higgs") || InputArgs.Contains("Fall11" ) )  {
+            r9W*=1.0035;
+            etawidthW*=0.99;
+            phiwidthW*=0.99;
             if ( region=="Barrel") {
-	      sietaietaW*=0.87; 
-	      sietaietaSlope=0.0011;
-	    } else {
-	      sietaietaW*=0.99;
-	    }
-	  }
+              sietaietaW*=0.87; 
+              sietaietaSlope=0.0011;
+            } else {
+              sietaietaW*=0.99;
+            }
+          }
 
-
-	  histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex]*r9W,weight);
+          histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex]*r9W,weight);
           histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_etawidth",region,pho_tmva_id_mit_etawidth()[PhotonIndex]*etawidthW,weight);
@@ -476,11 +468,10 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("pho_tmva_id_mit_preshower",region,pho_tmva_id_mit_preshower()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_sceta",region,pho_tmva_id_mit_sceta()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_hoe",region,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
-	  if ( region=="Barrel") 
-	    histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);	
-	  else 
-	    histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW,weight);
-
+          if ( region=="Barrel") 
+            histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);	
+          else 
+            histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW,weight);
 
           histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
           histoContainer->Fill("PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
@@ -516,12 +507,11 @@ int main(int argc, char * input[]) {
 
           float MVAcut=-0.013;
           if ( region == "Endcap" ) 
-	    MVAcut=-0.011;
+            MVAcut=-0.011;
 
           histoContainer->Fill("pho_idmva_vsPt",region,Photonp4[PhotonIndex].Pt(), pho_idmva()[PhotonIndex], weight);          
           if ( pho_idmva()[PhotonIndex] < MVAcut ) continue;
-	  histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
-
+          histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
 
         }
       }    
@@ -529,7 +519,6 @@ int main(int argc, char * input[]) {
       delete filechain;
 
     }
-
 
     histoContainer->Save();
     delete histoContainer;
@@ -699,7 +688,7 @@ map<TString,double> GetkFactor() {
 
   kFactor["ZMuMu"]=1.0;
   kFactor["TTJets"]=1.0;
-  kFactor["Higgs120GeV"]=1.0;
+  kFactor["Higgs"]=1.0;
   return kFactor;
   
 }
@@ -709,10 +698,12 @@ map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweig
   map<TString,double> WeightsMap;
   WeightsMap["None"]=1/globalweight;
   WeightsMap["ZMuMu_Summer11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
+  WeightsMap["ZMuMu_Summer12"]=kFactor["ZMuMu"]*1510.0/1948296.0;
   WeightsMap["ZMuMu_Fall11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
   WeightsMap["TTJets"]=kFactor["TTJets"]*94.76/3701947.0;
-  WeightsMap["HiggsS4"]=kFactor["Higgs120GeV"]*16.63/105132;
-  WeightsMap["HiggsS6"]=kFactor["Higgs120GeV"]*16.63/105132;
+  WeightsMap["HiggsS4"]=kFactor["Higgs"]*16.63/105132;
+  WeightsMap["HiggsS6"]=kFactor["Higgs"]*16.63/105132;
+  WeightsMap["HiggsS7"]=kFactor["Higgs"]*19.4868/96290;
   return WeightsMap;
   
 }
@@ -819,8 +810,6 @@ void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TSt
   }
 }
 
-
-
 void BookBarrelAndEndcapProfiles(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,float lowerlimitb, float upperlimitb ) {
   TString Regions[2] = {"Barrel","Endcap"};
   for (int i=0; i<2; i++) {
@@ -871,9 +860,6 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("NearMuDeltaEtaDeltaPhiBeforeCut","Near Muon #Delta#phi vs #Delta#eta   #mu;#Delta#eta;#Delta#phi",30,0.,1.,30,0.,1. );
   histoContainer->Add("NearMuDeltaRAfterCut","Near Muon #DeltaR  #mu;#DeltaR;Counts",30,0,1);
   histoContainer->Add("NearMuDeltaEtaDeltaPhiAfterCut","Near Muon #Delta#phi vs #Delta#eta   #mu;#Delta#eta;#Delta#phi",30,0.,1.,30,0.,1. );
-
- 
-
  
   BookBarrelAndEndcap2D(histoContainer,"pho_hcalIso_vs_nearMuonDRBeforePhoPresel","pho_hcalIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hcal;",30,0.,1.,20,-10,10);
   BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforePhoPresel","pho_hoeIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
@@ -882,8 +868,6 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap2D(histoContainer,"pho_hcalIso_vs_nearMuonDRBeforeCut","pho_hcalIso_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_hcal;",30,0.,1.,20,-10,10);
   BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforeCut","pho_hoeIso_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
   BookBarrelAndEndcap2D(histoContainer,"pho_tiso2_vs_nearMuonDRBeforeCut","pho_tiso2_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_tiso2;",30,0.,1.,50, -10., 100.);
-
-
 
   BookCutsAndCategories(histoContainer,"Numvtx","Number of Primary Verticies:Cuts:Cat;Number of Vertices;Counts",100,0,100);
   BookCutsAndCategories(histoContainer,"PhotonPt","Pt of Photon:Cuts:Cat;Pt (GeV);Counts",100,0,200);
@@ -898,7 +882,6 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"pho_pt_afterMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
 
   BookBarrelAndEndcapProfiles(histoContainer,"pho_idmva_vsPt","pho_idmva: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
-
 
   BookBarrelAndEndcap(histoContainer,"pho_idmva","pho_idmva: region;idmva value;Counts",150,-1,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso1: region;tmva_id_mit_tiso1;Counts",60,-10,50);
@@ -919,7 +902,6 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("pho_tmva_id_mit_sieieBarrel","pho_tmva_id_mit_sieie: Barrel;tmva_id_mit_sieie;Counts",100,0,0.02);
   histoContainer->Add("pho_tmva_id_mit_sieieEndcap","pho_tmva_id_mit_sieie: Endcap;tmva_id_mit_sieie;Counts",100,0,0.04);
 
-
 }
 
 void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap) {
@@ -932,10 +914,14 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
     inputfilelist.push_back(pair<string,int> ("Run2011B.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2011B.root",WeightsMap["None"]));
   }
-  if (inputstring.Contains("Data")) {
-    inputfilelist.push_back(pair<string,int> ("Data.root",2));
+  if (inputstring.Contains("Run2011")) {
+    inputfilelist.push_back(pair<string,int> ("Run2011.root",2));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2011A.root",WeightsMap["None"]));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2011B.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("Run2012A")) {
+    inputfilelist.push_back(pair<string,int> ("Run2012A.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012A.root",WeightsMap["None"]));
   }
   if (inputstring.Contains("Fall11")) {
     inputfilelist.push_back(pair<string,int> ("Fall11.root",1));
@@ -944,6 +930,10 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   if (inputstring.Contains("Summer11")) {
     inputfilelist.push_back(pair<string,int> ("Summer11.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Summer11.root",WeightsMap["ZMuMu_Summer11"]));
+  }
+  if (inputstring.Contains("Summer12")) {
+    inputfilelist.push_back(pair<string,int> ("Summer12.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Summer12.root",WeightsMap["ZMuMu_Summer12"]));
   }
   if (inputstring.Contains("TTJets")) {
     inputfilelist.push_back(pair<string,int> ("TTJets.root",1));
@@ -957,7 +947,11 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
     inputfilelist.push_back(pair<string,int> ("HiggsS6.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/120GeVHiggs_S6.root",WeightsMap["HiggsS6"]));
   }
-
+  if (inputstring.Contains("HiggsS7")) {
+    inputfilelist.push_back(pair<string,int> ("HiggsS7.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/125GeVHiggs_S7.root",WeightsMap["HiggsS7"]));
+  }
+  
 }
 
 void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap) {
@@ -967,12 +961,14 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   else outfile=infile;
   
   inputfilelist.push_back(pair<string,int> (outfile,1));
-  if (inputstring.Contains("Run2011A") || inputstring.Contains("Run2011B") || inputstring.Contains("Data")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("Run2011") || inputstring.Contains("Run2012")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
   if (inputstring.Contains("TTJets")) inputvector.push_back(pair<string,float> (infile,WeightsMap["TTJets"]));
   if (inputstring.Contains("Fall11")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Fall11"]));
   if (inputstring.Contains("Summer11")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Summer11"]));
-  if (inputstring.Contains("HiggsS4")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS4"]));
-  if (inputstring.Contains("HiggsS6")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs120GeV"]*WeightsMap["HiggsS6"]));
+  if (inputstring.Contains("Summer12")) inputvector.push_back(pair<string,float> (infile,WeightsMap["ZMuMu_Summer12"]));
+  if (inputstring.Contains("HiggsS4")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs"]*WeightsMap["HiggsS4"]));
+  if (inputstring.Contains("HiggsS6")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs"]*WeightsMap["HiggsS6"]));
+  if (inputstring.Contains("HiggsS7")) inputvector.push_back(pair<string,float> (infile,kFactor["Higgs"]*WeightsMap["HiggsS7"]));
 
 }
 
@@ -982,12 +978,16 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_TTJets.h"
   } else if (inputstring.Contains("Summer11")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Summer11.h"
+  } else if (inputstring.Contains("Summer12")) {
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Summer12.h"
   } else if (inputstring.Contains("Fall11")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Fall11.h"
   } else if (inputstring.Contains("HiggsS4")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_HiggsS4.h"
   } else if (inputstring.Contains("HiggsS6")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_HiggsS6.h"
+  } else if (inputstring.Contains("HiggsS7")) {
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_HiggsS7.h"
   } else {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
   }
