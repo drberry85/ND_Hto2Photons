@@ -520,6 +520,7 @@ void connect_variables(TTree* t){
   pho_residCorrResn.ReadFrom(t);
   pho_regr_energy.ReadFrom(t);
   pho_regr_energyerr.ReadFrom(t);
+  pho_pfiso_mycharged02.ReadFrom(t);
   pho_pfiso_mycharged03.ReadFrom(t);
   pho_pfiso_mycharged04.ReadFrom(t);
   pho_pfiso_myneutral03.ReadFrom(t);
