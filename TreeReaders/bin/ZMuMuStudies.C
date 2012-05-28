@@ -390,8 +390,16 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
           histoContainer->Fill("pho_tiso2_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
 
+          histoContainer->Fill("pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisogood03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisobad03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfphotoniso03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfneutraliso03()[PhotonIndex],weight);
+
+
           histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+
           if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
+	  //	  if ( Photonp4[PhotonIndex].Pt() < 25 ) continue;
 
           string PassValue = "Fail";
           if (!pixel && pho_isconv()[PhotonIndex]==1) PassValue = "Pass";
@@ -435,13 +443,8 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("SubLeadMuDeltaR",subleadmu_deltaR,weight);
 
           }
-          
-          if (debug) cout << "Filling MVA Quantities" << endl;
-          histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
-          histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
+
+
           float r9W=1.;
           float etawidthW=1.;
           float phiwidthW=1.;
@@ -459,6 +462,34 @@ int main(int argc, char * input[]) {
             }
           }
 
+          
+          if (debug) cout << "Filling MVA Quantities" << endl;
+          histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+          histoContainer->Fill("pho_idmvanew",region,pho_idmvanew()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_pfchargedisogood03",region,pho_tmva_photonid_pfchargedisogood03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_pfchargedisobad03",region,pho_tmva_photonid_pfchargedisobad03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_pfphotoniso03",region,pho_tmva_photonid_pfphotoniso03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_pfneutraliso03",region,pho_tmva_photonid_pfneutraliso03()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_sieip",region,pho_tmva_photonid_sieip()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_etawidth",region,pho_tmva_photonid_etawidth()[PhotonIndex]*etawidthW,weight);
+          histoContainer->Fill("pho_tmva_photonid_phiwidth",region,pho_tmva_photonid_phiwidth()[PhotonIndex]*phiwidthW,weight);
+          histoContainer->Fill("pho_tmva_photonid_r9",region,pho_tmva_photonid_r9()[PhotonIndex]*r9W,weight);
+          histoContainer->Fill("pho_tmva_photonid_s4ratio",region,pho_tmva_photonid_s4ratio()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_lambdaratio",region,pho_tmva_photonid_lambdaratio()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_sceta",region,pho_tmva_photonid_sceta()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_eventrho",region,pho_tmva_photonid_eventrho()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_ESEffSigmaRR",region,pho_tmva_photonid_ESEffSigmaRR()[PhotonIndex],weight);
+          if ( region=="Barrel") 
+	    histoContainer->Fill("pho_tmva_photonid_sieie",region,pho_tmva_photonid_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);
+	  else
+	    histoContainer->Fill("pho_tmva_photonid_sieie",region,pho_tmva_photonid_sieie()[PhotonIndex]*sietaietaW,weight);
+	    
+
+	  //// old ones
+          histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_id_mit_tiso3",region,pho_tmva_id_mit_tiso3()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_r9",region,pho_tmva_id_mit_r9()[PhotonIndex]*r9W,weight);
           histoContainer->Fill("pho_tmva_id_mit_ecal",region,pho_tmva_id_mit_ecal()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_hcal",region,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
@@ -472,6 +503,9 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);	
           else 
             histoContainer->Fill("pho_tmva_id_mit_sieie",region,pho_tmva_id_mit_sieie()[PhotonIndex]*sietaietaW,weight);
+	  ///////////////////////////////////////////
+
+
 
           histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
           histoContainer->Fill("PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
@@ -509,9 +543,18 @@ int main(int argc, char * input[]) {
           if ( region == "Endcap" ) 
             MVAcut=-0.011;
 
+	  float newMVAcut=-0.013;
+          if ( region == "Endcap" ) 
+            newMVAcut=-0.011;
+
+
           histoContainer->Fill("pho_idmva_vsPt",region,Photonp4[PhotonIndex].Pt(), pho_idmva()[PhotonIndex], weight);          
-          if ( pho_idmva()[PhotonIndex] < MVAcut ) continue;
-          histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
+	  histoContainer->Fill("pho_idmvanew_vsPt",region,Photonp4[PhotonIndex].Pt(), pho_idmvanew()[PhotonIndex], weight);          
+          if ( pho_idmva()[PhotonIndex] < MVAcut ) 
+	    histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
+
+          if ( pho_idmvanew()[PhotonIndex] < newMVAcut ) 
+	    histoContainer->Fill("pho_pt_afternewMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
 
         }
       }    
@@ -556,6 +599,7 @@ bool PhotonPreSelection(unsigned int PhotonIndex) {
   double EtCorrTrkIso = pho_trksumpthollowconedr03()[PhotonIndex] - 0.002*PhotonP4.Pt();
   double PuCorrHcalEcal = pho_ecalsumetconedr03()[PhotonIndex] + pho_hcalsumetconedr03()[PhotonIndex] - rho()*0.17;
   double AbsTrkIsoCIC = pho_tkiso_recvtx_030_002_0000_10_01()->at(PhotonIndex).at(0);
+ 
   
   if (pho_r9()[PhotonIndex]<=0.9) {
     if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.014)) return false;
@@ -563,9 +607,10 @@ bool PhotonPreSelection(unsigned int PhotonIndex) {
     if (EtCorrEcalIso>4.0) return false;
     if (EtCorrHcalIso>4.0) return false;
     if (EtCorrTrkIso>4.0) return false;
-    if (PuCorrHcalEcal>3.0) return false;
-    if (AbsTrkIsoCIC>2.8) return false;
-    if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    //if (PuCorrHcalEcal>3.0) return false;
+    //if (AbsTrkIsoCIC>2.8) return false;
+    //if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0)  > 4 )  return false;
     if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
   } else {
@@ -574,9 +619,10 @@ bool PhotonPreSelection(unsigned int PhotonIndex) {
     if (EtCorrEcalIso>50.0) return false;
     if (EtCorrHcalIso>50.0) return false;
     if (EtCorrTrkIso>50.0) return false;
-    if (PuCorrHcalEcal>3.0) return false;
-    if (AbsTrkIsoCIC>2.8) return false;
-    if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    //   if (PuCorrHcalEcal>3.0) return false;
+    //if (AbsTrkIsoCIC>2.8) return false;
+    //if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0)  > 4 )  return false;
     if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
   }
@@ -865,6 +911,14 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforePhoPresel","pho_hoeIso_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
   BookBarrelAndEndcap2D(histoContainer,"pho_tiso2_vs_nearMuonDRBeforePhoPresel","pho_tiso2_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;tmva_id_mit_tiso2;",30,0.,1.,50, -10., 100.);
 
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel","pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfcharedisogood03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel","pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfcharedisobad03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel","pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfphotoniso03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel","pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfneutraliso03;",30,0.,1.,20,-10,10);
+ 
+
+
+
   BookBarrelAndEndcap2D(histoContainer,"pho_hcalIso_vs_nearMuonDRBeforeCut","pho_hcalIso_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_hcal;",30,0.,1.,20,-10,10);
   BookBarrelAndEndcap2D(histoContainer,"pho_hoe_vs_nearMuonDRBeforeCut","pho_hoeIso_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_hoe;",30,0.,1.,20,0.,0.2);
   BookBarrelAndEndcap2D(histoContainer,"pho_tiso2_vs_nearMuonDRBeforeCut","pho_tiso2_vs_nearMuonDRBeforeCut: region; ;nearMuondR;tmva_id_mit_tiso2;",30,0.,1.,50, -10., 100.);
@@ -881,8 +935,30 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"pho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt_afterMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
 
-  BookBarrelAndEndcapProfiles(histoContainer,"pho_idmva_vsPt","pho_idmva: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
+  BookBarrelAndEndcap(histoContainer,"pho_pt_afternewMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
 
+  BookBarrelAndEndcapProfiles(histoContainer,"pho_idmva_vsPt","pho_idmva: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
+  BookBarrelAndEndcapProfiles(histoContainer,"pho_idmvanew_vsPt","pho_idmvanew: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
+
+  // new MVA variables
+  BookBarrelAndEndcap(histoContainer,"pho_idmvanew","pho_idmvanew: region;idmva value;Counts",150,-1,0.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_r9","pho_tmva_id_photonid_r9: region;tmva_id_photonid_r9;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieie","pho_tmva_id_photonid_sieie: region;tmva_id_photonid_sieie;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieip","pho_tmva_id_photonid_sieip: region;tmva_id_photonid_sieip;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_etawidth","pho_tmva_id_photonid_etawidth: region;tmva_id_photonid_etawidth;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_phiwidth","pho_tmva_id_photonid_phiwidth: region;tmva_id_photonid_phiwidth;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_s4ratio","pho_tmva_id_photonid_s4ratio: region;tmva_id_photonid_s4ratio;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_lambdaratio","pho_tmva_id_photonid_lambdaratio: region;tmva_id_photonid_lambdaratio;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sceta","pho_tmva_id_photonid_sceta: region;tmva_id_photonid_sceta;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_eventrho","pho_tmva_id_photonid_eventrho: region;tmva_id_photonid_eventrho;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region;tmva_id_photonid_ESEffSigmaRR;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region;tmva_id_photonid_pfchargedisogood03;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region;tmva_id_photonid_pfchargedisobad03;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region;tmva_id_photonid_pfphotoniso03;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region;tmva_id_photonid_pfneutraliso03;Counts",150,0,1.5);
+
+
+  // old MVA variables
   BookBarrelAndEndcap(histoContainer,"pho_idmva","pho_idmva: region;idmva value;Counts",150,-1,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso1: region;tmva_id_mit_tiso1;Counts",60,-10,50);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_id_mit_tiso2","pho_tmva_id_mit_tiso2: region;tmva_id_mit_tiso2;Counts",110,-10,100);
