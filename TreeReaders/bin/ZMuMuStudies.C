@@ -976,11 +976,13 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcapProfiles(histoContainer,"pho_idmvanew_vsPt","pho_idmvanew: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
 
   // new MVA variables
-  BookBarrelAndEndcap(histoContainer,"pho_idmvanew","pho_idmvanew: region;idmva value;Counts",150,-1,0.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_r9","pho_tmva_id_photonid_r9: region;tmva_id_photonid_r9;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_idmvanew","pho_idmvanew: region;idmva value;Counts",50,-0.5,0.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_r9","pho_tmva_id_photonid_r9: region;tmva_id_photonid_r9;Counts",50,0,1.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieie","pho_tmva_id_photonid_sieie: region;tmva_id_photonid_sieie;Counts",100,0,0.06);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieip","pho_tmva_id_photonid_sieip: region;tmva_id_photonid_sieip;Counts",100,-0.002,0.002);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_etawidth","pho_tmva_id_photonid_etawidth: region;tmva_id_photonid_etawidth;Counts",50,0,0.06);
+  histoContainer->Add("pho_tmva_photonid_etawidthBarrel","pho_tmva_photonid_etawidth: Barrel;tmva_photonid_etawidth;Counts",50,0,0.02);
+  histoContainer->Add("pho_tmva_photonid_etawidthEndcap","pho_tmva_photonid_etawidth: Endcap;tmva_photonid_etawidth;Counts",50,0,0.05);
+
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_phiwidth","pho_tmva_id_photonid_phiwidth: region;tmva_id_photonid_phiwidth;Counts",50,0,0.16);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_s4ratio","pho_tmva_id_photonid_s4ratio: region;tmva_id_photonid_s4ratio;Counts",40,0.2,1.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_lambdaratio","pho_tmva_id_photonid_lambdaratio: region;tmva_id_photonid_lambdaratio;Counts",50,0,1.5);
