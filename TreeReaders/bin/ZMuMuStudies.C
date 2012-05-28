@@ -32,6 +32,7 @@ using namespace std;
 
 bool GenMatch(TVector3 Photon);
 bool PhotonPreSelection(unsigned int PhotonIndex);
+bool PhotonPreSelectionPFbased(unsigned int PhotonIndex);
 double etaTransformation(double EtaParticle, double Zvertex);
 double DeltaPhi(double Phi1, double Phi2);
 double FindNewdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
@@ -66,6 +67,7 @@ int main(int argc, char * input[]) {
   bool higgs = false;
   bool highpt = false;
   bool presel = false;
+  bool preselpf = false;
   bool mc = true;
   bool nocuts = false;
   bool  nearMuonDRcut = false; 
@@ -90,6 +92,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Higgs")) higgs=true;
   if (InputArgs.Contains("HighPt")) highpt=true;
   if (InputArgs.Contains("PreSel")) presel=true;
+  if (InputArgs.Contains("PFiso")) preselpf=true;
   if (InputArgs.Contains("NearMuonDRCut")) nearMuonDRcut=true;
   if (InputArgs.Contains("NoCuts")) nocuts=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
@@ -131,6 +134,7 @@ int main(int argc, char * input[]) {
       if (background) outfilename.ReplaceAll(".root","_Background.root");
       if (nocuts) outfilename.ReplaceAll(".root","_NoCuts.root");
       if (presel) outfilename.ReplaceAll(".root","_PhoPresel.root");
+      if (preselpf) outfilename.ReplaceAll(".root","_PhoPFPresel.root");
       if (nearMuonDRcut ) outfilename.ReplaceAll(".root","_NearMuonDRCut.root");
       if (onephoton) outfilename.ReplaceAll(".root","_OnePhoton.root");
       if (fake) outfilename.ReplaceAll(".root","_Fake.root");
@@ -399,6 +403,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
 
           if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
+	  if ( preselpf && !PhotonPreSelectionPFbased(PhotonIndex)) continue;
 	  //	  if ( Photonp4[PhotonIndex].Pt() < 25 ) continue;
 
           string PassValue = "Fail";
@@ -450,17 +455,6 @@ int main(int argc, char * input[]) {
           float phiwidthW=1.;
           float sietaietaW=1.;
           float sietaietaSlope=0.;
-          if (InputArgs.Contains("Higgs") || InputArgs.Contains("Fall11" ) )  {
-            r9W*=1.0035;
-            etawidthW*=0.99;
-            phiwidthW*=0.99;
-            if ( region=="Barrel") {
-              sietaietaW*=0.87; 
-              sietaietaSlope=0.0011;
-            } else {
-              sietaietaW*=0.99;
-            }
-          }
 
           
           if (debug) cout << "Filling MVA Quantities" << endl;
@@ -486,6 +480,18 @@ int main(int argc, char * input[]) {
 	    
 
 	  //// old ones
+          if (InputArgs.Contains("Higgs") || InputArgs.Contains("Fall11" ) )  {
+            r9W*=1.0035;
+            etawidthW*=0.99;
+            phiwidthW*=0.99;
+            if ( region=="Barrel") {
+              sietaietaW*=0.87; 
+              sietaietaSlope=0.0011;
+            } else {
+              sietaietaW*=0.99;
+            }
+          }
+
           histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_tiso2",region,pho_tmva_id_mit_tiso2()[PhotonIndex],weight);
@@ -607,9 +613,41 @@ bool PhotonPreSelection(unsigned int PhotonIndex) {
     if (EtCorrEcalIso>4.0) return false;
     if (EtCorrHcalIso>4.0) return false;
     if (EtCorrTrkIso>4.0) return false;
-    //if (PuCorrHcalEcal>3.0) return false;
-    //if (AbsTrkIsoCIC>2.8) return false;
-    //if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    if (PuCorrHcalEcal>3.0) return false;
+    if (AbsTrkIsoCIC>2.8) return false;
+    if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    if (pho_isconv()[PhotonIndex]!=1) return false;
+    return true;
+  } else {
+    if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.082 || pho_sieie()[PhotonIndex]>0.014)) return false;
+    if (pho_isEE()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.034)) return false;
+    if (EtCorrEcalIso>50.0) return false;
+    if (EtCorrHcalIso>50.0) return false;
+    if (EtCorrTrkIso>50.0) return false;
+    if (PuCorrHcalEcal>3.0) return false;
+    if (AbsTrkIsoCIC>2.8) return false;
+    if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
+    if (pho_isconv()[PhotonIndex]!=1) return false;
+    return true;
+  }
+
+}
+
+bool PhotonPreSelectionPFbased(unsigned int PhotonIndex) {
+
+  TLorentzVector PhotonP4 = *((TLorentzVector*) pho_p4()->At(PhotonIndex));
+  double EtCorrEcalIso = pho_ecalsumetconedr03()[PhotonIndex] - 0.012*PhotonP4.Pt();
+  double EtCorrHcalIso = pho_hcalsumetconedr03()[PhotonIndex] - 0.005*PhotonP4.Pt();
+  double EtCorrTrkIso = pho_trksumpthollowconedr03()[PhotonIndex] - 0.002*PhotonP4.Pt();
+
+ 
+  
+  if (pho_r9()[PhotonIndex]<=0.9) {
+    if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.014)) return false;
+    if (pho_isEE()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.034)) return false;
+    if (EtCorrEcalIso>4.0) return false;
+    if (EtCorrHcalIso>4.0) return false;
+    if (EtCorrTrkIso>4.0) return false;
     if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0)  > 4 )  return false;
     if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
@@ -619,9 +657,6 @@ bool PhotonPreSelection(unsigned int PhotonIndex) {
     if (EtCorrEcalIso>50.0) return false;
     if (EtCorrHcalIso>50.0) return false;
     if (EtCorrTrkIso>50.0) return false;
-    //   if (PuCorrHcalEcal>3.0) return false;
-    //if (AbsTrkIsoCIC>2.8) return false;
-    //if (pho_trksumpthollowconedr03()[PhotonIndex]>4.0) return false;
     if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0)  > 4 )  return false;
     if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
@@ -943,19 +978,19 @@ void BookHistograms(HistoContainer *histoContainer) {
   // new MVA variables
   BookBarrelAndEndcap(histoContainer,"pho_idmvanew","pho_idmvanew: region;idmva value;Counts",150,-1,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_r9","pho_tmva_id_photonid_r9: region;tmva_id_photonid_r9;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieie","pho_tmva_id_photonid_sieie: region;tmva_id_photonid_sieie;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieip","pho_tmva_id_photonid_sieip: region;tmva_id_photonid_sieip;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_etawidth","pho_tmva_id_photonid_etawidth: region;tmva_id_photonid_etawidth;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_phiwidth","pho_tmva_id_photonid_phiwidth: region;tmva_id_photonid_phiwidth;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_s4ratio","pho_tmva_id_photonid_s4ratio: region;tmva_id_photonid_s4ratio;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_lambdaratio","pho_tmva_id_photonid_lambdaratio: region;tmva_id_photonid_lambdaratio;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sceta","pho_tmva_id_photonid_sceta: region;tmva_id_photonid_sceta;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_eventrho","pho_tmva_id_photonid_eventrho: region;tmva_id_photonid_eventrho;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region;tmva_id_photonid_ESEffSigmaRR;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region;tmva_id_photonid_pfchargedisogood03;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region;tmva_id_photonid_pfchargedisobad03;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region;tmva_id_photonid_pfphotoniso03;Counts",150,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region;tmva_id_photonid_pfneutraliso03;Counts",150,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieie","pho_tmva_id_photonid_sieie: region;tmva_id_photonid_sieie;Counts",100,0,0.06);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieip","pho_tmva_id_photonid_sieip: region;tmva_id_photonid_sieip;Counts",100,-0.002,0.002);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_etawidth","pho_tmva_id_photonid_etawidth: region;tmva_id_photonid_etawidth;Counts",50,0,0.06);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_phiwidth","pho_tmva_id_photonid_phiwidth: region;tmva_id_photonid_phiwidth;Counts",50,0,0.16);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_s4ratio","pho_tmva_id_photonid_s4ratio: region;tmva_id_photonid_s4ratio;Counts",40,0.2,1.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_lambdaratio","pho_tmva_id_photonid_lambdaratio: region;tmva_id_photonid_lambdaratio;Counts",50,0,1.5);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sceta","pho_tmva_id_photonid_sceta: region;tmva_id_photonid_sceta;Counts",68,-3.4,3.4);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_eventrho","pho_tmva_id_photonid_eventrho: region;tmva_id_photonid_eventrho;Counts",100,0,60.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region;tmva_id_photonid_ESEffSigmaRR;Counts",100,0.,15.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region;tmva_id_photonid_pfchargedisogood03;Counts",40,0.,8.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region;tmva_id_photonid_pfchargedisobad03;Counts",20,0.,20.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region;tmva_id_photonid_pfphotoniso03;Counts",100,0,50);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region;tmva_id_photonid_pfneutraliso03;Counts",50,0,1.5);
 
 
   // old MVA variables
