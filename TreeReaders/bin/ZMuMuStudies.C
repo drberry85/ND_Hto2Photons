@@ -10,6 +10,7 @@
 #include "TString.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TTree.h"
 
 #include <ctime>
 #include <iostream>
@@ -46,6 +47,7 @@ template <class type> string makestring(type value);
 TLorentzVector dgieuler(TLorentzVector parent, TLorentzVector daughter);
 TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
 int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot);
+void BookMiniTree(TTree*);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,int binsb, float lowerlimitb, float upperlimitb);
 void BookBarrelAndEndcapProfiles(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita, float lowerlimitb, float upperlimitb);
@@ -150,7 +152,38 @@ int main(int argc, char * input[]) {
     HistoContainer* histoContainer;
     histoContainer = new HistoContainer();
 
+
     BookHistograms(histoContainer);
+    //BookMiniTree(minitree);
+
+    unsigned int nPho=0;
+    unsigned int pho_det=0;
+    float pho_r9=-99.;
+    float pho_sieie=-99.;
+    float pho_sieip=-99.;
+    float pho_etawidth=-99.;
+    float pho_phiwidth=-99.;
+    float pho_s4ratio=-99.;
+    float pho_lambdaratio=-99.;   
+    float pho_sceta=-99.;
+    float pho_eventrho=-99.;
+    float pho_ESEffSigmaRR=-99.;
+    TTree* minitree;
+    minitree = new TTree("ZMuMuGamMinitree","An example of ROOT tree with a few branches");
+    minitree->Branch("nPho", &nPho, "nPho/I");
+    minitree->Branch("pho_det",&pho_det,"pho_det/I");
+    minitree->Branch("pho_r9",&pho_r9,"pho_r9/F");
+    minitree->Branch("pho_sieie",&pho_sieie,"pho_sieie/F");
+    minitree->Branch("pho_sieip",&pho_sieip,"pho_sieip/F");
+    minitree->Branch("pho_etawidth",&pho_etawidth,"pho_etawidth/F");
+    minitree->Branch("pho_phiwidth",&pho_phiwidth,"pho_phiwidth/F");
+    minitree->Branch("pho_s4ratio",&pho_s4ratio,"pho_s4ratio/F");
+    minitree->Branch("pho_lambdaratio",&pho_lambdaratio,"pho_lambdaratio/F");
+    minitree->Branch("pho_sceta",&pho_sceta,"pho_sceta/F");
+    minitree->Branch("pho_eventrho",&pho_eventrho,"pho_eventrho/F");
+    minitree->Branch("pho_ESEffSigmaRR",&pho_ESEffSigmaRR,"pho_ESEffSigmaRR/F");
+
+
 
     for (int itFile = FirstFileNum; itFile<itFilePair->second+FirstFileNum; itFile++) {
 
@@ -341,8 +374,9 @@ int main(int argc, char * input[]) {
         }
 
         if (debug)  cout << " Lead " << LeadPhotonIndex << " Sub " << SubLeadPhotonIndex << "Higgs " << higgs<< endl;        
+        
         for (unsigned int PhotonIndex=0; PhotonIndex<(unsigned int) pho_n(); PhotonIndex++) {
-
+          unsigned int dete=0;
           if (!higgs && PhotonIndex!=ZMuMuPhotonIndex) continue;
           if (debug)  cout << " pho index " << PhotonIndex << endl;
           if ( higgs && debug ) {
@@ -356,7 +390,9 @@ int main(int argc, char * input[]) {
           if (pho_isEBEEGap()[PhotonIndex]) continue;
           if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
 
+
           string region=DetectorPosition(PhotonIndex);
+          if (region == "Endcap") dete=1;
 
           double leadmu_deltaphi=-1;
           double leadmu_deltaeta=-1;
@@ -455,6 +491,13 @@ int main(int argc, char * input[]) {
           float phiwidthW=1.;
           float sietaietaW=1.;
           float sietaietaSlope=0.;
+          if (InputArgs.Contains("Higgs") || InputArgs.Contains("Fall11" ) )  {
+	    if ( region=="Barrel") {
+	      r9W*=1.0065;
+	    } else {
+	      r9W*=1.0145;
+	    }
+          }
 
           
           if (debug) cout << "Filling MVA Quantities" << endl;
@@ -480,6 +523,11 @@ int main(int argc, char * input[]) {
 	    
 
 	  //// old ones
+          r9W=1.;
+	  etawidthW=1.;
+	  phiwidthW=1.;
+	  sietaietaW=1.;
+	  sietaietaSlope=0.;
           if (InputArgs.Contains("Higgs") || InputArgs.Contains("Fall11" ) )  {
             r9W*=1.0035;
             etawidthW*=0.99;
@@ -562,14 +610,32 @@ int main(int argc, char * input[]) {
           if ( pho_idmvanew()[PhotonIndex] < newMVAcut ) 
 	    histoContainer->Fill("pho_pt_afternewMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
 
+          nPho++;
+
+          pho_det          =  dete; 
+          pho_r9           =  pho_tmva_photonid_r9()[PhotonIndex];
+          pho_sieie        =  pho_tmva_photonid_sieie()[PhotonIndex];  
+	  pho_sieip        =  pho_tmva_photonid_sieip()[PhotonIndex];  
+	  pho_etawidth     =  pho_tmva_photonid_etawidth()[PhotonIndex];  
+	  pho_phiwidth     =  pho_tmva_photonid_phiwidth()[PhotonIndex];  
+	  pho_s4ratio      =  pho_tmva_photonid_s4ratio()[PhotonIndex];  
+	  pho_lambdaratio  =  pho_tmva_photonid_lambdaratio()[PhotonIndex];  
+	  pho_sceta        =  pho_tmva_photonid_sceta()[PhotonIndex];  
+	  pho_eventrho     =  pho_tmva_photonid_eventrho()[PhotonIndex];  
+	  pho_ESEffSigmaRR =  pho_tmva_photonid_ESEffSigmaRR()[PhotonIndex];  
+
+	  minitree->Fill();
+
         }
-      }    
+     }    
 
       delete filechain;
 
     }
 
+
     histoContainer->Save();
+   
     delete histoContainer;
     outfile->Write();
     outfile->Close();
@@ -868,6 +934,11 @@ int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
   }
   
 }
+
+void BookMiniTree(TTree* minitree) {
+ 
+}
+
 
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
   TString Regions[2] = {"Barrel","Endcap"};
