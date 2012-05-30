@@ -103,7 +103,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("Prompt")) prompt=true;
   if (InputArgs.Contains("SimVertex")) usesimvertex=true;
   if (InputArgs.Contains("Trigger")) trigger=true;
-  if (InputArgs.Contains("Summer12") || InputArgs.Contains("Run2012A")) globalweight=346.604;
+  if (InputArgs.Contains("Summer12") || InputArgs.Contains("Run2012A")) globalweight=248.280; //old globalweight=346.604;
   vector<pair<string, float> > filesAndWeights;
   vector<pair<string, int> > filelist;
 
@@ -491,7 +491,7 @@ int main(int argc, char * input[]) {
           float phiwidthW=1.;
           float sietaietaW=1.;
           float sietaietaSlope=0.;
-          if (InputArgs.Contains("Higgs") || InputArgs.Contains("Fall11" ) )  {
+          if (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12" ) )  {
 	    if ( region=="Barrel") {
 	      r9W*=1.0065;
 	    } else {
@@ -845,7 +845,7 @@ map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweig
   map<TString,double> WeightsMap;
   WeightsMap["None"]=1/globalweight;
   WeightsMap["ZMuMu_Summer11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
-  WeightsMap["ZMuMu_Summer12"]=kFactor["ZMuMu"]*1510.0/1948296.0;
+  WeightsMap["ZMuMu_Summer12"]=kFactor["ZMuMu"]*1871.0/1948296.0;
   WeightsMap["ZMuMu_Fall11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
   WeightsMap["TTJets"]=kFactor["TTJets"]*94.76/3701947.0;
   WeightsMap["HiggsS4"]=kFactor["Higgs"]*16.63/105132;
@@ -1115,9 +1115,13 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
     inputfilelist.push_back(pair<string,int> ("Summer11.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Summer11.root",WeightsMap["ZMuMu_Summer11"]));
   }
+  //  if (inputstring.Contains("Summer12pythia")) {
+  // inputfilelist.push_back(pair<string,int> ("Summer12pythia.root",1));
+  // inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_pythia_Summer12.root",WeightsMap["ZMuMu_Summer12"]));
+  // }
   if (inputstring.Contains("Summer12")) {
     inputfilelist.push_back(pair<string,int> ("Summer12.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_7TeV_Summer12.root",WeightsMap["ZMuMu_Summer12"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_powheg_Summer12.root",WeightsMap["ZMuMu_Summer12"]));
   }
   if (inputstring.Contains("TTJets")) {
     inputfilelist.push_back(pair<string,int> ("TTJets.root",1));
