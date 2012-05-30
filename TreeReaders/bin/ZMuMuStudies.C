@@ -156,7 +156,7 @@ int main(int argc, char * input[]) {
     BookHistograms(histoContainer);
     //BookMiniTree(minitree);
 
-    unsigned int nPho=0;
+    unsigned int pho_N=0;
     unsigned int pho_det=0;
     float pho_r9=-99.;
     float pho_sieie=-99.;
@@ -170,7 +170,7 @@ int main(int argc, char * input[]) {
     float pho_ESEffSigmaRR=-99.;
     TTree* minitree;
     minitree = new TTree("ZMuMuGamMinitree","An example of ROOT tree with a few branches");
-    minitree->Branch("nPho", &nPho, "nPho/I");
+    minitree->Branch("pho_N", &pho_N, "pho_N/I");
     minitree->Branch("pho_det",&pho_det,"pho_det/I");
     minitree->Branch("pho_r9",&pho_r9,"pho_r9/F");
     minitree->Branch("pho_sieie",&pho_sieie,"pho_sieie/F");
@@ -374,7 +374,8 @@ int main(int argc, char * input[]) {
         }
 
         if (debug)  cout << " Lead " << LeadPhotonIndex << " Sub " << SubLeadPhotonIndex << "Higgs " << higgs<< endl;        
-        
+
+        unsigned int nPho=0;        
         for (unsigned int PhotonIndex=0; PhotonIndex<(unsigned int) pho_n(); PhotonIndex++) {
           unsigned int dete=0;
           if (!higgs && PhotonIndex!=ZMuMuPhotonIndex) continue;
@@ -611,7 +612,7 @@ int main(int argc, char * input[]) {
 	    histoContainer->Fill("pho_pt_afternewMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
 
           nPho++;
-
+          pho_N            =  nPho;
           pho_det          =  dete; 
           pho_r9           =  pho_tmva_photonid_r9()[PhotonIndex];
           pho_sieie        =  pho_tmva_photonid_sieie()[PhotonIndex];  
