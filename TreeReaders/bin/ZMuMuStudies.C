@@ -104,6 +104,10 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("SimVertex")) usesimvertex=true;
   if (InputArgs.Contains("Trigger")) trigger=true;
   if (InputArgs.Contains("Summer12") || InputArgs.Contains("Run2012A")) globalweight=248.280; //old globalweight=346.604;
+  if (InputArgs.Contains("Summer12") || InputArgs.Contains("Run2012B")) globalweight=890.594; 
+  if (InputArgs.Contains("Summer12") || InputArgs.Contains("Run2012"))  globalweight=248.280+890.594; 
+
+
   vector<pair<string, float> > filesAndWeights;
   vector<pair<string, int> > filelist;
 
@@ -494,9 +498,9 @@ int main(int argc, char * input[]) {
           float sietaietaSlope=0.;
           if (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12" ) )  {
 	    if ( region=="Barrel") {
-	      r9W*=1.0065;
+	      //r9W*=1.0065;
 	    } else {
-	      r9W*=1.0145;
+	      //r9W*=1.0145;
 	    }
           }
 
@@ -846,7 +850,7 @@ map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweig
   map<TString,double> WeightsMap;
   WeightsMap["None"]=1/globalweight;
   WeightsMap["ZMuMu_Summer11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
-  WeightsMap["ZMuMu_Summer12"]=kFactor["ZMuMu"]*1871.0/1948296.0;
+  WeightsMap["ZMuMu_Summer12"]=kFactor["ZMuMu"]*1871.0/1980204.0;
   WeightsMap["ZMuMu_Fall11"]=kFactor["ZMuMu"]*1626.0/29743564.0;
   WeightsMap["TTJets"]=kFactor["TTJets"]*94.76/3701947.0;
   WeightsMap["HiggsS4"]=kFactor["Higgs"]*16.63/105132;
@@ -1063,7 +1067,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region;tmva_id_photonid_ESEffSigmaRR;Counts",100,0.,15.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region;tmva_id_photonid_pfchargedisogood03;Counts",40,0.,8.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region;tmva_id_photonid_pfchargedisobad03;Counts",20,0.,20.);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region;tmva_id_photonid_pfphotoniso03;Counts",100,0,50);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region;tmva_id_photonid_pfphotoniso03;Counts",40,0,20);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region;tmva_id_photonid_pfneutraliso03;Counts",50,0,1.5);
 
 
@@ -1107,6 +1111,15 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   if (inputstring.Contains("Run2012A")) {
     inputfilelist.push_back(pair<string,int> ("Run2012A.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012A.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("Run2012B")) {
+    inputfilelist.push_back(pair<string,int> ("Run2012B.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012B.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("Run2012")) {
+    inputfilelist.push_back(pair<string,int> ("Run2012.root",2));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012A.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012B.root",WeightsMap["None"]));
   }
   if (inputstring.Contains("Fall11")) {
     inputfilelist.push_back(pair<string,int> ("Fall11.root",1));
@@ -1168,7 +1181,8 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
   } else if (inputstring.Contains("Summer11")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Summer11.h"
   } else if (inputstring.Contains("Summer12")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Summer12.h"
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
+    //#include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Summer12.h"
   } else if (inputstring.Contains("Fall11")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_Fall11.h"
   } else if (inputstring.Contains("HiggsS4")) {
