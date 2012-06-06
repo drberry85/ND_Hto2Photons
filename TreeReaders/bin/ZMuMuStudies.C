@@ -69,7 +69,8 @@ int main(int argc, char * input[]) {
   bool higgs = false;
   bool highpt = false;
   bool presel = false;
-  bool varCorrections  = false;
+  bool varCorrections2011  = false;
+  bool varCorrections2012  = false;
   bool preselpf = false;
   bool mc = true;
   bool nocuts = false;
@@ -96,7 +97,8 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("HighPt")) highpt=true;
   if (InputArgs.Contains("PreSel")) presel=true;
   if (InputArgs.Contains("PFiso")) preselpf=true;
-  if (InputArgs.Contains("VarCorr")) varCorrections=true;
+  if (InputArgs.Contains("VarCorr2012")) varCorrections2012=true;
+  if (InputArgs.Contains("VarCorr2011")) varCorrections2011=true;
   if (InputArgs.Contains("NearMuonDRCut")) nearMuonDRcut=true;
   if (InputArgs.Contains("NoCuts")) nocuts=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
@@ -106,8 +108,8 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("SimVertex")) usesimvertex=true;
   if (InputArgs.Contains("Trigger")) trigger=true;
   if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012A")) globalweight=725.073; //globalweight=248.280; 
-  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012B")) globalweight=890.594; 
-  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012"))  globalweight=725.073+890.594; 
+  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012B")) globalweight=1697; // old globalweight=890.594; 
+  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012"))  globalweight=725.073+1697;
 
 
   vector<pair<string, float> > filesAndWeights;
@@ -144,7 +146,8 @@ int main(int argc, char * input[]) {
       if (presel) outfilename.ReplaceAll(".root","_PhoPresel.root");
       if (preselpf) outfilename.ReplaceAll(".root","_PhoPFPresel.root");
       if (nearMuonDRcut ) outfilename.ReplaceAll(".root","_NearMuonDRCut.root");
-      if (varCorrections)  outfilename.ReplaceAll(".root","_Corr.root");
+      if (varCorrections2012)  outfilename.ReplaceAll(".root","_Corr2012.root");
+      if (varCorrections2011)  outfilename.ReplaceAll(".root","_Corr2011.root");
       if (onephoton) outfilename.ReplaceAll(".root","_OnePhoton.root");
       if (fake) outfilename.ReplaceAll(".root","_Fake.root");
       if (highpt) outfilename.ReplaceAll(".root","_HighPt.root");
@@ -284,7 +287,7 @@ int main(int argc, char * input[]) {
           if (mu_glo_pixelhits()[j]<1) continue;
           //if (fabs(mu_glo_d0()[j])>0.2) continue;
           if (mu_glo_tkiso03()[j]>3.0) continue;
-          //if (debug) cout << "Has GSF Track: " << mu_glo_hasgsftrack()[j] << endl;
+          //if (debug) cout << "Has GSFkTrack: " << mu_glo_hasgsftrack()[j] << endl;
           //if (mu_glo_hasgsftrack()[j]) continue;
           if (Muon_p4.Pt()<10.0) continue;
           if (fabs(Muon_p4.Eta())>2.4) continue;
@@ -453,9 +456,6 @@ int main(int argc, char * input[]) {
 	  if ( preselpf && !PhotonPreSelectionPFbased(PhotonIndex)) continue;
 
 
-          string PassValue = "Fail";
-          if (!pixel && pho_isconv()[PhotonIndex]==1) PassValue = "Pass";
-          if (pixel && pho_haspixseed()[PhotonIndex]==0) PassValue = "Pass";
         
           string Category = GetPhotonCat(PhotonIndex);
 
@@ -505,22 +505,55 @@ int main(int argc, char * input[]) {
           float s4W=1.;
           float lambdarW=1.;
           float eseffSigW=1.;
-          if  ( varCorrections && (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12poweheg") ) )   {
-            r9W*=1.0035;
+	  if  ( varCorrections2011 && (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12powheg") ) )   {
+	    r9W*=1.0035;	    
+            phiwidthW*=0.99;
+	    etawidthW*=0.98;    
+            if ( region=="Barrel") {
+	      s4W=1.0055;
+	      sietaietaW*=0.87; 
+	      sietaietaSlope=0.0011;
+	      
+	    } else {
+	      s4W=1.0085;              
+	      sietaietaW*=0.99;
+	      eseffSigW=1.04;
+	    }
+	  }
+
+          if  ( varCorrections2012 && (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12powheg") ) )   {
+
+	    
             phiwidthW*=0.99;
             if ( region=="Barrel") {
-              s4W=1.0055;
+	      if ( InputArgs.Contains("PFiso")) {
+		r9W*=1.;
+		sietaietaW*=0.9869;    
+		etawidthW*=0.9834;
+		s4W=1.0007;         
+              } else {
+		r9W*=1.0033;
+		sietaietaW*=0.9869;
+		etawidthW*=1.0143;
+		s4W=1.0007;             
+              }
               lambdarW=0.99;
-              etawidthW*=0.98;            
-              sietaietaW*=0.87; 
-              sietaietaSlope=0.0011;
             } else {
-              sietaietaW*=0.99;
-              s4W=1.0085;
-              eseffSigW=1.04;
+	      if ( InputArgs.Contains("PFiso")) {
+		r9W*=1.0048; 
+		sietaietaW*=1.0115;
+		etawidthW*=0.9886;
+		s4W=0.9945;    
+	      } else {
+		r9W*=1.0021;
+		sietaietaW*=1.0112;
+		etawidthW*=0.9571;
+		s4W=0.9945;    
+	      }
             }
 
           }
+          if (debug) cout << " Corrections being applied " << " r9 " << r9W << " etawidth " << etawidthW << " phywidth" << phiwidthW << " sieie " <<  sietaietaW << " sieie slope " << sietaietaSlope << " s4 " << s4W << " lambdar " << lambdarW << " eseffSig " <<   eseffSigW << endl;
 
           
           if (debug) cout << "Filling MVA Quantities" << endl;
@@ -599,6 +632,11 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("PhotonPhi",Category,Photonp4[PhotonIndex].Phi(),weight);
           histoContainer->Fill("ZMass",Category,ZCandidate.M(),weight);
           histoContainer->Fill("ZMassZoom",Category,ZCandidate.M(),weight);
+
+          string PassValue = "Fail";
+          if (!pixel && pho_isconv()[PhotonIndex]==1) PassValue = "Pass";
+          if (pixel && pho_haspixseed()[PhotonIndex]==0) PassValue = "Pass";
+
 
           histoContainer->Fill(PassValue,"Numvtx",PrimaryVertex.size(),weight);
           histoContainer->Fill(PassValue,"PhotonPt",Photonp4[PhotonIndex].Pt(),weight);
@@ -729,7 +767,6 @@ bool PhotonPreSelectionPFbased(unsigned int PhotonIndex) {
   double EtCorrHcalIso = pho_hcalsumetconedr03()[PhotonIndex] - 0.005*PhotonP4.Pt();
   double EtCorrTrkIso = pho_trksumpthollowconedr03()[PhotonIndex] - 0.002*PhotonP4.Pt();
 
- 
   
   if (pho_r9()[PhotonIndex]<=0.9) {
     if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.014)) return false;
