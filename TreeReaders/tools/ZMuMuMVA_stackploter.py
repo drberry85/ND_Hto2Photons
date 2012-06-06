@@ -2,7 +2,7 @@ print "Loading Root..."
 
 #import pdb; pdb.set_trace()
 from ROOT import *
-gROOT.Macro("$HOME/rootlogon.C")
+#gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
 print "Setting Initial Parameters."
@@ -12,12 +12,16 @@ colors = [3, 2, 5, 7, 6]
 leg = TLegend(0.7, 0.8, 0.9, 0.9)
 leg.SetFillColor(0)
 leg.SetBorderSize(1)
-HistogramNames=["pho_idmva","pho_tmva_id_mit_ecal","pho_tmva_id_mit_etawidth","pho_tmva_id_mit_hcal","pho_tmva_id_mit_hoe","pho_tmva_id_mit_nvtx","pho_tmva_id_mit_phiwidth","pho_tmva_id_mit_preshower","pho_tmva_id_mit_r9","pho_tmva_id_mit_sceta","pho_tmva_id_mit_sieie","pho_tmva_id_mit_tiso1","pho_tmva_id_mit_tiso2","pho_tmva_id_mit_tiso3"]
+HistogramNames=["pho_pt","pho_idmvanew","pho_tmva_photonid_etawidth","pho_tmva_photonid_phiwidth","pho_tmva_photonid_r9","pho_tmva_photonid_sceta","pho_tmva_photonid_sieie","pho_tmva_photonid_sieip","pho_tmva_photonid_s4ratio","pho_tmva_photonid_lambdaratio","pho_tmva_photonid_eventrho","pho_tmva_photonid_ESEffSigmaRR","pho_tmva_photonid_pfchargedisogood03","pho_tmva_photonid_pfchargedisobad03","pho_tmva_photonid_pfphotoniso03","pho_tmva_photonid_pfneutraliso03"]
 Categories=["Barrel","Endcap"]
-FileNames=["ZMuMu_Fall11.root","ZMuMu_TTJets.root"]
-Legends = ["Z#mu#mu#gamma","TT+Jets"]
-pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
-DataFile = TFile(pwd+"ZMuMu_Data.root")
+pwd = "/data/pccmsnd1/b/ZMuMuGam/CMSSW_4_4_0/src/ND_Hto2Photons/TreeReaders/2012RootFiles/new2012GB_powheg/"
+pwddata = "/data/pccmsnd1/b/ZMuMuGam/CMSSW_4_4_0/src/ND_Hto2Photons/TreeReaders/2012RootFiles/new2012GB_powheg/"
+FileNames=["ZMuMu_Summer12_PhoPFPresel_HighPt.root"]
+#FileNames=["ZMuMu_Summer12_HighPt.root"]
+Legends = ["Z#mu#mu#gamma"]
+DataFile = TFile(pwddata+"ZMuMu_Run2012_PhoPFPresel_HighPt.root")
+#DataFile = TFile(pwddata+"ZMuMu_Run2012_HighPt.root")
+
 
 MCFiles=[]
 for file in FileNames:
@@ -42,18 +46,19 @@ for histbase in HistogramNames:
 			mchistlist[i].SetFillColor(colors[i])
 			stack.Add(mchistlist[i])
 			leg.AddEntry(mchistlist[i],Legends[i])
-		stack.Draw('hist')
+		stack.Draw('histe')
 		Data.SetMarkerStyle(20)
 		if stack.GetMaximum()<(Data.GetMaximum()+sqrt(Data.GetMaximum())): stack.SetMaximum(Data.GetMaximum()+sqrt(Data.GetMaximum()))
 		else: stack.SetMaximum(stack.GetMaximum())
+                stack.SetMinimum(0.1)
 		leg.AddEntry(Data,"Data")
 		Data.Draw("esame")
 		leg.Draw()
 		can.SaveAs("ZMuMuMVAStack_"+hist+".png")
 		RatioHist = Data.Clone("")
-		#import pdb; pdb.set_trace()
 		RatioHist.Divide(Data,MCHistSum,1,1,"B")
-		RatioHist.SetMinimum(0)
+		RatioHist.SetMinimum(-2)
+		RatioHist.SetMaximum(10)
 		can.SetLogy(0)
 		RatioHist.Draw("")
 		MyLine = TLine(RatioHist.GetXaxis().GetXmin(),1,RatioHist.GetXaxis().GetXmax(),1)
