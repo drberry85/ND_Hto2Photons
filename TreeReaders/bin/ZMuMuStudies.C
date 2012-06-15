@@ -47,7 +47,6 @@ template <class type> string makestring(type value);
 TLorentzVector dgieuler(TLorentzVector parent, TLorentzVector daughter);
 TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
 int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot);
-void BookMiniTree(TTree*);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,int binsb, float lowerlimitb, float upperlimitb);
 void BookBarrelAndEndcapProfiles(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita, float lowerlimitb, float upperlimitb);
@@ -108,8 +107,8 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("SimVertex")) usesimvertex=true;
   if (InputArgs.Contains("Trigger")) trigger=true;
   if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012A")) globalweight=725.073; //globalweight=248.280; 
-  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012B")) globalweight=1697; // old globalweight=890.594; 
-  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012"))  globalweight=725.073+1697;
+  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012B")) globalweight=2259;    // old1697; // old globalweight=890.594; 
+  if (InputArgs.Contains("Summer12powheg") || InputArgs.Contains("Summer12pythia") || InputArgs.Contains("Run2012"))  globalweight=2984;    // old 725.073+1697;
 
 
   vector<pair<string, float> > filesAndWeights;
@@ -164,10 +163,11 @@ int main(int argc, char * input[]) {
 
 
     BookHistograms(histoContainer);
-    //BookMiniTree(minitree);
+
 
     unsigned int pho_N=0;
     unsigned int pho_det=0;
+    float pho_pt=-99.;
     float pho_r9=-99.;
     float pho_sieie=-99.;
     float pho_sieip=-99.;
@@ -182,6 +182,7 @@ int main(int argc, char * input[]) {
     minitree = new TTree("ZMuMuGamMinitree","An example of ROOT tree with a few branches");
     minitree->Branch("pho_N", &pho_N, "pho_N/I");
     minitree->Branch("pho_det",&pho_det,"pho_det/I");
+    minitree->Branch("pho_pt",&pho_pt,"pho_pt/F");
     minitree->Branch("pho_r9",&pho_r9,"pho_r9/F");
     minitree->Branch("pho_sieie",&pho_sieie,"pho_sieie/F");
     minitree->Branch("pho_sieip",&pho_sieip,"pho_sieip/F");
@@ -402,7 +403,7 @@ int main(int argc, char * input[]) {
           if (pho_isEBEEGap()[PhotonIndex]) continue;
 
           histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
-          if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
+
 
 
 
@@ -452,9 +453,7 @@ int main(int argc, char * input[]) {
 
 	  //          histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
 
-          if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
-	  if ( preselpf && !PhotonPreSelectionPFbased(PhotonIndex)) continue;
-
+  
 
         
           string Category = GetPhotonCat(PhotonIndex);
@@ -466,7 +465,7 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("SubLeadMuDeltaPhi",subleadmu_deltaphi,weight);
             histoContainer->Fill("SubLeadMuDeltaEta",subleadmu_deltaeta,weight);
 
-            if ( mu_glo_hasgsftrack()[NearMuonIndex]) continue;
+	    if ( mu_glo_hasgsftrack()[NearMuonIndex]) continue;
             if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
 
             histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
@@ -497,14 +496,25 @@ int main(int argc, char * input[]) {
           }
 
 
+	  if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
+          if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
+	  if ( preselpf && !PhotonPreSelectionPFbased(PhotonIndex)) continue;
+
+
           float r9W=1.;
+          float r9Slope=0.;
           float etawidthW=1.;
+          float etawidthSlope=0.;
           float phiwidthW=1.;
+          float phiwidthSlope=0.;
           float sietaietaW=1.;
           float sietaietaSlope=0.;
           float s4W=1.;
+          float s4Slope=0.;
           float lambdarW=1.;
           float eseffSigW=1.;
+          float eseffSigSlope=0.;
+
 	  if  ( varCorrections2011 && (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12powheg") ) )   {
 	    r9W*=1.0035;	    
             phiwidthW*=0.99;
@@ -521,9 +531,45 @@ int main(int argc, char * input[]) {
 	    }
 	  }
 
-          if  ( varCorrections2012 && (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12powheg") ) )   {
+          if  ( varCorrections2012 && (InputArgs.Contains("HiggsS7") || InputArgs.Contains("Summer12powheg")  ||InputArgs.Contains("Summer12pyhtia")  ) )   {
 
-	    
+	    if ( region=="Barrel") {
+	      
+	      r9W=1.0045;
+	      r9Slope=0.0010;
+              s4W=1.01894;
+	      s4Slope=-0.01034;
+              etawidthW=1.04302;
+              etawidthSlope=-0.000618;
+              phiwidthW=1.00002;
+              phiwidthSlope=-0.000371;
+
+              if ( pho_tmva_photonid_sieie()[PhotonIndex]  < 0.0087 ) { 
+		sietaietaW=0.976591;
+		sietaietaSlope = 0.000081;
+	      } else {
+		sietaietaW=0.980055;
+		sietaietaSlope =  0.0000508632;
+	      }
+
+	    }else {
+	      r9W=1.0086;
+	      r9Slope=-0.0007;
+	      s4W=1.04969;
+              s4Slope=-0.03642;
+              etawidthW=0.903254;
+              etawidthSlope=0.001346;
+              phiwidthW=0.99992;
+              phiwidthSlope=4.8e-07;
+	      eseffSigW=1.00023;
+	      eseffSigSlope=0.0913;
+	      sietaietaW=0.99470;
+	      sietaietaSlope =0.00003;
+
+	    }
+
+
+	    /*	    
             phiwidthW*=0.99;
             if ( region=="Barrel") {
 	      if ( InputArgs.Contains("PFiso")) {
@@ -552,33 +598,40 @@ int main(int argc, char * input[]) {
 	      }
             }
 
+	    */
+
+
+
+
+
           }
+
           if (debug) cout << " Corrections being applied " << " r9 " << r9W << " etawidth " << etawidthW << " phywidth" << phiwidthW << " sieie " <<  sietaietaW << " sieie slope " << sietaietaSlope << " s4 " << s4W << " lambdar " << lambdarW << " eseffSig " <<   eseffSigW << endl;
 
           
           if (debug) cout << "Filling MVA Quantities" << endl;
           histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
           histoContainer->Fill("pho_idmvanew",region,pho_idmvanew()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_sieip",region,pho_tmva_photonid_sieip()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_etawidth",region,pho_tmva_photonid_etawidth()[PhotonIndex]*etawidthW+etawidthSlope,weight);
+          histoContainer->Fill("pho_tmva_photonid_phiwidth",region,pho_tmva_photonid_phiwidth()[PhotonIndex]*phiwidthW+phiwidthSlope,weight);
+          histoContainer->Fill("pho_tmva_photonid_r9",region,pho_tmva_photonid_r9()[PhotonIndex]*r9W+r9Slope,weight);
+          histoContainer->Fill("pho_tmva_photonid_s4ratio",region,pho_tmva_photonid_s4ratio()[PhotonIndex]*s4W+s4Slope,weight);
+          histoContainer->Fill("pho_tmva_photonid_lambdaratio",region,pho_tmva_photonid_lambdaratio()[PhotonIndex]*lambdarW,weight);
+          histoContainer->Fill("pho_tmva_photonid_sceta",region,pho_tmva_photonid_sceta()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_eventrho",region,pho_tmva_photonid_eventrho()[PhotonIndex],weight);
+          histoContainer->Fill("pho_tmva_photonid_ESEffSigmaRR",region,pho_tmva_photonid_ESEffSigmaRR()[PhotonIndex]*eseffSigW+eseffSigSlope,weight);
+	  histoContainer->Fill("pho_tmva_photonid_sieie",region,pho_tmva_photonid_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);
+	  //
           histoContainer->Fill("pho_tmva_photonid_pfchargedisogood03",region,pho_tmva_photonid_pfchargedisogood03()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_photonid_pfchargedisobad03",region,pho_tmva_photonid_pfchargedisobad03()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_photonid_pfphotoniso03",region,pho_tmva_photonid_pfphotoniso03()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_photonid_pfneutraliso03",region,pho_tmva_photonid_pfneutraliso03()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_photonid_sieip",region,pho_tmva_photonid_sieip()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_photonid_etawidth",region,pho_tmva_photonid_etawidth()[PhotonIndex]*etawidthW,weight);
-          histoContainer->Fill("pho_tmva_photonid_phiwidth",region,pho_tmva_photonid_phiwidth()[PhotonIndex]*phiwidthW,weight);
-          histoContainer->Fill("pho_tmva_photonid_r9",region,pho_tmva_photonid_r9()[PhotonIndex]*r9W,weight);
-          histoContainer->Fill("pho_tmva_photonid_s4ratio",region,pho_tmva_photonid_s4ratio()[PhotonIndex]*s4W,weight);
-          histoContainer->Fill("pho_tmva_photonid_lambdaratio",region,pho_tmva_photonid_lambdaratio()[PhotonIndex]*lambdarW,weight);
-          histoContainer->Fill("pho_tmva_photonid_sceta",region,pho_tmva_photonid_sceta()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_photonid_eventrho",region,pho_tmva_photonid_eventrho()[PhotonIndex],weight);
-          histoContainer->Fill("pho_tmva_photonid_ESEffSigmaRR",region,pho_tmva_photonid_ESEffSigmaRR()[PhotonIndex]*eseffSigW,weight);
-          if ( region=="Barrel") 
-	    histoContainer->Fill("pho_tmva_photonid_sieie",region,pho_tmva_photonid_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);
-	  else
-	    histoContainer->Fill("pho_tmva_photonid_sieie",region,pho_tmva_photonid_sieie()[PhotonIndex]*sietaietaW,weight);
+	  
 	    
 
 	  //// old ones
+	  /*
           r9W=1.;
 	  etawidthW=1.;
 	  phiwidthW=1.;
@@ -595,6 +648,7 @@ int main(int argc, char * input[]) {
               sietaietaW*=0.99;
             }
           }
+	  */
 
           histoContainer->Fill("pho_idmva",region,pho_idmva()[PhotonIndex],weight);
           histoContainer->Fill("pho_tmva_id_mit_tiso1",region,pho_tmva_id_mit_tiso1()[PhotonIndex],weight);
@@ -674,16 +728,17 @@ int main(int argc, char * input[]) {
           nPho++;
           pho_N            =  nPho;
           pho_det          =  dete; 
-          pho_r9           =  pho_tmva_photonid_r9()[PhotonIndex];
-          pho_sieie        =  pho_tmva_photonid_sieie()[PhotonIndex];  
+          pho_pt           =  Photonp4[PhotonIndex].Pt();
+          pho_r9           =  pho_tmva_photonid_r9()[PhotonIndex]*r9W+r9Slope;
+	  pho_sieie        =  pho_tmva_photonid_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope;
 	  pho_sieip        =  pho_tmva_photonid_sieip()[PhotonIndex];  
-	  pho_etawidth     =  pho_tmva_photonid_etawidth()[PhotonIndex];  
-	  pho_phiwidth     =  pho_tmva_photonid_phiwidth()[PhotonIndex];  
-	  pho_s4ratio      =  pho_tmva_photonid_s4ratio()[PhotonIndex];  
-	  pho_lambdaratio  =  pho_tmva_photonid_lambdaratio()[PhotonIndex];  
+	  pho_etawidth     =  pho_tmva_photonid_etawidth()[PhotonIndex]*etawidthW+etawidthSlope;  
+	  pho_phiwidth     =  pho_tmva_photonid_phiwidth()[PhotonIndex]*phiwidthW+phiwidthSlope;  
+	  pho_s4ratio      =  pho_tmva_photonid_s4ratio()[PhotonIndex]*s4W+s4Slope;  
+	  pho_lambdaratio  =  pho_tmva_photonid_lambdaratio()[PhotonIndex]*lambdarW;  
 	  pho_sceta        =  pho_tmva_photonid_sceta()[PhotonIndex];  
 	  pho_eventrho     =  pho_tmva_photonid_eventrho()[PhotonIndex];  
-	  pho_ESEffSigmaRR =  pho_tmva_photonid_ESEffSigmaRR()[PhotonIndex];  
+	  pho_ESEffSigmaRR =  pho_tmva_photonid_ESEffSigmaRR()[PhotonIndex]*eseffSigW+eseffSigSlope;  
 
 	  minitree->Fill();
 
@@ -996,9 +1051,6 @@ int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
   
 }
 
-void BookMiniTree(TTree* minitree) {
- 
-}
 
 
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
@@ -1109,20 +1161,26 @@ void BookHistograms(HistoContainer *histoContainer) {
 
   // new MVA variables
   BookBarrelAndEndcap(histoContainer,"pho_idmvanew","pho_idmvanew: region;idmva value;Counts",50,-0.5,0.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_r9","pho_tmva_id_photonid_r9: region;tmva_id_photonid_r9;Counts",50,0,1.5);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieie","pho_tmva_id_photonid_sieie: region;tmva_id_photonid_sieie;Counts",100,0,0.06);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieip","pho_tmva_id_photonid_sieip: region;tmva_id_photonid_sieip;Counts",100,-0.002,0.002);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_r9","pho_tmva_id_photonid_r9: region;tmva_id_photonid_r9;Counts",100,0.2,1.1);
+  //  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieie","pho_tmva_id_photonid_sieie: region;tmva_id_photonid_sieie;Counts",100,0,0.02);
+  //  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sieip","pho_tmva_id_photonid_sieip: region;tmva_id_photonid_sieip;Counts",100,-0.001,0.001);
+
   histoContainer->Add("pho_tmva_photonid_etawidthBarrel","pho_tmva_photonid_etawidth: Barrel;tmva_photonid_etawidth;Counts",50,0,0.02);
   histoContainer->Add("pho_tmva_photonid_etawidthEndcap","pho_tmva_photonid_etawidth: Endcap;tmva_photonid_etawidth;Counts",50,0,0.05);
+  histoContainer->Add("pho_tmva_photonid_sieieBarrel","pho_tmva_id_photonid_sieie: Barrel;#sigma#_{ieie};Counts",100,0.004,0.014);
+  histoContainer->Add("pho_tmva_photonid_sieieEndcap","pho_tmva_id_photonid_sieie: Endcap;#sigma#_{ieie};Counts",100,0.01,0.04);
+  histoContainer->Add("pho_tmva_photonid_sieipBarrel","pho_tmva_id_photonid_sieip: Barrel;cov_{ieip};Counts",100,-0.0002,0.0002);
+  histoContainer->Add("pho_tmva_photonid_sieipEndcap","pho_tmva_id_photonid_sieip: Endcap;cov_{ieip};Counts",100,-0.001,0.001);
+
 
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_phiwidth","pho_tmva_id_photonid_phiwidth: region;tmva_id_photonid_phiwidth;Counts",50,0,0.16);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_s4ratio","pho_tmva_id_photonid_s4ratio: region;tmva_id_photonid_s4ratio;Counts",40,0.2,1.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_s4ratio","pho_tmva_id_photonid_s4ratio: region;tmva_id_photonid_s4ratio;Counts",70,0.3,1.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_lambdaratio","pho_tmva_id_photonid_lambdaratio: region;tmva_id_photonid_lambdaratio;Counts",50,0,1.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sceta","pho_tmva_id_photonid_sceta: region;tmva_id_photonid_sceta;Counts",68,-3.4,3.4);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_eventrho","pho_tmva_id_photonid_eventrho: region;tmva_id_photonid_eventrho;Counts",100,0,60.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region;tmva_id_photonid_ESEffSigmaRR;Counts",100,0.,15.);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region;tmva_id_photonid_pfchargedisogood03;Counts",40,0.,8.);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region;tmva_id_photonid_pfchargedisobad03;Counts",20,0.,20.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region;tmva_id_photonid_pfchargedisogood03;Counts",80,0.,8.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region;tmva_id_photonid_pfchargedisobad03;Counts",80,0.,20.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region;tmva_id_photonid_pfphotoniso03;Counts",50,0,10.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region;tmva_id_photonid_pfneutraliso03;Counts",50,0,1.5);
 
@@ -1174,8 +1232,14 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   }
   if (inputstring.Contains("Run2012")) {
     inputfilelist.push_back(pair<string,int> ("Run2012.root",2));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012A.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012B.root",WeightsMap["None"]));
+    //    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012A_V13_03_05.root",WeightsMap["None"]));
+    //   inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012B_V13_03_05.root",WeightsMap["None"]));
+    //inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/Run2012A_V13_03_05_mitW.root",WeightsMap["None"]));
+    //inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/Run2012B_V13_03_05_mitW.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/Run2012A_V13_03_05_mitW.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/Run2012B_V13_03_05_2012.06.08_mitW.root",WeightsMap["None"]));
+    //inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/Run2012A_V13_03_05_newW.root",WeightsMap["None"]));
+    //inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/Run2012B_V13_03_05_2012.06.08_newW.root",WeightsMap["None"]));
   }
   if (inputstring.Contains("Fall11")) {
     inputfilelist.push_back(pair<string,int> ("Fall11.root",1));
@@ -1187,11 +1251,15 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   }
   if (inputstring.Contains("Summer12pythia")) {
     inputfilelist.push_back(pair<string,int> ("Summer12pythia.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_pythia_Summer12.root",WeightsMap["ZMuMu_Summer12_pythia"]));
+    //  inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M_20_TuneZ2star_8TeV_pythia6_V13_03_05.root",WeightsMap["ZMuMu_Summer12_pythia"]));
+    inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/DYToMuMu_M_20_TuneZ2star_8TeV_pythia6_V13_03_05_mitW.root",WeightsMap["ZMuMu_Summer12_pythia"]));
+    //inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/DYToMuMu_M_20_TuneZ2star_8TeV_pythia6_V13_03_05_newW.root",WeightsMap["ZMuMu_Summer12_pythia"]));
   }
   if (inputstring.Contains("Summer12powheg")) {
     inputfilelist.push_back(pair<string,int> ("Summer12powheg.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_powheg_Summer12.root",WeightsMap["ZMuMu_Summer12_powheg"]));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_Summer12_powheg_V13_03_05.root",WeightsMap["ZMuMu_Summer12_powheg"]));
+    inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_Summer12_powheg_V13_03_05_mitW.root",WeightsMap["ZMuMu_Summer12_powheg"]));
+    //inputvector.push_back(pair<string,float> ("/data/pccmsnd1/b/ZMuMuGam/CMSSW_5_2_4_patch4/src/HiggsAnalysis/HiggsTo2photons/h2gglobe_ZMuMuGamma/AnalysisScripts/zmumugamma/DYToMuMu_M-20_CT10_TuneZ2_8TeV_Summer12_powheg_V13_03_05_newW.root",WeightsMap["ZMuMu_Summer12_powheg"]));
   }
   if (inputstring.Contains("TTJets")) {
     inputfilelist.push_back(pair<string,int> ("TTJets.root",1));
@@ -1207,9 +1275,12 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   }
   if (inputstring.Contains("HiggsS7")) {
     inputfilelist.push_back(pair<string,int> ("HiggsS7.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/125GeVHiggs_S7.root",WeightsMap["HiggsS7"]));
+    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/125GeVHiggs_S7.root",WeightsMap["HiggsS7"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/ZMuMuGamma/GluGluToHToGG_M-125_8TeV_V13_03_05.root",WeightsMap["HiggsS7"]));
   }
   
+
+
 }
 
 void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap) {
