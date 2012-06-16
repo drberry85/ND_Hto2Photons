@@ -14,9 +14,12 @@ leg.SetFillColor(0)
 leg.SetBorderSize(1)
 HistogramName="ZMass"
 Categories=["","_cat0","_cat1","_cat2","_cat3"]
-pwd = "/data/pccmsnd1/b/ZMuMuGam/CMSSW_4_4_0/src/ND_Hto2Photons/TreeReaders/2012RootFiles/new2012GB_powheg/allDataJun1/electronVeto/"
+pwd = "/data/pccmsnd1/b/ZMuMuGam/CMSSW_4_4_0/src/ND_Hto2Photons/TreeReaders/2012RootFiles/new2012GB_powheg/allDataJun8/electronveto/"
 dataFile = TFile(pwd+"ZMuMu_Run2012_PhoPFPresel_HighPt.root")
-mcFile = TFile(pwd+"ZMuMu_Summer12powheg_PhoPFPresel_HighPt.root")
+mcFile = TFile(pwd+"ZMuMu_Summer12powheg_PhoPFPresel_Corr2012_HighPt.root")
+
+#dataFile = TFile(pwd+"ZMuMu_Run2012_HighPt.root")
+#mcFile = TFile(pwd+"ZMuMu_Summer12powheg_Corr2012_HighPt.root")
 
 
 print " Efficiency in data "
@@ -31,7 +34,7 @@ for Cat in Categories:
 	FailErr=Double(0.0)
 	Fail=FailHist.IntegralAndError(1,FailHist.GetNbinsX(),FailErr)
 	Eff=Pass/Total
-	EffErr=Eff*math.sqrt(pow(TotalErr/Total,2)+pow(PassErr/Pass,2))
+        EffErr= sqrt(Eff*(1.-Eff)/Total) 
 	print "%s Pass: %0.1f Fail: %0.1f  Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Pass,Fail,HistogramName+Cat,Eff,EffErr)
 	#print "Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Eff,EffErr)
 
@@ -47,7 +50,7 @@ for Cat in Categories:
 	FailErr=Double(0.0)
 	Fail=FailHist.IntegralAndError(1,FailHist.GetNbinsX(),FailErr)
 	Eff=Pass/Total
-	EffErr=Eff*math.sqrt(pow(TotalErr/Total,2)+pow(PassErr/Pass,2))
+	EffErr= sqrt(Eff*(1.-Eff)/Total) 
 	print "%s Pass: %0.1f Fail: %0.1f  Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Pass,Fail,HistogramName+Cat,Eff,EffErr)
 	#print "Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Eff,EffErr)
 
@@ -63,7 +66,7 @@ for Cat in Categories:
 	dataFailErr=Double(0.0)
 	dataFail=dataFailHist.IntegralAndError(1,dataFailHist.GetNbinsX(),dataFailErr)
 	dataEff=dataPass/dataTotal
-	dataEffErr=dataEff*math.sqrt(pow(dataTotalErr/dataTotal,2)+pow(dataPassErr/dataPass,2))
+	dataEffErr= sqrt(dataEff*(1.-dataEff)/dataTotal) 
 	#print "%s Pass: %0.1f Fail: %0.1f  Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,dataPass,dataFail,HistogramName+Cat,dataEff,dataEffErr)
 
 	mcTotalHist=mcFile.Get(HistogramName+Cat)
@@ -76,10 +79,10 @@ for Cat in Categories:
 	mcFailErr=Double(0.0)
 	mcFail=mcFailHist.IntegralAndError(1,mcFailHist.GetNbinsX(),mcFailErr)
 	mcEff=mcPass/mcTotal
-	mcEffErr=mcEff*math.sqrt(pow(mcTotalErr/mcTotal,2)+pow(mcPassErr/mcPass,2))
+	mcEffErr= sqrt(mcEff*(1.-mcEff)/mcTotal) 
 	#print "%s Pass: %0.1f Fail: %0.1f  Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,mcPass,mcFail,HistogramName+Cat,mcEff,mcEffErr)
-        ratio=dataEff/mcEff 
-        ratioErr=(dataEffErr*dataEffErr)/mcEff*mcEff  + (dataEff*dataEff)/(mcEff*mcEff*mcEff*mcEff) * mcEffErr*mcEffErr
+        ratio=dataEff/mcEff
+	ratioErr=(dataEffErr*dataEffErr)/mcEff*mcEff  + (dataEff*dataEff)/(mcEff*mcEff*mcEff*mcEff) * mcEffErr*mcEffErr
 	ratioErr=sqrt(ratioErr)
 	print "Ratio %0.3f +- %0.3f" %(ratio,ratioErr)
 print "Done!"
