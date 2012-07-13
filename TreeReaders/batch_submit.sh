@@ -22,6 +22,7 @@ rfdir $3
 rfcp $3 $REMOTEDIR
 FILENAME=`basename $3`
 /bin/ls *.root
+echo "VertexError $2 $FILENAME"
 VertexError "$2" $FILENAME
 if [ ! -d "$1/$4" ]; then
 	mkdir $1/$4

@@ -26,7 +26,7 @@
 #include <TProof.h>
 #include <TROOT.h>
 //#include "ND_Hto2Photons/TreeReaders/interface/sdaReader.h"
-#include "ND_Hto2Photons/TreeReaders/interface/sdaReaderFast.h"
+#include "ND_Hto2Photons/TreeReaders/interface/sdaReaderFast_5X.h"
 #include "ND_Hto2Photons/TreeReaders/interface/Selections.h"
 #include "ND_Hto2Photons/TreeReaders/interface/HistoContainer.cc"
 
@@ -34,6 +34,7 @@ using namespace std;
 
 bool GenMatch(TVector3 Photon);
 bool PhotonPreSelection(unsigned int photonindex);
+bool PhotonPreSelectionPFbased(unsigned int PhotonIndex);
 double etaTransformation(double EtaParticle, double Zvertex);
 double DeltaPhi(double Phi1, double Phi2);
 double MomentumTrackdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
@@ -47,12 +48,13 @@ string GetPhotonCat(unsigned int index);
 map<TString,double> GetkFactor();
 map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweight);
 template <class type> string makestring(type value);
-string GetConversionRegion(HistoContainer *histoContainer, double Z, double R, bool isEB);
+string GetConversionRegion(double Z, double R, bool isEB);
 TLorentzVector GetP4NewVertex(unsigned int photonindex, unsigned int scindex, TVector3 Vertex);
 TLorentzVector dgieuler(TLorentzVector parent, TLorentzVector daughter);
 TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
-int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot);
+int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot, unsigned int photonindex);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
+void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins1, float lowerlimit1, float upperlimit1, int bins2, float lowerlimit2, float upperlimit2);
 void BookHistograms(HistoContainer *histoContainer);
 void BookEtadZ(HistoContainer *histoContainer, TString histname);
 void BookPtdZ(HistoContainer *histoContainer, TString histname);
@@ -92,7 +94,7 @@ int main(int argc, char * input[]) {
   bool trigger = false;
   bool unweighted = false;
   bool usesimvertex = false;
-  float globalweight = 4778.0;
+  float globalweight = 3527.622;
 
   int FirstFileNum = 0;
 
@@ -202,17 +204,16 @@ int main(int argc, char * input[]) {
         int ientry = filechain->LoadTree(i);
         if (ientry==0) connect_variables(filechain->GetTree());
         m_entry_number = ientry;
-        if (ientry==0 && gv_pos()==0) mc=false;
+        if (ientry==0 && (gv_pos()==0 || gv_pos()->GetSize()==0)) mc=false;
+        if (ientry==0 && debug) cout << "MC is: " << mc << endl;
 
-        if (ientry==0 && trigger) {
-          cout << "Trigger Names:" << endl; 
-          for (unsigned int j=0; j<(unsigned int) hlt_path_names_HLT1()->size(); j++) {
-            TString TriggerName(hlt_path_names_HLT1()->at(j));
-            //if (TriggerName.Contains("Photon")) cout << TriggerName << endl;
-            cout << TriggerName << endl;
-          }
+        bool PassTrigger=false;
+        for (unsigned int j=0; j<(unsigned int) hlt_bit()->size(); j++) {
+          TString TriggerName(hlt_path_names_HLT()->at(hlt_bit()->at(j)));
+          if (TriggerName.Contains("HLT_Photon50_CaloIdVL_IsoL_v")) PassTrigger=true;
         }
-
+        if (!PassTrigger) continue;
+        
         if (debug) cout << "Looking at event: " << i << endl;
         TVector3 SimVertex = mc ? *((TVector3*) gv_pos()->At(0)) : TVector3(0,0,0);
         TVector3 DetectorOffset = mc ? TVector3(0,0,0) : TVector3(-0.147,-0.378,-0.485);
@@ -227,7 +228,7 @@ int main(int argc, char * input[]) {
         map<double,int> PhotonPtMap;
         if (pho_n()<1) continue;
         if (pho_n()<2 && nojet) continue;
-        if (jet_algo2_n()<1 && !nojet) continue;
+        if (jet_algoPF1_n()<1 && !nojet) continue;
         unsigned int leadphotonindex = 0;
         unsigned int subleadphotonindex = 1;
         for (unsigned int j=0; j!=(unsigned int) vtx_std_xyz()->GetSize(); j++) PrimaryVertex.push_back(*((TVector3*) vtx_std_xyz()->At(j)));
@@ -239,8 +240,11 @@ int main(int argc, char * input[]) {
         for (unsigned int j=0; j<(unsigned int) pho_n(); j++) {
           Photonp4.push_back(*((TLorentzVector*) pho_p4()->At(j)));
           Photonxyz.push_back(*((TVector3*) pho_calopos()->At(j)));
-          PhotonPtMap[Photonp4[j].Pt()]=j;
+          if (pho_cic4pfcutlevel_lead()->at(j).at(0)>=4) PhotonPtMap[Photonp4[j].Pt()]=j;
+          //if (PhotonPreSelectionPFbased(j)) PhotonPtMap[Photonp4[j].Pt()]=j;
         }
+        if (PhotonPtMap.size()<1) continue;
+        if (nojet && PhotonPtMap.size()<2) continue;
         map<double,int>::reverse_iterator itLeadPhoton=PhotonPtMap.rbegin();
         map<double,int>::reverse_iterator itSubLeadPhoton=PhotonPtMap.rbegin();
         if (nojet) ++itSubLeadPhoton;
@@ -253,9 +257,9 @@ int main(int argc, char * input[]) {
           if (conv_singleleg_momentum()!=NULL && conv_ntracks()[j]==1) ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_singleleg_momentum()->At(j))); else ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_refitted_momentum()->At(j)));
         }
         float PUWeight = PileUpMap[PrimaryVertex.size()];
+        if (debug) cout << "Pileup weight for " << PrimaryVertex.size() << " verticies is: " << PUWeight << endl;
         histoContainer->Fill("NumPhoton",pho_n());
         histoContainer->Fill("NumConversion",conv_n());
-        
         for (unsigned int photonindex=0; photonindex<(unsigned int) pho_n(); photonindex++) {
 
           if (onephoton && photonindex!=leadphotonindex) continue;
@@ -267,7 +271,6 @@ int main(int argc, char * input[]) {
           if (fake && GenMatched) continue;
 
           int scphotonindex = pho_scind()[photonindex];
-
           unsigned int BestVertexIndex = vtx_std_sel();
           if (mc && usesimvertex) {
             double mindeltaZtoSimVertex = 999.0;
@@ -281,15 +284,26 @@ int main(int argc, char * input[]) {
           }
           
           if (Photonp4[photonindex].Pt()<30) continue;
-          if (highpt && Photonp4[photonindex].Pt()<60) continue;
+          if (highpt && Photonp4[photonindex].Pt()<50) continue;
           if (fabs(SuperClusterxyz[scphotonindex].Eta())>2.5) continue;
-          //if (!nocuts && pho_cic4cutlevel_lead()->at(photonindex).at(BestVertexIndex)<4 && !background) continue;
-          //if (!nocuts && pho_cic4cutlevel_lead()->at(photonindex).at(BestVertexIndex)>=4 && background) continue;
-          if (!nocuts && !PhotonPreSelection(photonindex)) continue;
+          //if (!nocuts && pho_cic4cutlevel_lead()->at(photonindex).at(0)<4 && !background) continue;
+          //if (!nocuts && pho_cic4pfcutlevel_lead()->at(photonindex).at(0)>=4 && background) continue;
+          //if (!nocuts && !PhotonPreSelection(photonindex)) continue;
+          if (!nocuts && pho_cic4pfcutlevel_lead()->at(photonindex).at(0)<4) continue;
+          if (!nocuts && !PhotonPreSelectionPFbased(photonindex)) continue;
           if (onevertex && PrimaryVertex.size()!=1) continue;
           if (usesimvertex && mc) PrimaryVertex[0]=SimVertex;
 
+          if (trigger) {
+            cout << "Looking at event: " << i << endl;
+            for (unsigned int j=0; j<(unsigned int) hlt_bit()->size(); j++) {
+              TString TriggerName(hlt_path_names_HLT()->at(hlt_bit()->at(j)));
+              cout << TriggerName << ": " << hlt_bit()->at(j) << endl;
+            }
+          }
+          
           float EtWeight = EtMap.find((int) floor(Photonp4[photonindex].Pt()/5))!=EtMap.end() ? EtMap[(int) floor(Photonp4[photonindex].Pt()/5)] : 1;
+          if (debug) cout << "Et weight for with Pt " << Photonp4[photonindex].Pt() << " GeV is: " << EtWeight << endl;
           float weight = fileweight*PUWeight*EtWeight;
           
           if (!mc || unweighted) weight=1;
@@ -353,26 +367,27 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("pho_cic4cutlevel_lead",Category,pho_cic4cutlevel_lead()->at(photonindex).at(BestVertexIndex),weight);
 
           }
-          
+
+          unsigned int MaxJetIndex=0;
           TLorentzVector MaxJetP4(0,0,0,0);
           TLorentzVector MaxJetTrackP4(0,0,0,0);
           if (!onevertex || !nojet) {
-            for (unsigned int j=0; j<(unsigned int) jet_algo2_n(); j++) {
-              TLorentzVector JetP4 = *((TLorentzVector*) jet_algo2_p4()->At(j));
+            for (unsigned int j=0; j<(unsigned int) jet_algoPF1_n(); j++) {
+              TLorentzVector JetP4 = *((TLorentzVector*) jet_algoPF1_p4()->At(j));
               TLorentzVector TrackSumP4(0,0,0,0);
-              double dR = (JetP4.Eta()-SuperClusterxyz[scphotonindex].Eta())*(JetP4.Eta()-SuperClusterxyz[scphotonindex].Eta())+DeltaPhi(JetP4.Phi(),SuperClusterxyz[scphotonindex].Phi())*DeltaPhi(JetP4.Phi(),SuperClusterxyz[scphotonindex].Phi());
-              if (JetP4.Eta()>2.4 || dR<0.4 || jet_algo2_ntk()[j]<3) continue;
-              if (debug) cout << "Good jet found with: " << jet_algo2_ntk()[j] << " tracks" << endl;
-              for (unsigned int k=0; k<(unsigned int) jet_algo2_ntk()[j]; k++) {
+              double dR = sqrt((JetP4.Eta()-SuperClusterxyz[scphotonindex].Eta())*(JetP4.Eta()-SuperClusterxyz[scphotonindex].Eta())+DeltaPhi(JetP4.Phi(),SuperClusterxyz[scphotonindex].Phi())*DeltaPhi(JetP4.Phi(),SuperClusterxyz[scphotonindex].Phi()));
+              if (JetP4.Eta()>2.4 || dR<0.4 || jet_algoPF1_ntk()[j]<3) continue;
+              for (unsigned int k=0; k<(unsigned int) jet_algoPF1_ntk()[j]; k++) {
                 //if (debug) cout << "Track Index: " << k << endl;
-                unsigned short trackindex = jet_algo2_tkind()->at(j).at(k);
+                unsigned short trackindex = jet_algoPF1_tkind()->at(j).at(k);
                 //if (debug) cout << "Track Index is: " << trackindex << endl;
-                if (trackindex>=1500) continue;
+                if (trackindex>=3000) continue;
                 TLorentzVector TrackP4 = *((TLorentzVector*) tk_p4()->At(trackindex));
                 if (TrackP4.Pt()>1.0) TrackSumP4+=TrackP4;
               }
               if (JetP4.Pt()>MaxJetP4.Pt() && TrackSumP4.Pt()>30) {
                 MaxJetP4=JetP4;
+                MaxJetIndex=j;
                 if (TrackSumP4.Pt()>MaxJetTrackP4.Pt()) MaxJetTrackP4=TrackSumP4;
               }
             }
@@ -382,14 +397,15 @@ int main(int argc, char * input[]) {
           if (nojet && photonindex==leadphotonindex) MaxJetP4=Photonp4[subleadphotonindex];
           if (nojet && photonindex==subleadphotonindex) MaxJetP4=Photonp4[leadphotonindex];
           TLorentzVector PJet = MaxJetP4+Photonp4[photonindex];
-
+          if (debug) cout << "Good " << MaxJetP4.Pt() << " GeV jet found with " << jet_algoPF1_ntk()[MaxJetIndex] << " tracks and " << MaxJetTrackP4.Pt() << " GeV of track Pt." << endl;
+          
           histoContainer->Fill("MaxJetPt",MaxJetP4.Pt(),weight);
           histoContainer->Fill("MaxJetTrackPt",MaxJetTrackP4.Pt(),weight);
 
           histoContainer->Fill("MVAdZNVtxAll",PrimaryVertex.size(),PrimaryVertex[0].Z()-PrimaryVertex[vtx_std_sel()].Z(),weight);
           histoContainer->Fill("MVAdZVtxPtAll",PJet.Pt(),PrimaryVertex[0].Z()-PrimaryVertex[vtx_std_sel()].Z(),weight);
           
-          int convindex = gettrackerconvindex(SuperClusterxyz[scphotonindex],BeamSpot[0]);
+          int convindex = gettrackerconvindex(SuperClusterxyz[scphotonindex],BeamSpot[0],photonindex);
           if (convindex==-1) continue;
           if (singleleg && conv_ntracks()[convindex]!=1) continue;
           if (doubleleg && conv_ntracks()[convindex]!=2) continue;
@@ -586,6 +602,11 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("MVAdZNVtx",PrimaryVertex.size(),PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z(),weight);
           histoContainer->Fill("MVAdZNVtx_short",PrimaryVertex.size(),PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z(),weight);
           histoContainer->Fill("MVAdZVtxPt",PJet.Pt(),PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z(),weight);
+          
+          histoContainer->Fill("MVAdZNVtx",PhotonDetector,PrimaryVertex.size(),PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z(),weight);
+          histoContainer->Fill("MVAdZNVtx_short",PhotonDetector,PrimaryVertex.size(),PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z(),weight);
+          histoContainer->Fill("MVAdZVtxPt",PhotonDetector,PJet.Pt(),PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z(),weight);
+          
           if (fabs(PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z())<1.0) histoContainer->Fill("MVARes",vtx_std_evt_mva()->at(mvavertexindex),weight);
           else histoContainer->Fill("MVAResbad",vtx_std_evt_mva()->at(mvavertexindex),weight);
           
@@ -720,18 +741,28 @@ int main(int argc, char * input[]) {
             if (mc) FilldZTrackerEndcap(histoContainer, "RishiCombineddZsim", SimVertex.Z()-rishicombineddzpair.first, fabs(ConversionVertex[convindex].Z()), weight);
           }
 
-          string ConversionRegion = GetConversionRegion(histoContainer, ConversionVertex[convindex].Z(), ConversionVertex[convindex].Perp(), pho_isEB()[photonindex]);
+          string ConversionRegion = GetConversionRegion(ConversionVertex[convindex].Z(), ConversionVertex[convindex].Perp(), pho_isEB()[photonindex]);
           if ((ConversionRegion=="PixelBarrel" || ConversionRegion=="PixelFwd" || ConversionRegion=="TID") && conv_ntracks()[convindex]!=1) {
             histoContainer->Fill("MixdZPt",Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
             histoContainer->Fill("MixdZEta",SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-convvertexdz,weight);
             histoContainer->Fill("MixdZNVtx",PrimaryVertex.size(),PrimaryVertex[0].Z()-convvertexdz,weight);
             histoContainer->Fill("MixdZVtxPt",PJet.Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
+            
+            histoContainer->Fill("MixdZPt",PhotonDetector,Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
+            histoContainer->Fill("MixdZEta",PhotonDetector,SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-convvertexdz,weight);
+            histoContainer->Fill("MixdZNVtx",PhotonDetector,PrimaryVertex.size(),PrimaryVertex[0].Z()-convvertexdz,weight);
+            histoContainer->Fill("MixdZVtxPt",PhotonDetector,PJet.Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
           }
           if ((ConversionRegion=="TIB" || ConversionRegion=="TOB" || ConversionRegion=="TEC") || conv_ntracks()[convindex]==1) {
             histoContainer->Fill("MixdZPt",Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-superclusterdz,weight);
             histoContainer->Fill("MixdZEta",SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-superclusterdz,weight);
             histoContainer->Fill("MixdZNVtx",PrimaryVertex.size(),PrimaryVertex[0].Z()-superclusterdz,weight);
             histoContainer->Fill("MixdZVtxPt",PJet.Pt(),PrimaryVertex[0].Z()-superclusterdz,weight);
+
+            histoContainer->Fill("MixdZPt",PhotonDetector,Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-superclusterdz,weight);
+            histoContainer->Fill("MixdZEta",PhotonDetector,SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-superclusterdz,weight);
+            histoContainer->Fill("MixdZNVtx",PhotonDetector,PrimaryVertex.size(),PrimaryVertex[0].Z()-superclusterdz,weight);
+            histoContainer->Fill("MixdZVtxPt",PhotonDetector,PJet.Pt(),PrimaryVertex[0].Z()-superclusterdz,weight);
           }
         }
       }
@@ -774,7 +805,7 @@ bool PhotonPreSelection(unsigned int photonindex) {
   double EtCorrEcalIso = pho_ecalsumetconedr03()[photonindex] - 0.012*PhotonP4.Pt();
   double EtCorrHcalIso = pho_hcalsumetconedr03()[photonindex] - 0.005*PhotonP4.Pt();
   double EtCorrTrkIso = pho_trksumpthollowconedr03()[photonindex] - 0.002*PhotonP4.Pt();
-  //double PuCorrHcalEcal = pho_ecalsumetconedr03()[photonindex] + pho_hcalsumetconedr03()[photonindex] - rho()*0.17;
+  double PuCorrHcalEcal = pho_ecalsumetconedr03()[photonindex] + pho_hcalsumetconedr03()[photonindex] - rho_algo1()*0.17;
   double AbsTrkIsoCIC = pho_tkiso_recvtx_030_002_0000_10_01()->at(photonindex).at(vtx_std_sel());
   
   if (pho_r9()[photonindex]<=0.9) {
@@ -783,7 +814,7 @@ bool PhotonPreSelection(unsigned int photonindex) {
     if (EtCorrEcalIso>4.0) return false;
     if (EtCorrHcalIso>4.0) return false;
     if (EtCorrTrkIso>4.0) return false;
-    //if (PuCorrHcalEcal>3.0) return false;
+    if (PuCorrHcalEcal>3.0) return false;
     if (AbsTrkIsoCIC>2.8) return false;
     if (pho_trksumpthollowconedr03()[photonindex]>4.0) return false;
     if (pho_isconv()[photonindex]!=1) return false;
@@ -794,10 +825,39 @@ bool PhotonPreSelection(unsigned int photonindex) {
     if (EtCorrEcalIso>50.0) return false;
     if (EtCorrHcalIso>50.0) return false;
     if (EtCorrTrkIso>50.0) return false;
-    //if (PuCorrHcalEcal>3.0) return false;
+    if (PuCorrHcalEcal>3.0) return false;
     if (AbsTrkIsoCIC>2.8) return false;
     if (pho_trksumpthollowconedr03()[photonindex]>4.0) return false;
     if (pho_isconv()[photonindex]!=1) return false;
+    return true;
+  }
+
+}
+
+bool PhotonPreSelectionPFbased(unsigned int PhotonIndex) {
+
+  TLorentzVector PhotonP4 = *((TLorentzVector*) pho_p4()->At(PhotonIndex));
+  double EtCorrEcalIso = pho_ecalsumetconedr03()[PhotonIndex] - 0.012*PhotonP4.Pt();
+  double EtCorrHcalIso = pho_hcalsumetconedr03()[PhotonIndex] - 0.005*PhotonP4.Pt();
+  double EtCorrTrkIso = pho_trksumpthollowconedr03()[PhotonIndex] - 0.002*PhotonP4.Pt();
+
+  if (pho_r9()[PhotonIndex]<=0.9) {
+    if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.014)) return false;
+    if (pho_isEE()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.034)) return false;
+    if (EtCorrEcalIso>4.0) return false;
+    if (EtCorrHcalIso>4.0) return false;
+    if (EtCorrTrkIso>4.0) return false;
+    if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0) > 4.0 )  return false;
+    if (pho_isconv()[PhotonIndex]!=1) return false;
+    return true;
+  } else {
+    if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.082 || pho_sieie()[PhotonIndex]>0.014)) return false;
+    if (pho_isEE()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.075 || pho_sieie()[PhotonIndex]>0.034)) return false;
+    if (EtCorrEcalIso>50.0) return false;
+    if (EtCorrHcalIso>50.0) return false;
+    if (EtCorrTrkIso>50.0) return false;
+    if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0) > 4.0 )  return false;
+    if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
   }
 
@@ -983,10 +1043,6 @@ map<TString,double> GetkFactor() {
 
   kFactor["PJet"]=1.3;
   kFactor["QCD"]=1.0;
-  kFactor["Diphoton"]=2.0;
-  kFactor["Box"]=2.0;
-  kFactor["WJets"]=1.0;
-  kFactor["ZJets"]=1.15;
   return kFactor;
   
 }
@@ -995,29 +1051,20 @@ map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweig
 
   map<TString,double> WeightsMap;
   WeightsMap["None"]=1/globalweight;
-  WeightsMap["PJet15to3000"]=kFactor["PJet"]*1/10566516.0*191975.0;
-  WeightsMap["PJet0to15"]=kFactor["PJet"]*1/2080768.0*84200000.0;
-  WeightsMap["PJet15to30"]=kFactor["PJet"]*1/2046119.0*172000.0;
-  WeightsMap["PJet30to50"]=kFactor["PJet"]*1/2187260.0*16700.0;
-  WeightsMap["PJet50to80"]=kFactor["PJet"]*1/2036704.0*2720.0;
-  WeightsMap["PJet80to120"]=kFactor["PJet"]*1/2046637.0*447.0;
-  WeightsMap["PJet120to170"]=kFactor["PJet"]*1/2088216.0*84.2;
-  WeightsMap["PJet170to300"]=kFactor["PJet"]*1/2069161.0*22.6;
-  WeightsMap["PJet300to470"]=kFactor["PJet"]*1/2076880.0*1.49;
-  WeightsMap["PJet470to800"]=kFactor["PJet"]*1/2087212.0*0.132;
-  WeightsMap["PJet800to1400"]=kFactor["PJet"]*1/2131800.0*0.00348;
-  WeightsMap["PJet1400to1800"]=kFactor["PJet"]*1/2198160.0*0.0000127;
-  WeightsMap["PJet1800"]=kFactor["PJet"]*1/2188301.0*0.000000294;
-  WeightsMap["PJet15to3000_32PU"]=kFactor["PJet"]*1/624799.0*191975.0;
-  WeightsMap["QCD20to30"]=kFactor["QCD"]*1/35721833.0*236100000.0*0.0106;
-  WeightsMap["QCD30to80"]=kFactor["QCD"]*1/69968509.0*59440000.0*0.061;
-  WeightsMap["QCD80to170"]=kFactor["QCD"]*1/8150672.0*898200.0*0.159;
-  WeightsMap["Diphoton"]=kFactor["Diphoton"]*1/1150800.0*154.7;
-  WeightsMap["Box10to25"]=kFactor["Box"]*1/528400.0*358.2;
-  WeightsMap["Box25to250"]=kFactor["Box"]*1/518288.0*12.37;
-  WeightsMap["Box250"]=kFactor["Box"]*1/518112.0*0.000208;
-  WeightsMap["WJets"]=kFactor["WJets"]*1/78219917.0*27770.0;
-  WeightsMap["ZJets"]=kFactor["ZJets"]*1/36195654.0*2475.0;
+  WeightsMap["PJet15to30"]=kFactor["PJet"]*1/1970745.0*200061.7;
+  WeightsMap["PJet30to50"]=kFactor["PJet"]*1/1993325.0*19931.62;
+  WeightsMap["PJet50to80"]=kFactor["PJet"]*1/1995062.0*3322.309;
+  WeightsMap["PJet80to120"]=kFactor["PJet"]*1/1982627.0*558.2865;
+  WeightsMap["PJet120to170"]=kFactor["PJet"]*1/1979603.0*108.0068;
+  WeightsMap["PJet170to300"]=kFactor["PJet"]*1/1997226.0*30.12207;
+  WeightsMap["PJet300to470"]=kFactor["PJet"]*1/1990130.0*2.138632;
+  WeightsMap["PJet470to800"]=kFactor["PJet"]*1/1969545.0*0.2119244;
+  WeightsMap["QCD20to30"]=kFactor["QCD"]*1/35040695.0*288600000.0*0.0101;
+  WeightsMap["QCD30to80"]=kFactor["QCD"]*1/33088888.0*74330000.0*0.0621;
+  WeightsMap["QCD80to170"]=kFactor["QCD"]*1/34392763.0*1191000.0*0.1539;
+  WeightsMap["QCD170to250"]=kFactor["QCD"]*1/31633287.0*30990.0*0.148;
+  WeightsMap["QCD250to350"]=kFactor["QCD"]*1/34361322.0*4250.0*0.131;
+  WeightsMap["QCD350"]=kFactor["QCD"]*1/33383442.0*810.0*0.11;
   return WeightsMap;
   
 }
@@ -1028,7 +1075,7 @@ template <class type> string makestring(type value) {
   return sstr.str();
 }
 
-string GetConversionRegion(HistoContainer *histoContainer, double Z, double R, bool isEB) {
+string GetConversionRegion(double Z, double R, bool isEB) {
 
   string ReturnString = "";
   if (isEB) {
@@ -1050,6 +1097,7 @@ string GetConversionRegion(HistoContainer *histoContainer, double Z, double R, b
   }
 
   return ReturnString;
+
 }
 
 TLorentzVector GetP4NewVertex(unsigned int photonindex, unsigned int scindex, TVector3 Vertex) {
@@ -1106,7 +1154,7 @@ TLorentzVector  dgloren(TLorentzVector p, double b, double g, double ikey) {
 }
 
 
-int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
+int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot, unsigned int photonindex) {
 
   int ReturnIndex = -1;
   double MindeltaR = 999999;
@@ -1114,12 +1162,17 @@ int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
     TVector3 ConversionRefittedPairMomentum = conv_singleleg_momentum()!=NULL && conv_ntracks()[i]==1 ? *((TVector3*) conv_singleleg_momentum()->At(i)) : *((TVector3*) conv_refitted_momentum()->At(i));
     TVector3 ConversionVertex = *((TVector3*) conv_vtx()->At(i));
     //cout << "Trying Conversion Index: " << i << " NTracks: " << conv_ntracks()[i] << " Chi2: " << conv_chi2_probability()[i] << " Conversion Refitted Pair Momentum Pt: " << ConversionRefittedPairMomentum.Pt() << endl;
-    if (conv_ntracks()[i]!=2 && conv_ntracks()[i]!=1) continue;
-    if (conv_ntracks()[i]==2 && (conv_chi2_probability()[i]<0.000001 || ConversionRefittedPairMomentum.Pt()<1)) continue;
-    if (conv_ntracks()[i]==1 && ConversionRefittedPairMomentum.Pt()<1) continue;
+    //if (conv_ntracks()[i]!=2 && conv_ntracks()[i]!=1) continue;
+    if (conv_ntracks()[i]!=2) continue;
+    if (conv_ntracks()[i]==2 && (conv_chi2_probability()[i]<0.000001 || ConversionRefittedPairMomentum.Pt()<10)) continue;
+    if (conv_ntracks()[i]==1 && ConversionRefittedPairMomentum.Pt()<10) continue;
 
+    string ConversionRegion = GetConversionRegion(ConversionVertex.Z(), ConversionVertex.Perp(), pho_isEB()[photonindex]);
     double deltaphi = DeltaPhi(Photonxyz.Phi(),ConversionVertex.Phi());
-    double zfromconv = SuperclusterdZ(ConversionVertex,Photonxyz,BeamSpot);
+    double zfromconv = 0;
+    if (ConversionRegion=="PixelBarrel" || ConversionRegion=="PixelFwd" || ConversionRegion=="TID") zfromconv=conv_zofprimvtxfromtrks()[i];
+    if (ConversionRegion=="TIB" || ConversionRegion=="TOB" || ConversionRegion=="TEC") zfromconv=SuperclusterdZ(ConversionVertex,Photonxyz,BeamSpot);
+    if (conv_ntracks()[i]==1) zfromconv=SuperclusterdZ(ConversionVertex,Photonxyz,BeamSpot);
     double deltaeta = fabs(Photonxyz.Eta() - etaTransformation(ConversionRefittedPairMomentum.Eta(),zfromconv));
     double deltaR = sqrt(deltaeta*deltaeta+deltaphi*deltaphi);
     
@@ -1147,6 +1200,17 @@ void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TStri
     histnametemp += Regions[i];
     histtitletemp.ReplaceAll("region",Regions[i]);
     histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),bins,lowerlimit,upperlimit);
+  }
+}
+
+void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins1, float lowerlimit1, float upperlimit1, int bins2, float lowerlimit2, float upperlimit2) {
+  TString Regions[2] = {"Barrel","Endcap"};
+  for (int i=0; i<2; i++) {
+    TString histnametemp = histname;
+    TString histtitletemp = histtitle;
+    histnametemp += Regions[i];
+    histtitletemp.ReplaceAll("region",Regions[i]);
+    histoContainer->Add(histnametemp.Data(),histtitletemp.Data(),bins1,lowerlimit1,upperlimit1,bins2,lowerlimit2,upperlimit2);
   }
 }
 
@@ -1194,7 +1258,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ConvPairPt","Pt of Conversion Refitted Tracks;Pt (GeV);Counts",100,0,200);
   histoContainer->Add("ConvEta","#eta of Conversion;#eta;Counts",50,-2.5,2.5);
   histoContainer->Add("ConvPhi","#phi of Conversion;#phi;Counts",64,-3.2,3.2);
-  histoContainer->Add("ConvR","Radius of Conversion;Radius (cm);Counts",100,0,100);
+  histoContainer->Add("ConvR","Radius of Conversion;Radius (cm);Counts",300,0,300);
 
   histoContainer->Add("ConvRTracker","Radius of Conversion;Radius (cm) |z|<26cm;Conversions/0.2cm",300,0,60);
   histoContainer->Add("ConvZPixel","Z Position of Conversion;Radius (cm) 3.5cm<R<19cm;Converisons/1.0cm",120,-60,60);
@@ -1391,11 +1455,15 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("RishiCombineddZPt","#DeltaZ of Primary Vertex and Primary Vertex from Rishi's SuperCluster Projection Vertex vs Photon Pt;Pt (GeV);#DeltaZ (cm)",20,0,200,100,-5,5);
   histoContainer->Add("RishiCombineddZEta","#DeltaZ of Primary Vertex and Primary Vertex from Rishi's SuperCluster Projection Vertex vs Photon #eta;#eta;#DeltaZ (cm)",25,0,2.5,100,-5,5);
   
-  histoContainer->Add("MixdZPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon Pt;Pt (GeV);#DeltaZ (cm)",20,0,200,100,-5,5);
-  histoContainer->Add("MixdZEta","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon #eta;#eta;#DeltaZ (cm)",25,0,2.5,100,-5,5);
-  histoContainer->Add("MixdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,100,-5,5);
-  histoContainer->Add("MixdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,100,-5,5);
-
+  histoContainer->Add("MixdZPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon Pt;Pt (GeV);#DeltaZ (cm)",20,0,200,1600,-40,40);
+  histoContainer->Add("MixdZEta","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon #eta;#eta;#DeltaZ (cm)",25,0,2.5,1600,-40,40);
+  histoContainer->Add("MixdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,1600,-40,40);
+  histoContainer->Add("MixdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MixdZPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon Pt: region;Pt (GeV);#DeltaZ (cm)",20,0,200,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MixdZEta","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Photon #eta: region;#eta;#DeltaZ (cm)",25,0,2.5,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MixdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Number of Verticies: region;Number of Verticies;#DeltaZ (cm)",50,0,50,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MixdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex from Mixed Method vs Pt of Photon-Jet System: region;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,1600,-20,20);
+  
   histoContainer->Add("MVAdZ","#DeltaZ of Primary Vertex and Primary Vertex MVA;#DeltaZ (cm);Counts",100,-5,5);
   histoContainer->Add("MVAdZFirst","#DeltaZ of Primary Vertex and First Vertex MVA;#DeltaZ (cm);Counts",40,-10,10);
   histoContainer->Add("MVAdZSecond","#DeltaZ of Primary Vertex and Secondary Vertex MVA;#DeltaZ (cm);Counts",40,-10,10);
@@ -1403,16 +1471,19 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("MVAdZFirstbusted","#DeltaZ of Primary Vertex and First Vertex MVA;#DeltaZ (cm);Counts",40,-10,10);
   histoContainer->Add("MVAdZSecondbusted","#DeltaZ of Primary Vertex and Secondary Vertex MVA;#DeltaZ (cm);Counts",40,-10,10);
   histoContainer->Add("MVAdZThirdbusted","#DeltaZ of Primary Vertex and Ternary Vertex MVA;#DeltaZ (cm);Counts",40,-10,10);
-  histoContainer->Add("MVAdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,100,-5,5);
-  histoContainer->Add("MVAdZNVtx_short","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",30,0,30,100,-5,5);
-  histoContainer->Add("MVAdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,100,-5,5);
+  histoContainer->Add("MVAdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,1600,-40,40);
+  histoContainer->Add("MVAdZNVtx_short","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",30,0,30,1600,-40,40);
+  histoContainer->Add("MVAdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MVAdZNVtx","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies: region;Number of Verticies;#DeltaZ (cm)",50,0,50,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MVAdZNVtx_short","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies: region;Number of Verticies;#DeltaZ (cm)",30,0,30,1600,-40,40);
+  BookBarrelAndEndcap(histoContainer,"MVAdZVtxPt","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Pt of Photon-Jet System: region;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,1600,-40,40);
 
   histoContainer->Add("MVAdZsim","#DeltaZ of the SimVertex and Primary Vertex MVA;#DeltaZ (cm);Counts",100,-5,5);
   histoContainer->Add("MVAdZsimbad","#DeltaZ of the SimVertex and Primary Vertex MVA;#DeltaZ (cm);Counts",100,-5,5);
   histoContainer->Add("MVAdZsimfunky","#DeltaZ of the SimVertex and Primary Vertex MVA;#DeltaZ (cm);Counts",100,-5,5);
 
-  histoContainer->Add("MVAdZNVtxAll","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,100,-5,5);
-  histoContainer->Add("MVAdZVtxPtAll","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,100,-5,5);
+  histoContainer->Add("MVAdZNVtxAll","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Number of Verticies;Number of Verticies;#DeltaZ (cm)",50,0,50,1600,-40,40);
+  histoContainer->Add("MVAdZVtxPtAll","#DeltaZ of Primary Vertex and Primary Vertex MVA vs Pt of Photon-Jet System;PJet Pt (GeV);#DeltaZ (cm)",40,0,200,1600,-40,40);
   
   histoContainer->Add("ConvdZvsR","#deltaZ between the Z of the Primary Vertex from Conversion and the Primary Vertex versus R of Conversion;R (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,0,100,100, -5, 5);
   histoContainer->Add("ConvdZvsZ","#deltaZ between the Z of the Primary Vertex from Conversion and the Primary Vertex versus Z of Conversion;Z (cm);#deltaZ of Primary Vertex from Conversion (cm)",100,-220,220,100, -5, 5);
@@ -1485,7 +1556,7 @@ void BookTrackerdZ(HistoContainer *histoContainer, TString histname, TString opt
   for (unsigned int i=0; i<histarray.size(); i++) {
     TString histnametemp = histarray[i].first+histname;
     TString histtitletemp = histtitle;
-    histtitletemp.ReplaceAll("region",histarray[i].second); 
+    histtitletemp.ReplaceAll("region",histarray[i].second);
     if (options.Contains("visual")) {
       bins=50;
       if ( i==0 ) {
@@ -1636,118 +1707,13 @@ void FilldZTrackerEndcap(HistoContainer *histoContainer, TString histname, doubl
 
 void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap) {
 
-  if (inputstring.Contains("Run2011A") && !inputstring.Contains("Summer11")) {
-    inputfilelist.push_back(pair<string,int> ("Run2011A.root",6));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_0_1.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_1_1.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011A_2_1.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("Run2011B") && !inputstring.Contains("Summer11")) {
-    inputfilelist.push_back(pair<string,int> ("Run2011B.root",4));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_1.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_0_2.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Run2011B_1.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("Run2011A_Summer11")) {
-    inputfilelist.push_back(pair<string,int> ("Run2011A_Summer11.root",5));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/July5thReReco.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/July5thReReco_1.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/July5thReReco_2.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Aug5thReReco.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet/Oct3rdReReco.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("Run2011B_Summer11")) {
-    inputfilelist.push_back(pair<string,int> ("Run2011B_Summer11.root",4));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/Run2011B.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/Run2011B_1.root",WeightsMap["None"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/Run2011B_2.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("Run2011BSummer11Test")) {
-    inputfilelist.push_back(pair<string,int> ("Run2011B_Summer11.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/Run2011B_2.root",WeightsMap["None"]));
-  } 
-  if (inputstring.Contains("PJet_Summer11")) {
-    inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC.root",10));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-0to15_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet0to15"]));
-    //inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-15to30_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet15to30"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-30to50_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet30to50"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-50to80_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet50to80"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-80to120_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet80to120"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-120to170_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet120to170"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-170to300_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet170to300"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-300to470_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet300to470"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-470to800_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet470to800"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-800to1400_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet800to1400"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-1400to1800_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet1400to1800"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-1800_TuneZ2.root",kFactor["PJet"]*WeightsMap["PJet1800"]));
-  }
-  if (inputstring.Contains("PJet15to3000")) {
-    inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_1.root",kFactor["PJet"]*WeightsMap["PJet15to3000"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_2.root",kFactor["PJet"]*WeightsMap["PJet15to3000"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_3.root",kFactor["PJet"]*WeightsMap["PJet15to3000"]));
-  }
-  if (inputstring.Contains("PJet15to3000_32PU")) {
-    inputfilelist.push_back(pair<string,int> ("PhotonPlusJetMC_32PU.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/G_Pt-15to3000_32PU.root",kFactor["PJet"]*WeightsMap["PJet15to3000_32PU"]));
-  }
-  if (inputstring.Contains("QCD")) {
-    inputfilelist.push_back(pair<string,int> ("QCDEMEnriched.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/QCD_Pt-20to30_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD20to30"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/QCD_Pt-30to80_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD30to80"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/QCD_Pt-80to170_EMEnriched.root",kFactor["QCD"]*WeightsMap["QCD80to170"]));
-  }
-  if (inputstring.Contains("Diphoton")) {
-    inputfilelist.push_back(pair<string,int> ("Diphoton.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/DiPhotonsJets.root",kFactor["Diphoton"]*WeightsMap["Diphoton"]));
-  }
-  if (inputstring.Contains("Box")) {
-    inputfilelist.push_back(pair<string,int> ("Box.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Box10to25.root",kFactor["Box"]*WeightsMap["Box10to25"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Box25to250.root",kFactor["Box"]*WeightsMap["Box25to250"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Box250.root",kFactor["Box"]*WeightsMap["Box250"]));
-  }
-  if (inputstring.Contains("WJets")) {
-    inputfilelist.push_back(pair<string,int> ("WJets.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/WJets.root",kFactor["WJets"]*WeightsMap["WJets"]));
-  }
-  if (inputstring.Contains("ZJets")) {
-    inputfilelist.push_back(pair<string,int> ("ZJets.root",3));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/ZJets.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/ZJets_1.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/ZJets_2.root",kFactor["ZJets"]*WeightsMap["ZJets"]));
-  }
-  if (inputstring.Contains("Signal")) {
-    inputfilelist.push_back(pair<string,int> ("Higgs_120GeV.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc3/b/drberry/PhotonPlusJet_S6/Higgs_120GeV.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("HighPU")) {
-    inputfilelist.push_back(pair<string,int> ("Higgs_145GeV_HighPU.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/HiggsGluGluToHToGG_M-145_7TeV_HighPU.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("145GeV")) {
-    inputfilelist.push_back(pair<string,int> ("Higgs_145GeV.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/HiggsGluGluToHToGG_M-145_7TeV.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("125GeV52XSL")) {
-    inputfilelist.push_back(pair<string,int> ("Higgs_125GeV52XSL.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/GluGluToHToGG_M-125_8TeV_52X_SingleLeg.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("125GeV52XDL")) {
-    inputfilelist.push_back(pair<string,int> ("Higgs_125GeV52XDL.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/GluGluToHToGG_M-125_8TeV_52X_DoubleLeg.root",WeightsMap["None"]));
-  }
-  if (inputstring.Contains("Test") && !inputstring.Contains("TestMC") && !inputstring.Contains("Run2011")) {
+  if (inputstring.Contains("Test")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/DataTest.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/PhotonPlusJetTest_52X.root",WeightsMap["None"]));
   }
-  if (inputstring.Contains("TestMC")) {
-    inputfilelist.push_back(pair<string,int> ("TestMC.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-30to50_TuneZ2.root",WeightsMap["None"]));
+  if (inputstring.Contains("Data")) {
+    inputfilelist.push_back(pair<string,int> ("DataTest.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/TestData_52X.root",WeightsMap["None"]));
   }
 
 }
@@ -1759,10 +1725,8 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   else outfile=infile;
   
   inputfilelist.push_back(pair<string,int> (outfile,1));
-  if (inputstring.Contains("Run2011A")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("Run2011B")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("PJet15to3000")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet15to3000"]));
-  if (inputstring.Contains("PJet0to15")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet0to15"]));
+  if (inputstring.Contains("Run2012A")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("Run2012B")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
   if (inputstring.Contains("PJet15to30")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet15to30"]));
   if (inputstring.Contains("PJet30to50")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet30to50"]));
   if (inputstring.Contains("PJet50to80")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet50to80"]));
@@ -1771,67 +1735,39 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   if (inputstring.Contains("PJet170to300")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet170to300"]));
   if (inputstring.Contains("PJet300to470")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet300to470"]));
   if (inputstring.Contains("PJet470to800")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet470to800"]));
-  if (inputstring.Contains("PJet800to1400")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet800to1400"]));
-  if (inputstring.Contains("PJet1400to1800")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet1400to1800"]));
-  if (inputstring.Contains("PJet1800")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet1800"]));
-  if (inputstring.Contains("PJet15to3000_32PU")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet15to3000_32PU"]));
   if (inputstring.Contains("QCD20to30")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD20to30"]));
   if (inputstring.Contains("QCD30to80")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD30to80"]));
   if (inputstring.Contains("QCD80to170")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD80to170"]));
-  if (inputstring.Contains("Diphoton")) inputvector.push_back(pair<string,float> (infile,kFactor["Diphoton"]*WeightsMap["Diphoton"]));
-  if (inputstring.Contains("Box10to25")) inputvector.push_back(pair<string,float> (infile,kFactor["Box"]*WeightsMap["Box10to25"]));
-  if (inputstring.Contains("Box25to250")) inputvector.push_back(pair<string,float> (infile,kFactor["Box"]*WeightsMap["Box25to250"]));
-  if (inputstring.Contains("Box250")) inputvector.push_back(pair<string,float> (infile,kFactor["Box"]*WeightsMap["Box250"]));
-  if (inputstring.Contains("WJets")) inputvector.push_back(pair<string,float> (infile,kFactor["WJets"]*WeightsMap["WJets"]));
-  if (inputstring.Contains("ZJets")) inputvector.push_back(pair<string,float> (infile,kFactor["ZJets"]*WeightsMap["ZJets"]));
-  if (inputstring.Contains("Signal")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("HighPU")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("145GeV")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("120GeV52X")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("QCD170to250")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD170to250"]));
+  if (inputstring.Contains("QCD250to350")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD250to350"]));
+  if (inputstring.Contains("QCD350")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD350"]));
   if (inputstring.Contains("Test") && !inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
-  if (inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
     
 }
 
 void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
-  if (inputstring.Contains("PJet15to3000")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
-  } else if (inputstring.Contains("PJet") && (inputstring.Contains("to") || inputstring.Contains("1800"))) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet_Summer11.h"
-  } else if (inputstring.Contains("QCD")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
-  } else if (inputstring.Contains("Box")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Box.h"
-  } else if (inputstring.Contains("Diphoton")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Diphoton.h"
-  } else if (inputstring.Contains("WJets")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/WJets.h"
-  } else if (inputstring.Contains("ZJets")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZJets.h"
-//   } else if (inputstring.Contains("125GeV52X")) {
-//     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/125GeV_52X.h"
-//   } else if (inputstring.Contains("125GeV42X")) {
-//     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/125GeV_42X.h"
-  } else {
-    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
-  }
-
+   if (inputstring.Contains("PJet")) {
+     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
+   } else if (inputstring.Contains("QCD")) {
+     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
+   } else {
+     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
+   }
+   //#include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
+  
 }
 
 void MakeEtWeights(TString inputstring, map<int,double> &EtMap) {
 
-  if (inputstring.Contains("PJet15to3000")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet.h"
-  } else if (inputstring.Contains("PJet") && (inputstring.Contains("to") || inputstring.Contains("1800"))) {
-    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet_Summer11.h"
-  } else if (inputstring.Contains("PJet15to3000_32PU")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet_32PU.h"
-  } else if (inputstring.Contains("QCD")) {
-    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/QCDEMEnriched.h"
-  } else {
-    #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/Dummy.h"
-  }
+//   if (inputstring.Contains("PJet")) {
+//     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/PhotonPlusJet.h"
+//   } else if (inputstring.Contains("QCD")) {
+//     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/QCDEMEnriched.h"
+//   } else {
+//     #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/Dummy.h"
+//   }
+  #include "ND_Hto2Photons/TreeReaders/interface/EtWeights/Dummy.h"
 
 }
 

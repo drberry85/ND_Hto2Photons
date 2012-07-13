@@ -13,10 +13,11 @@ leg.SetFillColor(0)
 leg.SetBorderSize(1)
 HistogramNames=["ZMass","ZMassZoom","Numvtx","PhotonEt","PhotonEta","PhotonPhi"]
 Categories=["","_cat0","_cat1","_cat2","_cat3"]
-FileNames=["ZMuMu_Fall11_NoCuts.root","ZMuMu_TTJets_NoCuts.root"]
+#FileNames=["ZMuMu_Fall11_NoCuts.root","ZMuMu_TTJets_NoCuts.root"]
+FileNames=["ZMuMu_Summer12.root"]
 Legends = ["Z#mu#mu#gamma","TT+Jets"]
 pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
-DataFile = TFile(pwd+"ZMuMu_Data_NoCuts.root")
+DataFile = TFile(pwd+"ZMuMu_Run2012A.root")
 
 MCFiles=[]
 for file in FileNames:

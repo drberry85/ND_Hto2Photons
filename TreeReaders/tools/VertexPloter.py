@@ -14,31 +14,30 @@ file=[]
 leg = TLegend(0.6, 0.6, 0.9, 0.9)
 leg.SetFillColor(0)
 leg.SetBorderSize(1)
-pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
-hists1 = ["PixelBarrelConvdZ","PixelFwdConvdZ","TECSuperdZ","TIBSuperdZ","TIDConvdZ","TOBSuperdZ","ConvdZ"]
+pwd = "/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+hists1 = ["PixelBarrelConvdZEff","PixelFwdConvdZEff","TECSuperdZEff","TIBSuperdZEff","TIDConvdZEff","TOBSuperdZEff","ConvdZ"]
 #hists1 = ["PixelBarrelConvdZRes","PixelFwdConvdZRes","TECSuperdZRes","TIBSuperdZRes","TIDConvdZRes","TOBSuperdZRes"]
-#hists1 = ["PixelBarrelConvdZ","PixelFwdConvdZ","TECConvdZ","TIBConvdZ","TIDConvdZ","TOBConvdZ","ConvdZ"]
-#hists2 = ["PixelBarrelSuperdZ","PixelFwdSuperdZ","TECSuperdZ","TIBSuperdZ","TIDSuperdZ","TOBSuperdZ","SuperdZ"]
+#hists1 = ["PixelBarrelConvdZEff","PixelFwdConvdZEff","TECConvdZEff","TIBConvdZEff","TIDConvdZEff","TOBConvdZEff","ConvdZ"]
+hists2 = ["PixelBarrelSuperdZEff","PixelFwdSuperdZEff","TECSuperdZEff","TIBSuperdZEff","TIDSuperdZEff","TOBSuperdZEff","SuperdZ"]
+#hists1 = ["PixelBarrelRishiTrackdZEff","PixelFwdRishiTrackdZEff","TECRishiTrackdZEff","TIBRishiTrackdZEff","TIDRishiTrackdZEff","TOBRishiTrackdZEff","RishiTrackdZ"]
+#hists2 = ["PixelBarrelRishiSuperdZEff","PixelFwdRishiSuperdZEff","TECRishiSuperdZEff","TIBRishiSuperdZEff","TIDRishiSuperdZEff","TOBRishiSuperdZEff","RishiSuperdZ"]
+#hists2 = ["PixelBarrelRishiCombineddZEff","PixelFwdRishiCombineddZEff","TECRishiCombineddZEff","TIBRishiCombineddZEff","TIDRishiCombineddZEff","TOBRishiCombineddZEff","RishiCombineddZ"]
 titles = ["Pixel Barrel","Pixel Forward","Tracker EndCap","Tracker Inner Barrel","Tracker Inner Disk","Tracker Outer Barrel","All Tracker Regions"]
 Data = TFile(pwd+"Vertex_Data.root")
-MC = TFile(pwd+"Vertex_PhotonPlusJetMC.root")
+MC = TFile(pwd+"Vertex_PJet.root")
 
-for hist1,title in zip(hists1,titles):
+for hist1,hist2,title in zip(hists1,hists2,titles):
 	DataHist1=Data.Get(hist1)
 	MCHist1=MC.Get(hist1)
-	#MCHist1.Sumw2()
 	#DataHist2=Data.Get(hist2)
 	#MCHist2=MC.Get(hist2)
-	#MCHist2.Sumw2()
-	DataHist1.Sumw2()
 	DataHist1.Scale(1/DataHist1.Integral())
 	DataHist1.SetMarkerColor(kBlue)
-	#DataHist2.Sumw2()
 	#DataHist2.Scale(1/DataHist2.Integral())
 	#DataHist2.SetMarkerColor(kGreen)
 	MCHist1.Scale(1/MCHist1.Integral())
 	MCHist1.SetLineColor(kBlue)
-	#MCHist1.SetLineWidth(2)
+	MCHist1.SetLineWidth(2)
 	MCHist1.SetFillStyle(3004)
 	MCHist1.SetFillColor(kBlue)
 	#MCHist2.Scale(1/MCHist2.Integral())
@@ -46,22 +45,22 @@ for hist1,title in zip(hists1,titles):
 	#MCHist2.SetLineWidth(2)
 	#MCHist2.SetFillStyle(3005)
 	#MCHist2.SetFillColor(kGreen)
-	leg.AddEntry(MCHist1,"#gamma+Jet Monte Carlo")
-	#leg.AddEntry(MCHist2,"#splitline{Regular Conversions }{+ SuperCluster}")
-	#MCHist2.SetMaximum(max(MCHist1.GetMaximum(),MCHist2.GetMaximum(),DataHist1.GetMaximum(),DataHist2.GetMaximum())*1.1)
+	leg.AddEntry(MCHist1,"Photon+Jet MC")
+	#leg.AddEntry(MCHist2,"Supercluster Method")
+	#MCHist2.SetMaximum(max(MCHist1.GetMaximum(),MCHist2.GetMaximum())*1.1)
 	#MCHist2.SetTitle("")
-	#MCHist2.Draw("")
-	MCHist1.Draw("")
+	#MCHist2.Draw("hist")
+	if DataHist1.GetMaximum()>MCHist1.GetMaximum(): MCHist1.SetMaximum(DataHist1.GetMaximum()*1.2)
+	MCHist1.Draw("hist")
 	DataHist1.SetMarkerStyle(20)
 	#DataHist2.SetMarkerStyle(20)
 	#MCHist1.GetXaxis().SetRangeUser(-5,5)
 	#DataHist1.GetXaxis().SetRangeUser(-5,5)
-	leg.AddEntry(DataHist1,"Run 2011A+B")
-	#leg.AddEntry(DataHist2,"#splitline{Single Leg Conversions }{+ SuperCluster}")
 	DataHist1.Draw("esame")
+	leg.AddEntry(DataHist1,"Run2012 Data")
 	#DataHist2.Draw("esame")
 	leg.Draw()
-	can.SaveAs(hist1+".png")
+	can.SaveAs("Vertex_"+hist1+".png")
 	leg.Clear()
 
 # 	MCHist1Check=MC.Get(hist1+"sim")

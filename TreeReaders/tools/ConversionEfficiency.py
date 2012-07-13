@@ -14,10 +14,10 @@ leg.SetFillColor(0)
 leg.SetBorderSize(1)
 NumberatorHists=["ConvEta","ConvPt"]
 DenominatorHists=["PhotonEta","PhotonPt"]
-Legends=["Data RunA+B"]
+Legends=["Data RunA+B","PJet MC"]
 OutFileNames=["ConversionEtaEff.png","ConversionPtEff.png"]
 Maximum=[60,30]
-FileNames=["Vertex_Data.root"]
+FileNames=["Vertex_Data.root","Vertex_PhotonPlusJetMC.root"]
 pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
 colors=[3, 2, 1, 7, 4, 6, 5, 9, 8]
 

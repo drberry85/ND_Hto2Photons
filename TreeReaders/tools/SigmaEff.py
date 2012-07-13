@@ -10,8 +10,8 @@ gStyle.SetOptStat(000000)
 print "Setting Initial Parameters."
 HistogramNames=[["PixelBarrelSuperdZRes","TIBSuperdZRes","TOBSuperdZRes","PixelFwdSuperdZRes","TIDSuperdZRes","TECSuperdZRes"]]
 HistogramNames.append(["PixelBarrelConvdZRes","TIBConvdZRes","TOBConvdZRes","PixelFwdConvdZRes","TIDConvdZRes","TECConvdZRes"])
-filename="Vertex_Data.root"
-pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+filename="Vertex_Data_Fixed.root"
+pwd = "/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
 file=TFile(pwd+filename)
 
 for histlist in HistogramNames:

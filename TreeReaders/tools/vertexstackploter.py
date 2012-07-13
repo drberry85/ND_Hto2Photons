@@ -11,17 +11,19 @@ print "Setting Initial Parameters."
 can = TCanvas("Plots","Plots",850,600)
 #can.SetLogy(1)
 colors = [3, 2, 5, 7, 6]
-HistogramNames=["PhotonPt","ConvPt","PixelBarrelConvdZ","PixelFwdConvdZ","TECConvdZ","TIBConvdZ","TIDConvdZ","TOBConvdZ"]
-HistogramNames+=["PixelBarrelSuperdZ","PixelFwdSuperdZ","TECSuperdZ","TIBSuperdZ","TIDSuperdZ","TOBSuperdZ"]
+HistogramNames=["PhotonPt","ConvPt","PairPt","PixelBarrelConvdZEff","PixelFwdConvdZEff","TECConvdZEff","TIBConvdZEff","TIDConvdZEff","TOBConvdZEff"]
+HistogramNames+=["PixelBarrelSuperdZEff","PixelFwdSuperdZEff","TECSuperdZEff","TIBSuperdZEff","TIDSuperdZEff","TOBSuperdZEff"]
 Normalization = [0.0]*len(HistogramNames)
-Filenames=["Vertex_PhotonPlusJetMC.root","Vertex_QCDEMEnriched.root"]
+Filenames=["Vertex_PJet_FixedTight.root","Vertex_QCD_FixedTight.root"]
+#Filenames=["Vertex_Higgs_145GeV_HighPU_SimVertex_DoubleLeg.root"]
 file=[]
 leg = TLegend(0.7, 0.7, 0.9, 0.9)
 leg.SetFillColor(0)
 leg.SetBorderSize(1)
 Legends = ["#gamma+Jet","QCD EMEnriched"]
-pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
-Data = TFile(pwd + "Vertex_Data.root")
+#Legends = ["#gamma+Jet"]
+pwd = "/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+Data = TFile(pwd + "Vertex_Data_FixedTight.root")
 
 for i in range(len(Filenames)):
 	file.append(TFile(pwd+Filenames[i]))
@@ -43,19 +45,23 @@ for i in range(len(HistogramNames)):
 		hist[j].SetLineWidth(0)
 		hist[j].SetLineColor(colors[j])
 		hist[j].SetFillColor(colors[j])
+		hist[j].SetMarkerStyle(20)
+		hist[j].SetMarkerColor(colors[j])
+		hist[j].SetMarkerSize(1)
 		stack.Add(hist[j])
 		leg.AddEntry(hist[j],Legends[j])
 	if can.GetLogy()==1: stack.SetMinimum(0.1)
-	stack.Draw()
+	stack.Draw("hist")
 	if HistogramNames[i].find("mass")!=-1: stack.GetXaxis().SetRangeUser(100,160)
 	DataHist.SetMarkerStyle(20)
+	DataHist.SetMarkerSize(1)
 	if stack.GetMaximum()<(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum())): stack.SetMaximum(DataHist.GetMaximum()+sqrt(DataHist.GetMaximum()))
 	else: stack.SetMaximum(stack.GetMaximum())
 	leg.AddEntry(DataHist,"Data")
 	DataHist.Draw("esame")
 	leg.Draw()
-	if can.GetLogy()==1: outputname=HistogramNames[i]+"VertexLogScale.png"
-	else: outputname=HistogramNames[i]+"Vertex.png"
+	if can.GetLogy()==1: outputname=HistogramNames[i]+"_StackLogScale.png"
+	else: outputname=HistogramNames[i]+"_Stack.png"
 	can.SaveAs(outputname)
 	stack.Clear()
 	leg.Clear()
