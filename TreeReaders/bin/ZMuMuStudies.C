@@ -122,7 +122,7 @@ int main(int argc, char * input[]) {
   else if (argc>2) MakeFilesAndWeights(string(input[2]), InputArgs, filesAndWeights, filelist, kFactor, WeightsMap);
   
   if (filesAndWeights.size()==0) {
-    cout << "Warning!!!! No valid inputs!!!! Please one of the following: Run2011A, Run2011B, Run2011, Run2012A, ZMuMu, or TTJets." << endl;
+    cout << "Warning!!!! No valid inputs!!!! Please one of the following: Run2011A, Run2011B, Run2011, Run2012AB, Run2012All, ZMuMu, or TTJets." << endl;
     cout << "Exiting Program!!!!" << endl;
     return 0;
   }
@@ -738,6 +738,21 @@ int main(int argc, char * input[]) {
           if ( pho_mitmva()->at(PhotonIndex).at(0) < MVAcut ) 
 	    histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);	  
 
+
+
+
+	  mypho_pt=-99.;
+	  mypho_r9=-99.;
+	  mypho_sieie=-99.;
+	  mypho_sieip=-99.;
+	  mypho_etawidth=-99.;
+	  mypho_phiwidth=-99.;
+	  mypho_s4ratio=-99.;
+	  mypho_lambdaratio=-99.;   
+	  mypho_sceta=-99.;
+	  mypho_eventrho=-99.;
+	  mypho_ESEffSigmaRR=-99.;
+	  
 	  nPho++;
 	  mypho_N            =  nPho;
           mypho_det          =  dete; 
@@ -756,7 +771,7 @@ int main(int argc, char * input[]) {
 	  minitree->Fill();
 
         }
-     }    
+      }    
 
       delete filechain;
 
@@ -847,7 +862,7 @@ bool PhotonPreSelectionPFbased(unsigned int PhotonIndex) {
     if (EtCorrHcalIso>4.0) return false;
     if (EtCorrTrkIso>4.0) return false;
     if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0)  > 4 )  return false;
-    if (pho_isconv()[PhotonIndex]!=1) return false;
+    //    if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
   } else {
     if (pho_isEB()[PhotonIndex] && (pho_hoe()[PhotonIndex]>0.082 || pho_sieie()[PhotonIndex]>0.014)) return false;
@@ -856,7 +871,7 @@ bool PhotonPreSelectionPFbased(unsigned int PhotonIndex) {
     if (EtCorrHcalIso>50.0) return false;
     if (EtCorrTrkIso>50.0) return false;
     if ( pho_pfiso_mycharged02()->at(PhotonIndex).at(0)  > 4 )  return false;
-    if (pho_isconv()[PhotonIndex]!=1) return false;
+    // if (pho_isconv()[PhotonIndex]!=1) return false;
     return true;
   }
 
@@ -1249,8 +1264,8 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
     inputfilelist.push_back(pair<string,int> ("Run2012C.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/ZMuMuGamma/ZMuMuGamma_Run2012Cv1v2_Prompt_reduced.root",WeightsMap["None"]));
   }
-  if (inputstring.Contains("Run2012")) {
-    inputfilelist.push_back(pair<string,int> ("Run2012.root",2));
+  if (inputstring.Contains("Run2012All")) {
+    inputfilelist.push_back(pair<string,int> ("Run2012All.root",2));
     inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/ZMuMuGamma/ZMuMuGamma_Run2012ABrecovery_ReReco_reduced.root",WeightsMap["None"]));
     inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/ZMuMuGamma/ZMuMuGamma_Run2012Cv1v2_Prompt_reduced.root",WeightsMap["None"]));
     //    inputvector.push_back(pair<string,float> ("/data/ndpc2/c/HiggsGammaGamma/ZMuMuGamma/Run2012A_V13_03_05.root",WeightsMap["None"]));
