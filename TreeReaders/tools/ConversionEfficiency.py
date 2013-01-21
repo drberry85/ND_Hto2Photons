@@ -14,11 +14,11 @@ leg.SetFillColor(0)
 leg.SetBorderSize(1)
 NumberatorHists=["ConvEta","ConvPt"]
 DenominatorHists=["PhotonEta","PhotonPt"]
-Legends=["Data RunA+B","PJet MC"]
+Legends=["Data RunA+B+C+D","PJet MC"]
 OutFileNames=["ConversionEtaEff.png","ConversionPtEff.png"]
-Maximum=[60,30]
-FileNames=["Vertex_Data.root","Vertex_PhotonPlusJetMC.root"]
-pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+Maximum=[80,80]
+FileNames=["Vertex_Data.root","Vertex_Background.root"]
+pwd = "../"
 colors=[3, 2, 1, 7, 4, 6, 5, 9, 8]
 
 files=[]
@@ -56,12 +56,12 @@ for numhist,denhist,outfile,max in zip(NumberatorHists,DenominatorHists,OutFileN
 		RatioHist.SetMarkerSize(1)
 		RatioHist.SetLineColor(kBlack)
 		if numhist.find("Eta") != -1:
-			RatioHist.SetMinimum(0.6)
-			RatioHist.SetMaximum(1.6)
+			RatioHist.SetMinimum(0.0)
+			RatioHist.SetMaximum(2.0)
 			RatioHist.SetNameTitle("RatioHist",";#eta;Data/MC Ratio");
 		else:
-			RatioHist.SetMinimum(0.8)
-			RatioHist.SetMaximum(1.4)
+			RatioHist.SetMinimum(0.0)
+			RatioHist.SetMaximum(2.0)
 			RatioHist.SetNameTitle("RatioHist",";Pt (GeV);Data/MC Ratio");
 		RatioHist.Draw("")
 		can.SaveAs(outfile.replace(".png","_Ratio.png"))

@@ -10,10 +10,8 @@ can = TCanvas("Plots","Plots",850,650)
 leg = TLegend(0.6, 0.6, 0.9, 0.9)
 leg.SetFillColor(0)
 leg.SetBorderSize(1)
-pwd="/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
-FileList=["Vertex_Data.root","Vertex_PJet.root","Vertex_QCD.root"]
-#FileList=["Vertex_PhotonPlusJetMC.root","Vertex_PhotonPlusJetMC_32PU.root","Vertex_QCDEMEnriched.root","Vertex_Data.root","Vertex_Box.root","Vertex_DiPhoton.root","Vertex_WJets.root","Vertex_ZJets.root"]
-#FileList=["Vertex_PhotonPlusJetMC.root","Vertex_PhotonPlusJetMC_Summer11.root","Vertex_PhotonPlusJetMC_32PU.root","Vertex_QCDEMEnriched.root","Vertex_Data.root"]
+pwd="../"
+FileList=["Vertex_Data.root","Vertex_Background.root","Vertex_DiPhotonJets.root","Vertex_PJets.root","Vertex_QCD.root","Vertex_WJets.root","Vertex_ZJets.root"]
 colors = [1, 2, 4, 7, 3, 6, 5, 9, 8]
 file=[]
 
@@ -25,11 +23,11 @@ for i in range(len(FileList)):
 	hist.Scale(1/hist.Integral())
 	hist.SetLineWidth(2)
 	hist.SetLineColor(colors[i])
-	hist.SetMaximum(0.25)
+	hist.SetMaximum(0.1)
 	if (i==0): hist.Draw()
 	else: hist.Draw("same")
 	leg.AddEntry(hist,file[i].GetName()[file[i].GetName().rfind("/")+1:])
 
 leg.Draw()
-can.SaveAs("VertexPileup.png")
+can.SaveAs("VertexPileup.pdf")
 print "Done!"

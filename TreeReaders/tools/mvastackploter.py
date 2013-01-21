@@ -13,12 +13,12 @@ can = TCanvas("Plots","Plots",850,600)
 colors = [3, 2, 5, 7, 6]
 HistogramNames=["logsumpt2","logsumpt2All","ptasymm","ptbal","limpulltoconv","MVAValue","logsumpt2bad","ptasymmbad","ptbalbad","limpulltoconvbad","MVAValuebad","MVAValueFirst","MVAValueSecond","MVAValueThird","PairPt","MVAdZSecond","MVAdZThird"]
 Normalization = [0.0]*len(HistogramNames)
-Filenames=["Vertex_PhotonPlusJetMC_Summer11.root","Vertex_QCDEMEnriched.root"]
+Filenames=["Vertex_Background.root","Vertex_QCD.root","Vertex_DiPhotonJets.root","Vertex_WJets.root","Vertex_ZJets.root"]
 leg = TLegend(0.6, 0.7, 0.8, 0.9)
 leg.SetFillColor(0)
 leg.SetBorderSize(1)
-Legends = ["#gamma+Jet","QCD EMEnriched"]
-pwd = "/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+Legends = ["#gamma+Jet","QCD EMEnriched","DiPhotonJets","WJets","ZJets"]
+pwd = "../"
 Data = TFile(pwd + "Vertex_Data.root")
 lumiA = 1146+404.966+658.838
 lumiB = 2508
@@ -58,8 +58,8 @@ for i in range(len(HistogramNames)):
 	leg.AddEntry(DataHist,"Data")
 	DataHist.Draw("esame")
 	leg.Draw()
-	if can.GetLogy()==1: outputname=HistogramNames[i]+"VertexLogScale.png"
-	else: outputname="MVAVertex_"+HistogramNames[i]+".png"
+	if can.GetLogy()==1: outputname=HistogramNames[i]+"VertexLogScale_Stack.png"
+	else: outputname="MVAVertex_"+HistogramNames[i]+"_Stack.png"
 	can.SaveAs(outputname)
 	stack.Clear()
 	leg.Clear()

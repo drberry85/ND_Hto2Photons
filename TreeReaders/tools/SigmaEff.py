@@ -10,22 +10,24 @@ gStyle.SetOptStat(000000)
 print "Setting Initial Parameters."
 HistogramNames=[["PixelBarrelSuperdZRes","TIBSuperdZRes","TOBSuperdZRes","PixelFwdSuperdZRes","TIDSuperdZRes","TECSuperdZRes"]]
 HistogramNames.append(["PixelBarrelConvdZRes","TIBConvdZRes","TOBConvdZRes","PixelFwdConvdZRes","TIDConvdZRes","TECConvdZRes"])
-filename="Vertex_Data_Fixed.root"
-pwd = "/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+filename="Vertex_Run2012D.root"
+pwd = "../"
 file=TFile(pwd+filename)
 
 for histlist in HistogramNames:
 	names=""
 	results=""
 	resultsRMS=""
+	yeilds=""
 	for histname in histlist:
 		hist=file.Get(histname)
 		RMS=hist.GetRMS()
 		sigma = effSigma(hist)
 		results+=histname+": "+str(round(sigma,3))[:5]+" "
 		resultsRMS+=histname+": "+str(round(RMS,3))[:5]+" "
-		#print "%s: %f" %(histname,sigma)
+		yeilds+=histname+": "+str(hist.Integral(0,hist.GetNbinsX()+1))+" "
 	print "Effective Sigma: "+results
-	#print "RMS: \t\t"+resultsRMS
+	#print "RMS: "+resultsRMS
+	#print "Yeilds: "+yeilds
 
 print "Done!"

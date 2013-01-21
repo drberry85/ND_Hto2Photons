@@ -11,3 +11,5 @@
 </bin>
 <bin   name="ZMuMuStudies" file="ZMuMuStudies.C">
 </bin>
+<bin   name="CutOptimization" file="CutOptimization.C">
+</bin>

@@ -18,8 +18,20 @@ STAGE_SVCCLASS=default
 #echo "#### End Debug Output ####"
 
 cd -
-rfdir $3
-rfcp $3 $REMOTEDIR
+rfdir $3 >& /dev/null
+if [ $? -eq 0 ]; then
+	echo "File is CASTOR"
+	rfdir $3
+	rfcp $3 $REMOTEDIR
+fi
+
+/afs/cern.ch/project/eos/installation/0.1.0-22d/bin/eos.select ls $3 >& /dev/null
+if [ $? -eq 0 ]; then
+	echo "File is EOS"
+	/afs/cern.ch/project/eos/installation/0.1.0-22d/bin/eos.select find -f $3
+	xrdcp -np -v root://eoscms/$3 .
+fi
+
 FILENAME=`basename $3`
 /bin/ls *.root
 echo "VertexError $2 $FILENAME"

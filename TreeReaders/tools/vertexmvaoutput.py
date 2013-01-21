@@ -20,8 +20,8 @@ mytext.SetNDC()
 Legends = ["Non-Jet Tagged Vertex","Jet Tagged Vertex"]
 HistNames = [["MVAValuebad","MVAValue"],["MVAResbad","MVARes"]]
 FillStyle = [3004,3005]
-pwd = "/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
-MC = TFile(pwd + "Vertex_PJet.root")
+pwd = "../"
+MC = TFile(pwd + "Vertex_Background.root")
 Data = TFile(pwd + "Vertex_Data.root")
 
 for i in range(len(HistNames)):
@@ -60,7 +60,7 @@ for i in range(len(HistNames)):
 			SimHist.Draw("hist same")
 			leg.AddEntry(SimHist,"Mis-Tagged Vertex MC")
 	leg.Draw()
-	mytext.DrawLatex(0.47,0.85,"#sqrt{s} = 8 TeV Run 2012A+B")
+	mytext.DrawLatex(0.47,0.85,"#sqrt{s} = 8 TeV Run 2012A+B+C+D")
 	can.SetLogy(0)
 	can.SaveAs(HistNames[i][j]+".png")
 	can.SetLogy(1)

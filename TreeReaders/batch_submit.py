@@ -12,9 +12,12 @@ parser.add_option("--debug", action="store_true", dest="debug", default=False, h
 parser.add_option("--dryrun", action="store_true", dest="dryrun", default=False, help="Do not submit to batch queue.")
 (options, args) = parser.parse_args()
 
+eos="/afs/cern.ch/project/eos/installation/0.1.0-22d/bin/eos.select"
 HomeDir = os.getcwd()+"/"
 if not os.path.exists(options.logdir): os.mkdir(options.logdir)
-InputFiles = os.popen("nsfind "+options.inputdir+" | grep .root").readlines()
+InputFiles=[]
+if options.inputdir.find("castor")!=-1: InputFiles = os.popen("nsfind "+options.inputdir+" | grep .root").readlines()
+if options.inputdir.find("eos")!=-1 or options.inputdir.find("store")!=-1: InputFiles = os.popen(eos+" find "+options.inputdir+" | grep .root").readlines()
 print "Submitting %i jobs for directory %s" %(len(InputFiles),options.inputdir)
 for infile in InputFiles:
 	logfile = options.logdir+"/"+infile.strip("\n")[infile.rfind("/"):]+".log"

@@ -15,15 +15,15 @@ leg.SetFillColor(0)
 leg.SetBorderSize(1)
 HistogramNames=["MVAdZNVtx","MVAdZVtxPt","MixdZNVtx","MixdZVtxPt","MixdZEta"]
 AxisLabel=["Number of Vertices","Pt (GeV)","Number of Vertices","Pt (GeV)","#eta"]
-legendlist=["Run 2012A+B","#gamma+Jet & QCD MC"]
-#legendlist=["SingleLeg Conversions","DoubleLeg Conversions"]
-filenamelist=["Vertex_Data_Fixed.root","Vertex_PJet_Fixed.root"]
-#filenamelist=["Vertex_Higgs_125GeV52XSL_SimVertex_SingleLeg.root","Vertex_Higgs_125GeV52XSL_SimVertex_DoubleLeg.root"]
-pwd = "/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/"
+legendlist=["Run 2012A+B+C","Run 2012D","#gamma+Jet and Background MC"]
+#legendlist=["Run 2012A+B+C+D","Run2012A","Run2012B","Run2012C","Run2012D","#gamma+Jet and Background MC"]
+filenamelist=["Vertex_Run2012A+B+C.root","Vertex_Run2012D.root","Vertex_Background.root"]
+#filenamelist=["Vertex_Data.root","Vertex_Run2012A.root","Vertex_Run2012B.root","Vertex_Run2012C.root","Vertex_Run2012D.root","Vertex_Background.root"]
+pwd = "../"
 LowerBin=781
 UpperBin=820
-graphcolor=[1,2,4,6]
-markers=[20,21,22,23]
+graphcolor=[1,2,4,6,8,9]
+markers=[20,21,22,20,21,22]
 #Min=[0.6,0.6,0.0,0.0,0,0.0,0.0]
 #Max=[1.01,1.01,1.01,1.01,1.01,1.01,1.01]
 Min=[0.0,0.0,0.0,0.0,0,0.0,0.0]
@@ -37,9 +37,10 @@ for filename in filenamelist:
 BinList=range(1,15)
 BinList.extend(range(15,21,2))
 BinList.extend(range(21,42,5))
-print BinList
+#print BinList
 
-for region in ["","Barrel","Endcap"]:
+#for region in ["","Barrel","Endcap"]:
+for region in [""]:
 	for histname,xlabel,min,max in zip(HistogramNames,AxisLabel,Min,Max):
 		histname+=region
 		multigraph = TMultiGraph()
@@ -73,7 +74,7 @@ for region in ["","Barrel","Endcap"]:
 					#if Denominator[i]==0: print "%0.1f, %0.1f" %(Numerator[i],Denominator[i])
 					#else: print "%i, %0.1f, %0.1f, %0.3f" %(i,Numerator[i],Denominator[i],float(Numerator[i])/float(Denominator[i])*100.0)
 				BinLowEdge.append(hist.GetBinLowEdge(BinList[-1]))
-				print len(BinLowEdge),BinLowEdge
+				#print len(BinLowEdge),BinLowEdge
 				DenominatorHist=TH1F("DenominatorHist","DenominatorHist",len(BinLowEdge)-1,array.array('f',BinLowEdge))
 				NumeratorHist=TH1F("NumeratorHist","NumeratorHist",len(BinLowEdge)-1,array.array('f',BinLowEdge))
 			DenominatorHist.Sumw2()
@@ -113,7 +114,7 @@ for region in ["","Barrel","Endcap"]:
 		multigraph.Draw('AP')
 		multigraph.GetXaxis().SetRangeUser(0,EffHistList[0].GetXaxis().GetBinLowEdge(hist.GetNbinsX()+1))
 		leg.Draw()
-		can.SaveAs("MVAEff_"+histname+"_Fixed.png")
+		can.SaveAs("MVAEff_"+histname+"_RunA+B+C.png")
 		can.Clear()
 		leg.Clear()
 		if doRatio and len(EffHistList)==2:
@@ -123,13 +124,13 @@ for region in ["","Barrel","Endcap"]:
 			RatioHist.SetMarkerStyle(20)
 			RatioHist.SetMarkerSize(1)
 			if histname=="MVAdZNVtx":
-				RatioHist.SetMinimum(0.0)
-				RatioHist.SetMaximum(1.8)
+				RatioHist.SetMinimum(0.4)
+				RatioHist.SetMaximum(1.4)
 			elif histname=="MVAdZVtxPt":
-				RatioHist.SetMinimum(0.0)
-				RatioHist.SetMaximum(1.30)
+				RatioHist.SetMinimum(0.8)
+				RatioHist.SetMaximum(1.2)
 			RatioHist.Draw("")
-			can.SaveAs("MVAEff_"+histname+"_Fixed_EffRatio.png")
+			can.SaveAs("MVAEff_"+histname+"_EffRatio.png")
 		can.Clear()
 		multigraph.Delete("*")
 		gDirectory.Delete("*")

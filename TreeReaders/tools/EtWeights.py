@@ -7,7 +7,7 @@ gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
 DataFile=TFile("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/Vertex_Data.root")
-MCFile=TFile("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/Vertex_PJet.root")
+MCFile=TFile("/data/ndpc2/c/HiggsGammaGamma/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/Vertex_PJets.root")
 DataHist=DataFile.Get("PhotonPtWeight")
 MCHist=MCFile.Get("PhotonPtWeight")
 #DataHist=DataFile.Get("Numvtx")

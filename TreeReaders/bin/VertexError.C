@@ -26,7 +26,7 @@
 #include <TProof.h>
 #include <TROOT.h>
 //#include "ND_Hto2Photons/TreeReaders/interface/sdaReader.h"
-#include "ND_Hto2Photons/TreeReaders/interface/sdaReaderFast_5X.h"
+#include "ND_Hto2Photons/TreeReaders/interface/sdaReaderFast_5X_new.h"
 #include "ND_Hto2Photons/TreeReaders/interface/Selections.h"
 #include "ND_Hto2Photons/TreeReaders/interface/HistoContainer.cc"
 
@@ -39,12 +39,14 @@ double etaTransformation(double EtaParticle, double Zvertex);
 double DeltaPhi(double Phi1, double Phi2);
 double MomentumTrackdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
 double SuperclusterdZ(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex);
+double WeighteddZ(TVector3 convvtx, TVector3 refittedpairmomentum, TVector3 superclustervtx, TVector3 beamSpot, map<TString,double> ConversionResolutionMap, unsigned int photonindex);
 pair<float,float> CombineddZ(TVector3 BeamSpot, unsigned int photonindex, int ConversionIndex);
 pair<float,float> MomentumTrackdZErr(unsigned int photonindex, int ConversionIndex);
 pair<float,float> SuperClusterdZErr(TVector3 BeamSpot, unsigned int photonindex, int ConversionIndex);
 double JacksonAngle(TLorentzVector p1, TLorentzVector p2);
 string DetectorPosition(unsigned int index);
 string GetPhotonCat(unsigned int index);
+map<TString,double> GetConversionResolutionMap();
 map<TString,double> GetkFactor();
 map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweight);
 template <class type> string makestring(type value);
@@ -52,7 +54,7 @@ string GetConversionRegion(double Z, double R, bool isEB);
 TLorentzVector GetP4NewVertex(unsigned int photonindex, unsigned int scindex, TVector3 Vertex);
 TLorentzVector dgieuler(TLorentzVector parent, TLorentzVector daughter);
 TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
-int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot, unsigned int photonindex);
+int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot, map<TString,double> ConversionResolutionMap, unsigned int photonindex, HistoContainer *histoContainer, float weight);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins1, float lowerlimit1, float upperlimit1, int bins2, float lowerlimit2, float upperlimit2);
 void BookHistograms(HistoContainer *histoContainer);
@@ -94,7 +96,7 @@ int main(int argc, char * input[]) {
   bool trigger = false;
   bool unweighted = false;
   bool usesimvertex = false;
-  float globalweight = 3527.622;
+  float globalweight = 19481.0;
 
   int FirstFileNum = 0;
 
@@ -119,7 +121,7 @@ int main(int argc, char * input[]) {
 
   map<TString,double> kFactor=GetkFactor();
   map<TString,double> WeightsMap=GetWeightsMap(kFactor, globalweight);
-    
+  map<TString,double> ConversionResolutionMap=GetConversionResolutionMap();
   if (debug) cout << "argc is: " << argc << endl;
   if (argc==2) MakeFilesAndWeights(InputArgs, filesAndWeights, filelist, kFactor, WeightsMap);
   else if (argc>2) MakeFilesAndWeights(string(input[2]), InputArgs, filesAndWeights, filelist, kFactor, WeightsMap);
@@ -206,15 +208,14 @@ int main(int argc, char * input[]) {
         m_entry_number = ientry;
         if (ientry==0 && (gv_pos()==0 || gv_pos()->GetSize()==0)) mc=false;
         if (ientry==0 && debug) cout << "MC is: " << mc << endl;
-
         bool PassTrigger=false;
         for (unsigned int j=0; j<(unsigned int) hlt_bit()->size(); j++) {
           TString TriggerName(hlt_path_names_HLT()->at(hlt_bit()->at(j)));
           if (TriggerName.Contains("HLT_Photon50_CaloIdVL_IsoL_v")) PassTrigger=true;
         }
         if (!PassTrigger) continue;
-        
         if (debug) cout << "Looking at event: " << i << endl;
+
         TVector3 SimVertex = mc ? *((TVector3*) gv_pos()->At(0)) : TVector3(0,0,0);
         TVector3 DetectorOffset = mc ? TVector3(0,0,0) : TVector3(-0.147,-0.378,-0.485);
         vector<TVector3> BeamSpot;
@@ -241,7 +242,7 @@ int main(int argc, char * input[]) {
           Photonp4.push_back(*((TLorentzVector*) pho_p4()->At(j)));
           Photonxyz.push_back(*((TVector3*) pho_calopos()->At(j)));
           if (pho_cic4pfcutlevel_lead()->at(j).at(0)>=4) PhotonPtMap[Photonp4[j].Pt()]=j;
-          //if (PhotonPreSelectionPFbased(j)) PhotonPtMap[Photonp4[j].Pt()]=j;
+          //PhotonPtMap[Photonp4[j].Pt()]=j;
         }
         if (PhotonPtMap.size()<1) continue;
         if (nojet && PhotonPtMap.size()<2) continue;
@@ -250,18 +251,19 @@ int main(int argc, char * input[]) {
         if (nojet) ++itSubLeadPhoton;
         leadphotonindex=itLeadPhoton->second;
         subleadphotonindex=itSubLeadPhoton->second;
+        if (debug) for (map<double,int>::iterator imap=PhotonPtMap.begin(); imap!=PhotonPtMap.end(); imap++) cout << "PhotonPt: " << imap->first << " PhotonIndex: " << imap->second << endl;
+        if (nojet && debug) cout << "Lead Photon Index: " << leadphotonindex << " Sublead Photon Index: " << subleadphotonindex << endl;
         if (nojet && Photonp4[leadphotonindex].Pt()<Photonp4[subleadphotonindex].Pt()) cout << "Warning Pt is not sorted!!!!!!!!!!!!" << endl;  
         for (unsigned int j=0; j<(unsigned int) conv_n(); j++) {
           //ConversionVertex.push_back(*((TVector3*) conv_vtx()->At(j))+DetectorOffset);
           ConversionVertex.push_back(*((TVector3*) conv_vtx()->At(j)));
-          if (conv_singleleg_momentum()!=NULL && conv_ntracks()[j]==1) ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_singleleg_momentum()->At(j))); else ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_refitted_momentum()->At(j)));
+          if (conv_ntracks()[j]==1) ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_singleleg_momentum()->At(j))); else ConversionRefittedPairMomentum.push_back(*((TVector3*) conv_refitted_momentum()->At(j)));
         }
         float PUWeight = PileUpMap[PrimaryVertex.size()];
         if (debug) cout << "Pileup weight for " << PrimaryVertex.size() << " verticies is: " << PUWeight << endl;
         histoContainer->Fill("NumPhoton",pho_n());
         histoContainer->Fill("NumConversion",conv_n());
         for (unsigned int photonindex=0; photonindex<(unsigned int) pho_n(); photonindex++) {
-
           if (onephoton && photonindex!=leadphotonindex) continue;
           if (higgs && photonindex!=leadphotonindex && photonindex!=subleadphotonindex) continue;
           bool GenMatched = false;
@@ -269,7 +271,6 @@ int main(int argc, char * input[]) {
           if (debug && GenMatched) cout << "Photon is Gen Matched" << endl;
           if (prompt && !GenMatched) continue;
           if (fake && GenMatched) continue;
-
           int scphotonindex = pho_scind()[photonindex];
           unsigned int BestVertexIndex = vtx_std_sel();
           if (mc && usesimvertex) {
@@ -282,7 +283,7 @@ int main(int argc, char * input[]) {
               }
             }
           }
-          
+
           if (Photonp4[photonindex].Pt()<30) continue;
           if (highpt && Photonp4[photonindex].Pt()<50) continue;
           if (fabs(SuperClusterxyz[scphotonindex].Eta())>2.5) continue;
@@ -290,10 +291,9 @@ int main(int argc, char * input[]) {
           //if (!nocuts && pho_cic4pfcutlevel_lead()->at(photonindex).at(0)>=4 && background) continue;
           //if (!nocuts && !PhotonPreSelection(photonindex)) continue;
           if (!nocuts && pho_cic4pfcutlevel_lead()->at(photonindex).at(0)<4) continue;
-          if (!nocuts && !PhotonPreSelectionPFbased(photonindex)) continue;
+          //if (!nocuts && !PhotonPreSelectionPFbased(photonindex)) continue;
           if (onevertex && PrimaryVertex.size()!=1) continue;
           if (usesimvertex && mc) PrimaryVertex[0]=SimVertex;
-
           if (trigger) {
             cout << "Looking at event: " << i << endl;
             for (unsigned int j=0; j<(unsigned int) hlt_bit()->size(); j++) {
@@ -301,11 +301,10 @@ int main(int argc, char * input[]) {
               cout << TriggerName << ": " << hlt_bit()->at(j) << endl;
             }
           }
-          
+
           float EtWeight = EtMap.find((int) floor(Photonp4[photonindex].Pt()/5))!=EtMap.end() ? EtMap[(int) floor(Photonp4[photonindex].Pt()/5)] : 1;
           if (debug) cout << "Et weight for with Pt " << Photonp4[photonindex].Pt() << " GeV is: " << EtWeight << endl;
           float weight = fileweight*PUWeight*EtWeight;
-          
           if (!mc || unweighted) weight=1;
           if (debug) cout << "FileWeight: " << fileweight << " PileUpWeight: " << PUWeight << " EtWeight: " << EtWeight << " TotalWeight: " << weight << endl;
           histoContainer->Fill("PhotonPt",Photonp4[photonindex].Pt(),weight);
@@ -313,7 +312,9 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("PhotonEta",SuperClusterxyz[scphotonindex].Eta(),weight);
           histoContainer->Fill("PhotonPhi",SuperClusterxyz[scphotonindex].Phi(),weight);
           histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
-
+          histoContainer->Fill("BeamspotX",BeamSpot[0].X(),weight);
+          histoContainer->Fill("BeamspotY",BeamSpot[0].Y(),weight);
+          histoContainer->Fill("BeamspotZ",BeamSpot[0].Z(),weight);
           if (PhotonPreSelection(photonindex)) {
             double tmva_id_mit_tiso1 = pho_tkiso_recvtx_030_002_0000_10_01()->at(photonindex).at(BestVertexIndex) + pho_ecalsumetconedr03()[photonindex] + pho_hcalsumetconedr04()[photonindex];
             double tmva_id_mit_tiso2 = pho_tkiso_badvtx_040_002_0000_10_01()[photonindex] + pho_ecalsumetconedr04()[photonindex] + pho_hcalsumetconedr04()[photonindex];
@@ -371,7 +372,7 @@ int main(int argc, char * input[]) {
           unsigned int MaxJetIndex=0;
           TLorentzVector MaxJetP4(0,0,0,0);
           TLorentzVector MaxJetTrackP4(0,0,0,0);
-          if (!onevertex || !nojet) {
+          if (!onevertex && !nojet) {
             for (unsigned int j=0; j<(unsigned int) jet_algoPF1_n(); j++) {
               TLorentzVector JetP4 = *((TLorentzVector*) jet_algoPF1_p4()->At(j));
               TLorentzVector TrackSumP4(0,0,0,0);
@@ -397,18 +398,17 @@ int main(int argc, char * input[]) {
           if (nojet && photonindex==leadphotonindex) MaxJetP4=Photonp4[subleadphotonindex];
           if (nojet && photonindex==subleadphotonindex) MaxJetP4=Photonp4[leadphotonindex];
           TLorentzVector PJet = MaxJetP4+Photonp4[photonindex];
-          if (debug) cout << "Good " << MaxJetP4.Pt() << " GeV jet found with " << jet_algoPF1_ntk()[MaxJetIndex] << " tracks and " << MaxJetTrackP4.Pt() << " GeV of track Pt." << endl;
-          
+          if (debug && !nojet) cout << "Good " << MaxJetP4.Pt() << " GeV jet found with " << jet_algoPF1_ntk()[MaxJetIndex] << " tracks and " << MaxJetTrackP4.Pt() << " GeV of track Pt." << endl;
           histoContainer->Fill("MaxJetPt",MaxJetP4.Pt(),weight);
           histoContainer->Fill("MaxJetTrackPt",MaxJetTrackP4.Pt(),weight);
-
           histoContainer->Fill("MVAdZNVtxAll",PrimaryVertex.size(),PrimaryVertex[0].Z()-PrimaryVertex[vtx_std_sel()].Z(),weight);
           histoContainer->Fill("MVAdZVtxPtAll",PJet.Pt(),PrimaryVertex[0].Z()-PrimaryVertex[vtx_std_sel()].Z(),weight);
-          
-          int convindex = gettrackerconvindex(SuperClusterxyz[scphotonindex],BeamSpot[0],photonindex);
+
+          int convindex = gettrackerconvindex(SuperClusterxyz[scphotonindex],BeamSpot[0],ConversionResolutionMap,photonindex,histoContainer,weight);
           if (convindex==-1) continue;
           if (singleleg && conv_ntracks()[convindex]!=1) continue;
           if (doubleleg && conv_ntracks()[convindex]!=2) continue;
+          string ConversionRegion = GetConversionRegion(ConversionVertex[convindex].Z(), ConversionVertex[convindex].Perp(), pho_isEB()[photonindex]);
           histoContainer->Fill("ConvPt",Photonp4[photonindex].Pt(),weight);
           histoContainer->Fill("ConvPairPt",ConversionRefittedPairMomentum[convindex].Pt(),weight);
           histoContainer->Fill("ConvEta",ConversionVertex[convindex].Eta(),weight);
@@ -500,19 +500,21 @@ int main(int argc, char * input[]) {
           }
 
           if (!onevertex && !nojet && MaxJetP4.Pt()<30) continue;
-
           histoContainer->Fill("PairMass",PJet.M(),weight);
           histoContainer->Fill("PairPt",PJet.Pt(),weight);
           histoContainer->Fill("PhotonJetJacksonAngle",JacksonAngle(Photonp4[photonindex],MaxJetP4),weight);
 
-          unsigned int mvavertexindex = photonindex;
-          if (nojet) for (unsigned int j=0; j<(unsigned int) dipho_n(); j++) if ((unsigned int) dipho_leadind()[j]==leadphotonindex && (unsigned int) dipho_subleadind()[j]==subleadphotonindex) mvavertexindex=j;
+          unsigned int mvavertexindex = nojet ? 999999 : photonindex;
+          if (debug) cout << "Num Diphotons: " << dipho_n() << " MVA Vertex Size " << vtx_std_mva()->size() << endl;
+          if (nojet) for (unsigned int j=0; j<(unsigned int) dipho_n(); j++) {
+            if (debug) cout << "Lead Index: " << leadphotonindex << " Sublead Index: " << subleadphotonindex << endl;
+            if (debug) cout << "DiPhoton Index: " << j << " Lead Photon: " << dipho_leadind()[j] << " SubLead Photon Index: " << dipho_subleadind()[j] << endl;
+            if ( ((unsigned int) dipho_leadind()[j]==leadphotonindex && (unsigned int) dipho_subleadind()[j]==subleadphotonindex) || ((unsigned int) dipho_leadind()[j]==subleadphotonindex && (unsigned int) dipho_subleadind()[j]==leadphotonindex) ) mvavertexindex=j;
+          }
           if (debug) cout << "MVAVertex Index: " << mvavertexindex << " MVA Length is: " << vtx_std_mva()->size() << endl;
-          if (vtx_std_mva()->size()==0 || vtx_std_mva()->size()<=mvavertexindex) continue;
+          if (vtx_std_mva()->size()<=mvavertexindex) continue;
 
-          //unsigned int MVAVertexIndex = vtx_std_ranked_list()->at(mvavertexindex).at(0);
           unsigned int MVAVertexIndex = vtx_std_sel();
-
           histoContainer->Fill("MVAValueFirst",vtx_std_mva()->at(mvavertexindex).at(MVAVertexIndex),weight);
           histoContainer->Fill("MVAdZFirst",PrimaryVertex[MVAVertexIndex].Z()-PrimaryVertex[0].Z(),weight);
           if (vtx_std_ranked_list()->at(mvavertexindex).size()>1) {
@@ -547,13 +549,14 @@ int main(int argc, char * input[]) {
 
           double superclusterdz = SuperclusterdZ(ConversionVertex[convindex],SuperClusterxyz[scphotonindex],BeamSpot[0]);
           double convvertexdz = MomentumTrackdZ(ConversionVertex[convindex],ConversionRefittedPairMomentum[convindex],BeamSpot[0]);
+          //double convvertexdz = WeighteddZ(ConversionVertex[convindex],ConversionRefittedPairMomentum[convindex],SuperClusterxyz[scphotonindex],BeamSpot[0],ConversionResolutionMap,photonindex);
           pair<double,double> rishisuperclusterdzpair(0,0);
           pair<double,double> rishitrackprojectiondzpair(0,0);
           pair<double,double> rishicombineddzpair(0,0);
           if (conv_tk1_thetaerr()!=0) {
-            pair<double,double> rishisuperclusterdzpair = SuperClusterdZErr(BeamSpot[0],photonindex,convindex);
-            pair<double,double> rishitrackprojectiondzpair = MomentumTrackdZErr(photonindex,convindex);
-            pair<double,double> rishicombineddzpair = CombineddZ(BeamSpot[0],photonindex,convindex);
+            rishisuperclusterdzpair = SuperClusterdZErr(BeamSpot[0],photonindex,convindex);
+            rishitrackprojectiondzpair = MomentumTrackdZErr(photonindex,convindex);
+            rishicombineddzpair = CombineddZ(BeamSpot[0],photonindex,convindex);
           }
           string PhotonDetector = DetectorPosition(photonindex);
           histoContainer->Fill("PhotonEoP",SuperClusterp4[scphotonindex].E()/ConversionRefittedPairMomentum[convindex].Mag(),weight);
@@ -561,7 +564,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("ZPV",PrimaryVertex[0].Z(),weight);
           if (mc) histoContainer->Fill("dZcheck",SimVertex.Z()-PrimaryVertex[0].Z(),weight);
           if (mc) histoContainer->Fill("dZcheckzoom",(SimVertex.Z()-PrimaryVertex[0].Z())*10*1000,weight);
-          histoContainer->Fill("deltaEta",SuperClusterxyz[scphotonindex].Eta() - etaTransformation(ConversionRefittedPairMomentum[convindex].Eta(),superclusterdz),weight);
+          histoContainer->Fill("deltaEta",ConversionRefittedPairMomentum[convindex].Eta()-(SuperClusterxyz[scphotonindex]-ConversionVertex[convindex]).Eta(),weight);
 
           histoContainer->Fill("SuperZPV",superclusterdz,weight);
           histoContainer->Fill("SuperdZ",PrimaryVertex[0].Z()-superclusterdz,weight);
@@ -609,7 +612,7 @@ int main(int argc, char * input[]) {
           
           if (fabs(PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z())<1.0) histoContainer->Fill("MVARes",vtx_std_evt_mva()->at(mvavertexindex),weight);
           else histoContainer->Fill("MVAResbad",vtx_std_evt_mva()->at(mvavertexindex),weight);
-          
+
           if (mc) {
             histoContainer->Fill("MVAdZsim",PrimaryVertex[MVAVertexIndex].Z()-SimVertex.Z(),weight);
             if (fabs(PrimaryVertex[0].Z()-PrimaryVertex[MVAVertexIndex].Z())>1.0) histoContainer->Fill("MVAdZsimbad",PrimaryVertex[MVAVertexIndex].Z()-SimVertex.Z(),weight);
@@ -660,7 +663,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("ConvdZvsZ",ConversionVertex[convindex].Z(),PrimaryVertex[0].Z()-convvertexdz,weight);
           histoContainer->Fill("SuperdZvsR",ConversionVertex[convindex].Perp(),PrimaryVertex[0].Z()-superclusterdz,weight);
           histoContainer->Fill("SuperdZvsZ",ConversionVertex[convindex].Z(),PrimaryVertex[0].Z()-superclusterdz,weight);
-          
+
           if (mc) histoContainer->Fill("SuperdZsim",SimVertex.Z()-superclusterdz,weight);
           if (mc) histoContainer->Fill("ConvdZsim",SimVertex.Z()-convvertexdz,weight);
 
@@ -672,6 +675,9 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("ConvdZ",PhotonDetector,PrimaryVertex[0].Z()-convvertexdz,weight);
           if (mc) histoContainer->Fill("ConvdZsim",PhotonDetector,SimVertex.Z()-convvertexdz,weight);
 
+          histoContainer->Fill("ConvdZCompairison",PrimaryVertex[0].Z()-superclusterdz,PrimaryVertex[0].Z()-convvertexdz,weight);
+          histoContainer->Fill("ConvdZCompairisonZoom",PrimaryVertex[0].Z()-superclusterdz,PrimaryVertex[0].Z()-convvertexdz,weight);
+          
           histoContainer->Fill("RishiSuperZPV",PhotonDetector,rishisuperclusterdzpair.first,weight);
           histoContainer->Fill("RishiSuperdZ",PhotonDetector,PrimaryVertex[0].Z()-rishisuperclusterdzpair.first,weight);
           if (mc) histoContainer->Fill("RishiSuperdZsim",PhotonDetector,SimVertex.Z()-rishisuperclusterdzpair.first,weight);
@@ -683,7 +689,7 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("RishiCombinedZPV",PhotonDetector,rishicombineddzpair.first,weight);
           histoContainer->Fill("RishiCombineddZ",PhotonDetector,PrimaryVertex[0].Z()-rishicombineddzpair.first,weight);
           if (mc) histoContainer->Fill("RishiCombineddZsim",PhotonDetector,SimVertex.Z()-rishicombineddzpair.first,weight);
-          
+
           if (PhotonDetector=="Barrel") {
             FilldZTrackerBarrel(histoContainer, "SuperdZ", PrimaryVertex[0].Z()-superclusterdz, ConversionVertex[convindex].Perp(), weight);
             FilldZTrackerBarrel(histoContainer, "SuperdZEff", PrimaryVertex[0].Z()-superclusterdz, ConversionVertex[convindex].Perp(), weight, true);
@@ -741,7 +747,18 @@ int main(int argc, char * input[]) {
             if (mc) FilldZTrackerEndcap(histoContainer, "RishiCombineddZsim", SimVertex.Z()-rishicombineddzpair.first, fabs(ConversionVertex[convindex].Z()), weight);
           }
 
-          string ConversionRegion = GetConversionRegion(ConversionVertex[convindex].Z(), ConversionVertex[convindex].Perp(), pho_isEB()[photonindex]);
+//           if (conv_ntracks()[convindex]!=1) {
+//             histoContainer->Fill("MixdZPt",Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//             histoContainer->Fill("MixdZEta",SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//             histoContainer->Fill("MixdZNVtx",PrimaryVertex.size(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//             histoContainer->Fill("MixdZVtxPt",PJet.Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
+            
+//             histoContainer->Fill("MixdZPt",PhotonDetector,Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//             histoContainer->Fill("MixdZEta",PhotonDetector,SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//             histoContainer->Fill("MixdZNVtx",PhotonDetector,PrimaryVertex.size(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//             histoContainer->Fill("MixdZVtxPt",PhotonDetector,PJet.Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
+//           }
+          
           if ((ConversionRegion=="PixelBarrel" || ConversionRegion=="PixelFwd" || ConversionRegion=="TID") && conv_ntracks()[convindex]!=1) {
             histoContainer->Fill("MixdZPt",Photonp4[photonindex].Pt(),PrimaryVertex[0].Z()-convvertexdz,weight);
             histoContainer->Fill("MixdZEta",SuperClusterxyz[scphotonindex].Eta(),PrimaryVertex[0].Z()-convvertexdz,weight);
@@ -764,8 +781,11 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("MixdZNVtx",PhotonDetector,PrimaryVertex.size(),PrimaryVertex[0].Z()-superclusterdz,weight);
             histoContainer->Fill("MixdZVtxPt",PhotonDetector,PJet.Pt(),PrimaryVertex[0].Z()-superclusterdz,weight);
           }
+
         }
+
       }
+
       delete filechain;
 
     }
@@ -795,8 +815,8 @@ bool GenMatch(TVector3 Photon) {
     }
   }
 
-
   return false;
+
 }
 
 bool PhotonPreSelection(unsigned int photonindex) {
@@ -928,6 +948,19 @@ double SuperclusterdZ(TVector3 convvtx, TVector3 superclustervtx, TVector3 beamS
 
 }
 
+double WeighteddZ(TVector3 convvtx, TVector3 refittedpairmomentum, TVector3 superclustervtx, TVector3 beamSpot, map<TString,double> ConversionResolutionMap, unsigned int photonindex) {
+
+  TString ConversionRegion = (TString) GetConversionRegion(convvtx.Z(), convvtx.Perp(), pho_isEB()[photonindex]);
+  double MomentumZ = MomentumTrackdZ(convvtx,refittedpairmomentum,beamSpot);
+  double MomentumRes = ConversionResolutionMap[ConversionRegion.Append("Conv")];
+  double SuperclusterZ = SuperclusterdZ(convvtx,superclustervtx,beamSpot);
+  double SuperclusterRes = ConversionResolutionMap[ConversionRegion.ReplaceAll("Conv","Super")];
+  double primaryvertexZ = (MomentumZ/(MomentumRes*MomentumRes)+SuperclusterZ/(SuperclusterRes*SuperclusterRes))/(1/(MomentumRes*MomentumRes)+1/(SuperclusterRes*SuperclusterRes));
+  //cout << "ConversionRegion: " << " ConversionRegion: " << ConversionRegion << " MomentumZ: " << MomentumZ << " MomentumRes " << MomentumRes << " SuperclusterZ: " << SuperclusterZ << " SuperclusterRes: " << SuperclusterRes << " primaryvertexZ: " << primaryvertexZ << endl;
+  return primaryvertexZ;
+  
+}
+
 pair<float,float> CombineddZ(TVector3 BeamSpot, unsigned int photonindex, int ConversionIndex){
 
   pair<float,float> combZ(0,0);
@@ -1037,12 +1070,37 @@ string GetPhotonCat(unsigned int index) {
   
 }
 
+map<TString,double> GetConversionResolutionMap() {
+
+  map <TString,double> ConversionResolutionMap;
+
+  ConversionResolutionMap["PixelBarrelConv"]=0.011;
+  ConversionResolutionMap["TIBConv"]=0.533;
+  ConversionResolutionMap["TOBConv"]=4.427;
+  ConversionResolutionMap["PixelFwdConv"]=0.055;
+  ConversionResolutionMap["TIDConv"]=0.321;
+  ConversionResolutionMap["TECConv"]=1.133;
+
+  ConversionResolutionMap["PixelBarrelSuper"]=0.022;
+  ConversionResolutionMap["TIBSuper"]=0.316;
+  ConversionResolutionMap["TOBSuper"]=1.697;
+  ConversionResolutionMap["PixelFwdSuper"]=0.15;
+  ConversionResolutionMap["TIDSuper"]=0.387;
+  ConversionResolutionMap["TECSuper"]=1.009;
+
+  return ConversionResolutionMap;
+  
+}
+
 map<TString,double> GetkFactor() {
 
   map<TString,double> kFactor;
 
+  kFactor["DiPhotonJets"]=1.0;
   kFactor["PJet"]=1.3;
   kFactor["QCD"]=1.0;
+  kFactor["WJets"]=1.45;
+  kFactor["ZJets"]=2.1;
   return kFactor;
   
 }
@@ -1051,20 +1109,25 @@ map<TString,double> GetWeightsMap(map<TString,double> kFactor, double globalweig
 
   map<TString,double> WeightsMap;
   WeightsMap["None"]=1/globalweight;
+  WeightsMap["DiPhotonJets"]=kFactor["DiPhotonJets"]*1/1156284.0*75.39;
+  WeightsMap["PJet0to15"]=kFactor["PJet"]*1/2000488.0*90601456.0;
   WeightsMap["PJet15to30"]=kFactor["PJet"]*1/1970745.0*200061.7;
   WeightsMap["PJet30to50"]=kFactor["PJet"]*1/1993325.0*19931.62;
   WeightsMap["PJet50to80"]=kFactor["PJet"]*1/1995062.0*3322.309;
-  WeightsMap["PJet80to120"]=kFactor["PJet"]*1/1982627.0*558.2865;
-  WeightsMap["PJet120to170"]=kFactor["PJet"]*1/1979603.0*108.0068;
-  WeightsMap["PJet170to300"]=kFactor["PJet"]*1/1997226.0*30.12207;
-  WeightsMap["PJet300to470"]=kFactor["PJet"]*1/1990130.0*2.138632;
-  WeightsMap["PJet470to800"]=kFactor["PJet"]*1/1969545.0*0.2119244;
+  WeightsMap["PJet80to120"]=kFactor["PJet"]*1/1992627.0*558.2865;
+  WeightsMap["PJet120to170"]=kFactor["PJet"]*1/2000043.0*108.0068;
+  WeightsMap["PJet170to300"]=kFactor["PJet"]*1/2000069.0*30.12207;
+  WeightsMap["PJet300to470"]=kFactor["PJet"]*1/2000130.0*2.138632;
+  WeightsMap["PJet470to800"]=kFactor["PJet"]*1/1975231.0*0.2119244;
+  WeightsMap["PJet800to1400"]=kFactor["PJet"]*1/1973504.0*0.007077847;
   WeightsMap["QCD20to30"]=kFactor["QCD"]*1/35040695.0*288600000.0*0.0101;
   WeightsMap["QCD30to80"]=kFactor["QCD"]*1/33088888.0*74330000.0*0.0621;
-  WeightsMap["QCD80to170"]=kFactor["QCD"]*1/34392763.0*1191000.0*0.1539;
-  WeightsMap["QCD170to250"]=kFactor["QCD"]*1/31633287.0*30990.0*0.148;
-  WeightsMap["QCD250to350"]=kFactor["QCD"]*1/34361322.0*4250.0*0.131;
-  WeightsMap["QCD350"]=kFactor["QCD"]*1/33383442.0*810.0*0.11;
+  WeightsMap["QCD80to170"]=kFactor["QCD"]*1/34542763.0*1191000.0*0.1539;
+  WeightsMap["QCD170to250"]=kFactor["QCD"]*1/31697066.0*30990.0*0.148;
+  WeightsMap["QCD250to350"]=kFactor["QCD"]*1/34611322.0*4250.0*0.131;
+  WeightsMap["QCD350"]=kFactor["QCD"]*1/34080562.0*810.0*0.11;
+  WeightsMap["WJets"]=kFactor["WJets"]*1/57709905.0*30400.0;
+  WeightsMap["ZJets"]=kFactor["ZJets"]*1/30459503.0*2950.0;
   return WeightsMap;
   
 }
@@ -1153,38 +1216,60 @@ TLorentzVector  dgloren(TLorentzVector p, double b, double g, double ikey) {
   return r;
 }
 
-
-int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot, unsigned int photonindex) {
+int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot, map<TString,double> ConversionResolutionMap, unsigned int photonindex, HistoContainer *histoContainer, float weight) {
 
   int ReturnIndex = -1;
+  double Minz = 999999;
+  double Mindeltaphi = 999999;
+  double Mindeltaeta = 999999;
   double MindeltaR = 999999;
+  double Mindeltaphinew = 999999;
+  double Mindeltaetanew = 999999;
+  double MindeltaRnew = 999999;
   for (int i=0; i<conv_n(); i++) {
-    TVector3 ConversionRefittedPairMomentum = conv_singleleg_momentum()!=NULL && conv_ntracks()[i]==1 ? *((TVector3*) conv_singleleg_momentum()->At(i)) : *((TVector3*) conv_refitted_momentum()->At(i));
+    TVector3 ConversionRefittedPairMomentum = conv_ntracks()[i]==1 ? *((TVector3*) conv_singleleg_momentum()->At(i)) : *((TVector3*) conv_refitted_momentum()->At(i));
     TVector3 ConversionVertex = *((TVector3*) conv_vtx()->At(i));
     //cout << "Trying Conversion Index: " << i << " NTracks: " << conv_ntracks()[i] << " Chi2: " << conv_chi2_probability()[i] << " Conversion Refitted Pair Momentum Pt: " << ConversionRefittedPairMomentum.Pt() << endl;
-    //if (conv_ntracks()[i]!=2 && conv_ntracks()[i]!=1) continue;
-    if (conv_ntracks()[i]!=2) continue;
-    if (conv_ntracks()[i]==2 && (conv_chi2_probability()[i]<0.000001 || ConversionRefittedPairMomentum.Pt()<10)) continue;
+    if (conv_ntracks()[i]!=2 && conv_ntracks()[i]!=1) continue;
+    if (conv_ntracks()[i]==2 && (conv_chi2_probability()[i]<0.000001 || ConversionRefittedPairMomentum.Pt()<10.0 || conv_validvtx()[i]!=1)) continue;
     if (conv_ntracks()[i]==1 && ConversionRefittedPairMomentum.Pt()<10) continue;
 
     string ConversionRegion = GetConversionRegion(ConversionVertex.Z(), ConversionVertex.Perp(), pho_isEB()[photonindex]);
     double deltaphi = DeltaPhi(Photonxyz.Phi(),ConversionVertex.Phi());
-    double zfromconv = 0;
-    if (ConversionRegion=="PixelBarrel" || ConversionRegion=="PixelFwd" || ConversionRegion=="TID") zfromconv=conv_zofprimvtxfromtrks()[i];
+    //double zfromconv = WeighteddZ(ConversionVertex,ConversionRefittedPairMomentum,Photonxyz,BeamSpot,ConversionResolutionMap,photonindex);
+    double zfromconv=0;
+    if (ConversionRegion=="PixelBarrel" || ConversionRegion=="PixelFwd" || ConversionRegion=="TID") zfromconv=MomentumTrackdZ(ConversionVertex,ConversionRefittedPairMomentum,BeamSpot);
     if (ConversionRegion=="TIB" || ConversionRegion=="TOB" || ConversionRegion=="TEC") zfromconv=SuperclusterdZ(ConversionVertex,Photonxyz,BeamSpot);
-    if (conv_ntracks()[i]==1) zfromconv=SuperclusterdZ(ConversionVertex,Photonxyz,BeamSpot);
+    //if (conv_ntracks()[i]==1) zfromconv=SuperclusterdZ(ConversionVertex,Photonxyz,BeamSpot);
     double deltaeta = fabs(Photonxyz.Eta() - etaTransformation(ConversionRefittedPairMomentum.Eta(),zfromconv));
     double deltaR = sqrt(deltaeta*deltaeta+deltaphi*deltaphi);
+
+    TVector3 NewPhotonxyz = Photonxyz-ConversionVertex;
+    double deltaRnew = NewPhotonxyz.DeltaR(ConversionRefittedPairMomentum);
     
     if (deltaR<MindeltaR) {
+      Minz=zfromconv;
+      Mindeltaphi=deltaphi;
+      Mindeltaeta=deltaeta;
       MindeltaR=deltaR;
+    }
+    if (deltaRnew<MindeltaRnew) {
+      Mindeltaphinew=NewPhotonxyz.DeltaPhi(ConversionRefittedPairMomentum);
+      Mindeltaetanew=fabs(NewPhotonxyz.Eta()-ConversionRefittedPairMomentum.Eta());
+      MindeltaRnew=deltaRnew;
       ReturnIndex = i;
     }
     //cout << "Passing Conversion Index: " << i << " NTracks: " << conv_ntracks()[i] << " Conversion Refitted Pair Momentum Pt: " << ConversionRefittedPairMomentum.Pt() << " DeltaR: " << deltaR << endl;
 
   }
-
-  if (MindeltaR<0.1) {
+  histoContainer->Fill("propagatedZ",Minz,weight);
+  histoContainer->Fill("deltaphi",Mindeltaphi,weight);
+  histoContainer->Fill("deltaeta",Mindeltaeta,weight);
+  histoContainer->Fill("deltaR",MindeltaR,weight);
+  histoContainer->Fill("deltaphinew",Mindeltaphinew,weight);
+  histoContainer->Fill("deltaetanew",Mindeltaetanew,weight);
+  histoContainer->Fill("deltaRnew",MindeltaRnew,weight);
+  if (MindeltaRnew<0.1) {
     return ReturnIndex;
   } else {
     return -1;
@@ -1236,6 +1321,10 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("NumPhoton","Number of Photons",10,0,10);
   histoContainer->Add("NumConversion","Number of Conversions",100,0,100);
 
+  histoContainer->Add("BeamspotX","Beamspot X Position",100,-1,1);
+  histoContainer->Add("BeamspotY","Beamspot Y Position",100,-1,1);
+  histoContainer->Add("BeamspotZ","Beamspot Z Position",100,-1,1);
+
   histoContainer->Add("tmva_id_mit_tiso1","tmva_id_mit_tiso1;rho_algo1;tmva_id_mit_tiso1",65,0,65,85,-10,75);
   histoContainer->Add("tmva_id_mit_tiso2","tmva_id_mit_tiso2;rho_algo1;tmva_id_mit_tiso2",65,0,65,85,-10,75);
   histoContainer->Add("tmva_id_mit_tiso1pro","tmva_id_mit_tiso1;rho_algo1;tmva_id_mit_tiso1",65,0,65,-10,75);
@@ -1250,8 +1339,8 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("MaxJetPt","Highest Pt Jet in the Events;Max Pt Jet;Counts",100,0,500);
   histoContainer->Add("MaxJetTrackPt","Highest Track Pt Jet in the Events;Max Pt Jet;Counts",100,0,500);
   histoContainer->Add("PairMass","Mass of Photon-Jet System;Pt (GeV);Counts",100,0,600);
-  histoContainer->Add("PairPt","Pt of Photon-Jet System;Pt (GeV);Counts",60,0,120);
-  histoContainer->Add("PairPtbusted","Pt of Photon-Jet System;Pt (GeV);Counts",60,0,120);
+  histoContainer->Add("PairPt","Pt of Photon-Jet System;Pt (GeV);Counts",100,0,200);
+  histoContainer->Add("PairPtbusted","Pt of Photon-Jet System;Pt (GeV);Counts",100,0,200);
   histoContainer->Add("PhotonJetJacksonAngle","Jackson Angle between Jet and Photon;Jackson Angle;Counts",50,-1,1);
 
   histoContainer->Add("ConvPt","Pt of Conversion;Pt (GeV);Counts",100,0,200);
@@ -1342,7 +1431,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ptasymm","Pt Asymmetry of Primary Vertex;ptasymm;Counts",50,-1,1);
   histoContainer->Add("ptbal","Pt Balance of Primary Vertex;ptbal;Counts",60,-50,100);
   histoContainer->Add("pulltoconv","Pull to Conversion;Pull;Counts",40,0,10);
-  histoContainer->Add("limpulltoconv","Pull to Conversion;Pull;Counts",40,0,10);
+  histoContainer->Add("limpulltoconv","Pull to Conversion;Pull;Counts",48,-2,10);
   histoContainer->Add("MVAValue","Lead BDT Output value;BDT Value;Counts",50,-1,1);
   histoContainer->Add("MVAValueFirst","First BDT Output value;BDT Value;Counts",50,-1,1);
   histoContainer->Add("MVAValueSecond","Second BDT Output value;BDT Value;Counts",50,-1,1);
@@ -1354,7 +1443,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ptasymmbad","Pt Asymmetry of other Verticies;ptasymm;Counts",50,-1,1);
   histoContainer->Add("ptbalbad","Pt Balance of other Verticies;ptbal;Counts",60,-50,100);
   histoContainer->Add("pulltoconvbad","Pull to Converion of other Verticies;Pull;Counts",40,0,10);
-  histoContainer->Add("limpulltoconvbad","Pull to Converison of other Verticies;Pull;Counts",40,0,10);
+  histoContainer->Add("limpulltoconvbad","Pull to Converison of other Verticies;Pull;Counts",48,-2,10);
   histoContainer->Add("MVAValuebad","Output BDT value;BDT Value;Counts",50,-1,1);
   histoContainer->Add("MVAResbad","Resolution MVA Value;Per Event ;Counts",50,-1,1);
   histoContainer->Add("MVAResbadsim","Resolution MVA Value;Per Event ;Counts",50,-1,1);
@@ -1366,17 +1455,25 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("ptasymmbusted","Pt Asymmetry of Primary Vertex;ptasymm;Counts",50,-1,1);
   histoContainer->Add("ptbalbusted","Pt Balance of Primary Vertex;ptbal;Counts",60,-50,100);
   histoContainer->Add("pulltoconvbusted","Pull to Conversion;Pull;Counts",40,0,10);
-  histoContainer->Add("limpulltoconvbusted","Pull to Conversion;Pull;Counts",40,0,10);
+  histoContainer->Add("limpulltoconvbusted","Pull to Conversion;Pull;Counts",48,-2,10);
   histoContainer->Add("MVAValuebusted","Lead BDT Output value;BDT Value;Counts",50,-1,1);
   histoContainer->Add("MVAValueFirstbusted","First BDT Output value;BDT Value;Counts",50,-1,1);
   histoContainer->Add("MVAValueSecondbusted","Second BDT Output value;BDT Value;Counts",50,-1,1);
   histoContainer->Add("MVAValueThirdbusted","Third BDT Output value;BDT Value;Counts",50,-1,1);
   
-  histoContainer->Add("deltaEta","Delta Eta Between Supercluster and Conversion Vertex;#Delta#eta;Counts",100,-0.1,0.1);
+  histoContainer->Add("deltaEta","#Delta#eta between Supercluster and Conversion Vertex;#Delta#eta;Counts",100,-0.1,0.1);
   histoContainer->Add("ZPV","Z of Primary Vertex;Z (cm);Counts",100,-20,20);
   histoContainer->Add("dZcheck","#DeltaZ of Primary Vertex and the Sim Vertex;#DeltaZ (cm);Counts",100,-5,5);
   histoContainer->Add("dZcheckzoom","#DeltaZ of Primary Vertex and the Sim Vertex;#DeltaZ (#mum);Counts",200,-100,100);
 
+  histoContainer->Add("propagatedZ","#DeltaR between Supercluster and the Refitted Conversion Tracks;Z;Counts",200,-40,40);
+  histoContainer->Add("deltaphi","#Delta#phi between Supercluster and the Refitted Conversion Tracks;#Delta#phi;Counts",100,0.0,0.1);
+  histoContainer->Add("deltaeta","#Delta#eta between Supercluster and the Refitted Conversion Tracks;#Delta#eta;Counts",100,0.0,0.1);
+  histoContainer->Add("deltaR","#DeltaR between Supercluster and the Refitted Conversion Tracks;#DeltaR;Counts",500,0,0.5);
+  histoContainer->Add("deltaphinew","#Delta#phi between Supercluster and the Refitted Conversion Tracks (New Method);#Delta#phi;Counts",100,0.0,0.1);
+  histoContainer->Add("deltaetanew","#Delta#eta between Supercluster and the Refitted Conversion Tracks (New Method);#Delta#eta;Counts",100,0.0,0.1);
+  histoContainer->Add("deltaRnew","#DeltaR between Supercluster and the Refitted Conversion Tracks (New Method);#DeltaR;Counts",500,0,0.5);
+  
   histoContainer->Add("SuperZPV","Z of Primary Vertex from SuperCluster Conversion;Z (cm);Counts",100,-20,20);
   histoContainer->Add("SuperdZ","#DeltaZ of Primary Vertex and Primary Vertex from SuperCluster Conversion;#DeltaZ (cm);Counts",100,-2,2);
   histoContainer->Add("SuperdZsim","#DeltaZ of Sim Vertex and Primary Vertex from SuperCluster Conversion;#DeltaZ (cm);Counts",100,-2,2);
@@ -1402,12 +1499,15 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookTrackerdZ(histoContainer,"ConvdZEff","visual");
   BookTrackerdZ(histoContainer,"ConvdZRes","resolution");
   BookTrackerdZ(histoContainer,"ConvdZsim");
-  BookTrackerdZ(histoContainer,"ConvdZCompairison","twoD");
+  BookTrackerdZ(histoContainer,"ConvdZCompairison","twoD visual");
   BookEtadZ(histoContainer,"ConvdZEta");
   BookPtdZ(histoContainer,"ConvdZPt");
   histoContainer->Add("ConvdZPt","#DeltaZ of Primary Vertex and Primary Vertex from Conversion Vertex vs Photon Pt;Pt (GeV);#DeltaZ (cm)",20,0,200,100,-5,5);
   histoContainer->Add("ConvdZEta","#DeltaZ of Primary Vertex and Primary Vertex from Conversion Vertex vs Photon #eta;#eta;#DeltaZ (cm)",25,0,2.5,100,-5,5);
 
+  histoContainer->Add("ConvdZCompairison","Comparison of Supercluster and Conversion Only Vertexing;SuperCluster #DeltaZ;Conversion Only #DeltaZ",100,-2,2,100,-2,2);
+  histoContainer->Add("ConvdZCompairisonZoom","Comparison of Supercluster and Conversion Only Vertexing;SuperCluster #DeltaZ;Conversion Only #DeltaZ",100,-0.1,0.1,100,-0.1,0.1);
+  
   histoContainer->Add("RishiSuperZPV","Z of Primary Vertex from Rishi's SuperCluster Projection Vertex;Z (cm);Counts",100,-20,20);
   histoContainer->Add("RishiSuperdZ","#DeltaZ of Primary Vertex and Primary Vertex from Rishi's SuperCluster Projection Vertex;#DeltaZ (cm);Counts",100,-2,2);
   histoContainer->Add("RishiSuperdZsim","#DeltaZ of Sim Vertex and Primary Vertex from Rishi's SuperCluster Projection Vertex;#DeltaZ (cm);Counts",100,-2,2);
@@ -1707,15 +1807,39 @@ void FilldZTrackerEndcap(HistoContainer *histoContainer, TString histname, doubl
 
 void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap) {
 
-  if (inputstring.Contains("Test")) {
+  if (inputstring.Contains("Test") && !inputstring.Contains("_")) {
     inputfilelist.push_back(pair<string,int> ("Test.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/PhotonPlusJetTest_52X.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/PhotonPlusJetMC.root",WeightsMap["None"]));
   }
-  if (inputstring.Contains("Data")) {
+  if (inputstring.Contains("Test_Data")) {
+    inputfilelist.push_back(pair<string,int> ("TestData.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/PhotonPlusJetData.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("Test_NoPull")) {
+    inputfilelist.push_back(pair<string,int> ("Test_NoPull.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/PhotonPlusJetMC_nopull.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("PJet50to80")) {
+    inputfilelist.push_back(pair<string,int> ("PJet50to80.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/G_Pt-50to80_TuneZ2star_8TeV.root",kFactor["PJet"]*WeightsMap["PJet50to80"]));
+  } 
+  if (inputstring.Contains("Data") && !inputstring.Contains("_")) {
     inputfilelist.push_back(pair<string,int> ("DataTest.root",1));
-    inputvector.push_back(pair<string,float> ("/data/ndpc2/b/drberry/PhotonPlusJet/TestData_52X.root",WeightsMap["None"]));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/Photon-Run2012A-29Jun2012_0.root",WeightsMap["None"]));
   }
-
+  if (inputstring.Contains("Higgs") && !inputstring.Contains("_")) {
+    inputfilelist.push_back(pair<string,int> ("Higgs_GluGluToHToGG_M-125_8TeV.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/GluGluToHToGG_M-125_8TeV.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("Higgs_NoPull")) {
+    inputfilelist.push_back(pair<string,int> ("Higgs_GluGluToHToGG_M-125_8TeV_NoPull.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/GluGluToHToGG_M-125_8TeV_nopull.root",WeightsMap["None"]));
+  }
+  if (inputstring.Contains("Higgs_newBS")) {
+    inputfilelist.push_back(pair<string,int> ("Higgs_GluGluToHToGG_M-125_8TeV_newBS.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/PhotonPlusJet/GluGluToHToGG_M-125_8TeV_newBS.root",WeightsMap["None"]));
+  }
+    
 }
 
 void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string, float> > &inputvector, vector<pair<string, int> > &inputfilelist, map<TString,double> kFactor, map<TString,double> WeightsMap) {
@@ -1727,6 +1851,10 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   inputfilelist.push_back(pair<string,int> (outfile,1));
   if (inputstring.Contains("Run2012A")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
   if (inputstring.Contains("Run2012B")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("Run2012C")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("Run2012D")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
+  if (inputstring.Contains("DiPhotonJets")) inputvector.push_back(pair<string,float> (infile,kFactor["DiPhotonJets"]*WeightsMap["DiPhotonJets"]));
+  if (inputstring.Contains("PJet0to15")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet0to15"]));
   if (inputstring.Contains("PJet15to30")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet15to30"]));
   if (inputstring.Contains("PJet30to50")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet30to50"]));
   if (inputstring.Contains("PJet50to80")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet50to80"]));
@@ -1735,22 +1863,31 @@ void MakeFilesAndWeights(string infile, TString inputstring, vector<pair<string,
   if (inputstring.Contains("PJet170to300")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet170to300"]));
   if (inputstring.Contains("PJet300to470")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet300to470"]));
   if (inputstring.Contains("PJet470to800")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet470to800"]));
+  if (inputstring.Contains("PJet800to1400")) inputvector.push_back(pair<string,float> (infile,kFactor["PJet"]*WeightsMap["PJet800to1400"]));
   if (inputstring.Contains("QCD20to30")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD20to30"]));
   if (inputstring.Contains("QCD30to80")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD30to80"]));
   if (inputstring.Contains("QCD80to170")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD80to170"]));
   if (inputstring.Contains("QCD170to250")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD170to250"]));
   if (inputstring.Contains("QCD250to350")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD250to350"]));
   if (inputstring.Contains("QCD350")) inputvector.push_back(pair<string,float> (infile,kFactor["QCD"]*WeightsMap["QCD350"]));
+  if (inputstring.Contains("WJets")) inputvector.push_back(pair<string,float> (infile,kFactor["WJets"]*WeightsMap["WJets"]));
+  if (inputstring.Contains("ZJets")) inputvector.push_back(pair<string,float> (infile,kFactor["ZJets"]*WeightsMap["ZJets"]));
   if (inputstring.Contains("Test") && !inputstring.Contains("TestMC")) inputvector.push_back(pair<string,float> (infile,WeightsMap["None"]));
     
 }
 
 void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
-   if (inputstring.Contains("PJet")) {
+   if (inputstring.Contains("DiPhoton")) {
+     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Diphoton.h"
+   } else if (inputstring.Contains("PJet")) {
      #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/PhotonPlusJet.h"
    } else if (inputstring.Contains("QCD")) {
      #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/QCDEMEnriched.h"
+   } else if (inputstring.Contains("WJets")) {
+     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/WJets.h"
+   } else if (inputstring.Contains("ZJets")) {
+     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZJets.h"
    } else {
      #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/Dummy.h"
    }

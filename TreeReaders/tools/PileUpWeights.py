@@ -6,9 +6,9 @@ import array
 gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
-DataFile=TFile("/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/Vertex_Data.root")
+DataFile=TFile("../Vertex_Data.root")
 DataHist=DataFile.Get("Numvtx")
-MCFile=TFile("/data/ndpc2/b/drberry/PhotonPlusJet/CMSSW_4_2_3/src/ND_Hto2Photons/TreeReaders/Vertex_PJet_NoPU.root")
+MCFile=TFile("../Vertex_ZJets_NoPU.root")
 MCHist=MCFile.Get("Numvtx")
 
 for i in range(DataHist.GetNbinsX()+2):
