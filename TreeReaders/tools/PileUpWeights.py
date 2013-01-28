@@ -6,9 +6,9 @@ import array
 gROOT.Macro("$HOME/rootlogon.C")
 gStyle.SetOptStat(000000)
 
-DataFile=TFile("../Vertex_Data.root")
+DataFile=TFile("../ZMuMu_Data.root")
 DataHist=DataFile.Get("Numvtx")
-MCFile=TFile("../Vertex_ZJets_NoPU.root")
+MCFile=TFile("../ZMuMu_ZToMuMu.root")
 MCHist=MCFile.Get("Numvtx")
 
 for i in range(DataHist.GetNbinsX()+2):

@@ -10,7 +10,7 @@ gStyle.SetOptStat(000000)
 print "Setting Initial Parameters."
 HistogramNames=[["PixelBarrelSuperdZRes","TIBSuperdZRes","TOBSuperdZRes","PixelFwdSuperdZRes","TIDSuperdZRes","TECSuperdZRes"]]
 HistogramNames.append(["PixelBarrelConvdZRes","TIBConvdZRes","TOBConvdZRes","PixelFwdConvdZRes","TIDConvdZRes","TECConvdZRes"])
-filename="Vertex_Run2012D.root"
+filename="Vertex_Background.root"
 pwd = "../"
 file=TFile(pwd+filename)
 
