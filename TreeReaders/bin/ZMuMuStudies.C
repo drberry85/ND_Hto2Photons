@@ -73,7 +73,8 @@ int main(int argc, char * input[]) {
   bool preselpf = false;
   bool mc = true;
   bool nocuts = false;
-  bool  nearMuonDRcut = false;
+  bool nogsfveto = false;
+  bool nearMuonDRcut = false;
   bool onevertex = false;
   bool onephoton = false;
   bool pixel = false;
@@ -100,6 +101,7 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("VarCorr2011")) varCorrections2011=true;
   if (InputArgs.Contains("NearMuonDRCut")) nearMuonDRcut=true;
   if (InputArgs.Contains("NoCuts")) nocuts=true;
+  if (InputArgs.Contains("NoGSFVeto")) nogsfveto=true;
   if (InputArgs.Contains("OneVertex")) onevertex=true;
   if (InputArgs.Contains("OnePhoton")) onephoton=true;
   if (InputArgs.Contains("Pixel")) pixel=true;
@@ -138,6 +140,7 @@ int main(int argc, char * input[]) {
       if (usesimvertex) outfilename.ReplaceAll(".root","_SimVertex.root");
       if (background) outfilename.ReplaceAll(".root","_Background.root");
       if (nocuts) outfilename.ReplaceAll(".root","_NoCuts.root");
+      if (nogsfveto) outfilename.ReplaceAll(".root","_NoGSFVeto.root");
       if (presel) outfilename.ReplaceAll(".root","_PhoPresel.root");
       if (preselpf) outfilename.ReplaceAll(".root","_PhoPFPresel.root");
       if (nearMuonDRcut ) outfilename.ReplaceAll(".root","_NearMuonDRCut.root");
@@ -325,6 +328,10 @@ int main(int argc, char * input[]) {
               if (MuMuSystem.M()<40 || MuMuSystem.M()>80) continue;
               if (debug) cout << "SubLead Passing Muon: " << k << " Pt: " << SubLeadMuon_p4.Pt() << endl;
               for (unsigned int l=0; l<(unsigned int) pho_n(); l++) {
+                if (Photonp4[l].Pt()<10.0) continue;
+                if (fabs(SuperClusterxyz[pho_scind()[l]].Eta())>2.5) continue;
+                if (pho_isEBEEGap()[l]) continue;
+                
                 TLorentzVector TestCandidate = LeadMuon_p4+SubLeadMuon_p4+Photonp4[l];
                 if (debug) cout << "Trial Photon: " << l << " Pt: " << Photonp4[l].Pt() << " Mass: " << TestCandidate.M() << endl;
                 if (LeadMuon_p4.Pt() > SubLeadMuon_p4.Pt()) {
@@ -392,7 +399,7 @@ int main(int argc, char * input[]) {
           string region=DetectorPosition(PhotonIndex);
 
           if (debug)  cout << " I am  passing from here " << endl;
-          if (pho_isEBEEGap()[PhotonIndex]) continue;
+          //if (pho_isEBEEGap()[PhotonIndex]) continue;
 
           histoContainer->Fill("allpho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
 
@@ -458,8 +465,8 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("SubLeadMuDeltaPhi",subleadmu_deltaphi,weight);
             histoContainer->Fill("SubLeadMuDeltaEta",subleadmu_deltaeta,weight);
 
-            if ( mu_glo_hasgsftrack()[NearMuonIndex]) continue;
-            if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
+            if ( !nogsfveto && mu_glo_hasgsftrack()[NearMuonIndex]) continue;
+            //if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
 
             //histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
             //histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
@@ -467,14 +474,14 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("NearMuDeltaRBeforeCut",nearmu_deltaR,weight);
             histoContainer->Fill("NearMuDeltaEtaDeltaPhiBeforeCut",nearmu_deltaeta,nearmu_deltaphi,weight);
 
-            if ( nearMuonDRcut && nearmu_deltaR<0.2) continue;
+            //if ( nearMuonDRcut && nearmu_deltaR<0.2) continue;
             //if ( nearMuonDRcut && ( nearmu_deltaphi < 0.1 &&   nearmu_deltaeta < 0.3 ) ) continue;
 
             histoContainer->Fill("NearMuDeltaRAfterCut",nearmu_deltaR,weight);
             histoContainer->Fill("NearMuDeltaEtaDeltaPhiAfterCut",nearmu_deltaeta,nearmu_deltaphi,weight);
 
             ZCandidate = Photonp4[PhotonIndex]+MuonP4[LeadMuonIndex]+MuonP4[SubLeadMuonIndex];
-            //if (ZCandidate.M()<75.0 && ZCandidate.M()>105.0) continue;
+            //if (ZCandidate.M()<70.0 && ZCandidate.M()>110.0) continue;
             if (debug && (ZCandidate.M()<87.2 || ZCandidate.M()>95.2)) cout << run() << ":" << lumis() << ":" << (unsigned int) event() << ":" << Photonp4[PhotonIndex].Pt() << endl;
 
             if (debug) cout << "Lead Muon Pt: " << MuonP4[LeadMuonIndex].Pt() << " SubLead Muon Pt: " << MuonP4[SubLeadMuonIndex].Pt() << endl;
@@ -1075,7 +1082,7 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookCutsAndCategories(histoContainer,"PhotonEt","Et of Photon:Cuts:Cat;Et (GeV);Counts",50,0,100);
   BookCutsAndCategories(histoContainer,"PhotonEta","#eta of Photon:Cuts:Cat;#eta;Counts",32,-3.2,3.2);
   BookCutsAndCategories(histoContainer,"PhotonPhi","#phi of Photon:Cuts:Cat;#phi;Counts",32,-3.2,3.2);
-  BookCutsAndCategories(histoContainer,"ZMass","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",30,75,105);
+  BookCutsAndCategories(histoContainer,"ZMass","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",40,70,110);
   BookCutsAndCategories(histoContainer,"ZMassZoom","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",16,87.2,95.2);
 
   histoContainer->Add("Rho","Event Rho;Rho;Counts",100,0,50);

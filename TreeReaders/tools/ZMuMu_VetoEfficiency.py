@@ -15,7 +15,7 @@ leg.SetBorderSize(1)
 HistogramName="ZMass"
 Categories=["","_cat0","_cat1","_cat2","_cat3"]
 pwd = "../"
-dataFile = TFile(pwd+"ZMuMu_Data_PhoPFPresel_HighPt.root")
+dataFile = TFile(pwd+"ZMuMu_Run2012ABC_PhoPFPresel_HighPt.root")
 mcFile = TFile(pwd+"ZMuMu_ZToMuMu_PhoPFPresel_Corr2012_HighPt.root")
 
 print "\nEfficiency in data "
@@ -31,6 +31,7 @@ for Cat in Categories:
     Fail=FailHist.IntegralAndError(1,FailHist.GetNbinsX(),FailErr)
     Eff=Pass/Total
     EffErr= sqrt(Eff*(1.-Eff)/Total) 
+    if Cat=="": print "Total Number of Events: %0.1f" %(Total)
     print "%s Pass: %0.1f Fail: %0.1f  Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Pass,Fail,HistogramName+Cat,Eff,EffErr)
     #print "Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Eff,EffErr)
 
@@ -46,7 +47,8 @@ for Cat in Categories:
     FailErr=Double(0.0)
     Fail=FailHist.IntegralAndError(1,FailHist.GetNbinsX(),FailErr)
     Eff=Pass/Total
-    EffErr= sqrt(Eff*(1.-Eff)/Total) 
+    EffErr= sqrt(Eff*(1.-Eff)/Total)
+    if Cat=="": print "Total Number of Events: %0.1f" %(Total)
     print "%s Pass: %0.1f Fail: %0.1f  Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Pass,Fail,HistogramName+Cat,Eff,EffErr)
     #print "Efficiency for %s: %0.3f +/- %0.3f" %(HistogramName+Cat,Eff,EffErr)
 
