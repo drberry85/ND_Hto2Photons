@@ -3,6 +3,7 @@
 <use   name="rootgraphics"/>
 <use   name="root"/>
 <use   name="rootminuit"/>
+<lib   name="TMVA" />
 <bin   name="HiggsAnalysisSDA" file="HiggsAnalysisSDA.C">
 </bin>
 <bin   name="ConversionCheck" file="ConversionCheck.C">

@@ -3,5 +3,6 @@
 <use   name="FWCore/ParameterSet"/>
 <use   name="rootgraphics"/>
 <use   name="root"/>
+<lib   name="TMVA" />
 <use   name="CommonTools/Utils"/>
 <flags   EDM_PLUGIN="1"/>

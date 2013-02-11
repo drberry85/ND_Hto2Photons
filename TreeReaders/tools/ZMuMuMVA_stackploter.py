@@ -13,7 +13,7 @@ datacolors = [1,2,3,4,5,6,7]
 leg = TLegend(0.7, 0.8, 0.9, 0.9)
 leg.SetFillColor(0)
 leg.SetBorderSize(1)
-HistogramNames=["pho_pt","pho_mitmva","pho_tmva_photonid_etawidth","pho_tmva_photonid_phiwidth","pho_tmva_photonid_r9","pho_tmva_photonid_sceta","pho_tmva_photonid_sieie","pho_tmva_photonid_sieip","pho_tmva_photonid_s4ratio","pho_tmva_photonid_lambdaratio","pho_tmva_photonid_eventrho","pho_tmva_photonid_ESEffSigmaRR","pho_tmva_photonid_pfchargedisogood03","pho_tmva_photonid_pfchargedisobad03","pho_tmva_photonid_pfphotoniso03","pho_tmva_photonid_pfneutraliso03"]
+HistogramNames=["pho_pt","pho_mitmva","pho_mitmva_rescaled","pho_tmva_photonid_etawidth","pho_tmva_photonid_phiwidth","pho_tmva_photonid_r9","pho_tmva_photonid_sceta","pho_tmva_photonid_sieie","pho_tmva_photonid_sieip","pho_tmva_photonid_s4ratio","pho_tmva_photonid_lambdaratio","pho_tmva_photonid_eventrho","pho_tmva_photonid_ESEffSigmaRR","pho_tmva_photonid_pfchargedisogood03","pho_tmva_photonid_pfchargedisobad03","pho_tmva_photonid_pfphotoniso03","pho_tmva_photonid_pfneutraliso03","pho_tmva_photonid_sigmaOverE"]
 Categories=["Barrel","Endcap"]
 pwd = "../"
 DataFileNames = ["ZMuMu_Data_PhoPFPresel_HighPt.root"]

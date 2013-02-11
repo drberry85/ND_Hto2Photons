@@ -11,6 +11,7 @@
 #include "TTree.h"
 #include "TVector3.h"
 #include "TTree.h"
+#include "TMVA/Reader.h"
 
 #include <ctime>
 #include <iostream>
@@ -127,6 +128,51 @@ int main(int argc, char * input[]) {
     return 0;
   }
 
+  TMVA::Reader *tmvaReaderID_Single_Barrel, *tmvaReaderID_Single_Endcap;
+  Float_t tmva_photonid_pfchargedisogood03=0;
+  Float_t tmva_photonid_pfchargedisobad03=0;
+  Float_t tmva_photonid_pfphotoniso03=0;
+  Float_t tmva_photonid_pfneutraliso03=0;
+  Float_t tmva_photonid_sieie=0;
+  Float_t tmva_photonid_sieip=0;
+  Float_t tmva_photonid_etawidth=0;
+  Float_t tmva_photonid_phiwidth=0;
+  Float_t tmva_photonid_r9=0;
+  Float_t tmva_photonid_s4ratio=0;
+  Float_t tmva_photonid_lambdaratio=0;
+  Float_t tmva_photonid_sceta=0;
+  Float_t tmva_photonid_eventrho=0;
+  Float_t tmva_photonid_ESEffSigmaRR=0;
+  
+  tmvaReaderID_Single_Barrel = new TMVA::Reader("!Color:Silent");
+  tmvaReaderID_Single_Barrel->AddVariable("ph.r9",   &tmva_photonid_r9 );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.sigietaieta",   &tmva_photonid_sieie );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.scetawidth",   &tmva_photonid_etawidth );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.scphiwidth",   &tmva_photonid_phiwidth );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.idmva_CoviEtaiPhi",   &tmva_photonid_sieip );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.idmva_s4ratio",   &tmva_photonid_s4ratio );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.idmva_GammaIso",   &tmva_photonid_pfphotoniso03 );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.idmva_ChargedIso_selvtx",   &tmva_photonid_pfchargedisogood03 );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.idmva_ChargedIso_worstvtx",   &tmva_photonid_pfchargedisobad03 );
+  tmvaReaderID_Single_Barrel->AddVariable("ph.sceta",   &tmva_photonid_sceta );
+  tmvaReaderID_Single_Barrel->AddVariable("rho",   &tmva_photonid_eventrho );
+  tmvaReaderID_Single_Barrel->BookMVA("AdaBoost","interface/2012ICHEP_PhotonID_Barrel_BDT.weights.xml");
+  
+  tmvaReaderID_Single_Endcap = new TMVA::Reader("!Color:Silent");
+  tmvaReaderID_Single_Endcap->AddVariable("ph.r9",   &tmva_photonid_r9 );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.sigietaieta",   &tmva_photonid_sieie );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.scetawidth",   &tmva_photonid_etawidth );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.scphiwidth",   &tmva_photonid_phiwidth );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.idmva_CoviEtaiPhi",   &tmva_photonid_sieip );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.idmva_s4ratio",   &tmva_photonid_s4ratio );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.idmva_GammaIso",   &tmva_photonid_pfphotoniso03 );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.idmva_ChargedIso_selvtx",   &tmva_photonid_pfchargedisogood03 );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.idmva_ChargedIso_worstvtx",   &tmva_photonid_pfchargedisobad03 );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.sceta",   &tmva_photonid_sceta );
+  tmvaReaderID_Single_Endcap->AddVariable("rho",   &tmva_photonid_eventrho );
+  tmvaReaderID_Single_Endcap->AddVariable("ph.idmva_PsEffWidthSigmaRR",   &tmva_photonid_ESEffSigmaRR );
+  tmvaReaderID_Single_Endcap->BookMVA("AdaBoost","interface/2012ICHEP_PhotonID_Endcap_BDT.weights_PSCorr.xml");
+  
   for (vector<pair<string, int> >::iterator itFilePair = filelist.begin(); itFilePair != filelist.end(); ++itFilePair) {
 
     TString outfilename = "";
@@ -581,39 +627,39 @@ int main(int argc, char * input[]) {
 
             }
 
-	    if (varCorrZMuMug2012 && mc ) {
-	      if ( region=="Barrel") {
-		r9W= 1.00004;
-		r9Slope=0.004751;
+            if (varCorrZMuMug2012 && mc ) {
+              if ( region=="Barrel") {
+                r9W= 1.00004;
+                r9Slope=0.004751;
                 sietaietaW=0.99137;
                 sietaietaSlope = 2.199e-9;
-		etawidthW=0.989187;
-		etawidthSlope= -9.07e-6;
-		phiwidthW=0.990701;
-		phiwidthSlope=1.511e-4;
-		s4W=1.02708;
-		s4Slope=-0.01725;
+                etawidthW=0.989187;
+                etawidthSlope= -9.07e-6;
+                phiwidthW=0.990701;
+                phiwidthSlope=1.511e-4;
+                s4W=1.02708;
+                s4Slope=-0.01725;
 
 
-	      } else {
-		r9W=1.01098;
-		r9Slope=0.00271;
+              } else {
+                r9W=1.01098;
+                r9Slope=0.00271;
                 sietaietaW=1.;
                 sietaietaSlope = 4.29e-6;
                 sietaiphiW=1.05186;
-		etawidthW=1.00932;
-		etawidthSlope= 4.076e-5;
-		phiwidthW= 1.;
-		phiwidthSlope=3.316e-4;
-		s4W=1.;
-		s4Slope= 0.00547;
-		eseffSigW=1.;
-		eseffSigSlope=2.598e-7;
+                etawidthW=1.00932;
+                etawidthSlope= 4.076e-5;
+                phiwidthW= 1.;
+                phiwidthSlope=3.316e-4;
+                s4W=1.;
+                s4Slope= 0.00547;
+                eseffSigW=1.;
+                eseffSigSlope=2.598e-7;
 
 
-	      }
+              }
 
-	    }
+            }
 
 
 
@@ -653,75 +699,88 @@ int main(int argc, char * input[]) {
           if (debug) cout << " Corrections being applied " << " r9 " << r9W << " etawidth " << etawidthW << " phywidth" << phiwidthW << " sieie " <<  sietaietaW << " sieie slope " << sietaietaSlope << " s4 " << s4W << " lambdar " << lambdarW << " eseffSig " <<   eseffSigW << endl;
           if (debug) cout << "Filling MVA Quantities" << endl;
 
+          int scind=pho_scind()[PhotonIndex];
+          tmva_photonid_pfchargedisogood03=pho_tmva_photonid_pfchargedisogood03;
+          tmva_photonid_pfchargedisobad03=pho_tmva_photonid_pfchargedisobad03;
+          tmva_photonid_pfphotoniso03=pho_tmva_photonid_pfphotoniso03;
+          tmva_photonid_pfneutraliso03=pho_tmva_photonid_pfneutraliso03;
+          tmva_photonid_sieie=pho_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope;
+          tmva_photonid_sieip=pho_sieip()[PhotonIndex]*sietaiphiW;
+          tmva_photonid_etawidth=pho_etawidth()[PhotonIndex]*etawidthW+etawidthSlope;
+          tmva_photonid_phiwidth=sc_sphi()[scind]*phiwidthW+phiwidthSlope;
+          tmva_photonid_r9=pho_r9()[PhotonIndex]*r9W+r9Slope;
+          tmva_photonid_s4ratio=pho_s4ratio*s4W+s4Slope;
+          tmva_photonid_lambdaratio=pho_lambdaratio()[PhotonIndex]*lambdarW;
+          tmva_photonid_sceta=((TVector3*)sc_xyz()->At(scind))->Eta();
+          tmva_photonid_eventrho=rho_algo1();
+          tmva_photonid_ESEffSigmaRR=pho_ESEffSigmaRR*eseffSigW+eseffSigSlope;
+
+          double pho_mitmva_rescaled = pho_isEB()[PhotonIndex] ? tmvaReaderID_Single_Barrel->EvaluateMVA("AdaBoost") : tmvaReaderID_Single_Endcap->EvaluateMVA("AdaBoost");
+          histoContainer->Fill("pho_mitmva_rescaled",region,pho_mitmva_rescaled,weight);
+          
           histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
           histoContainer->Fill("pho_mitmva",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
-	  ////// idMVA in bins of Pt
+          ////// idMVA in bins of Pt
           if ( Photonp4[PhotonIndex].Pt() < 30 ) {
-	    histoContainer->Fill("pho_mitmvaPtBin1",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
-	  } else {
-	    histoContainer->Fill("pho_mitmvaPtBin2",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
-	  }
-	  ////// idMVA in bins of R9
+            histoContainer->Fill("pho_mitmvaPtBin1",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
+          } else {
+            histoContainer->Fill("pho_mitmvaPtBin2",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
+          }
+          ////// idMVA in bins of R9
           if ( pho_r9()[PhotonIndex]*r9W+r9Slope < 0.88 ) {
-	    histoContainer->Fill("pho_mitmvaR9Bin1",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
-	  } else if ( pho_r9()[PhotonIndex]*r9W+r9Slope >= 0.88 && pho_r9()[PhotonIndex]*r9W+r9Slope < 0.94 ) {
-	    histoContainer->Fill("pho_mitmvaR9Bin2",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
-	  } else if ( pho_r9()[PhotonIndex]*r9W+r9Slope >= 0.94 ) {
-	    histoContainer->Fill("pho_mitmvaR9Bin3",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
-	  }
+            histoContainer->Fill("pho_mitmvaR9Bin1",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
+          } else if ( pho_r9()[PhotonIndex]*r9W+r9Slope >= 0.88 && pho_r9()[PhotonIndex]*r9W+r9Slope < 0.94 ) {
+            histoContainer->Fill("pho_mitmvaR9Bin2",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
+          } else if ( pho_r9()[PhotonIndex]*r9W+r9Slope >= 0.94 ) {
+            histoContainer->Fill("pho_mitmvaR9Bin3",region,pho_mitmva()->at(PhotonIndex).at(0),weight);
+          }
 
-
-	  ////// idMVA in bins of eta 
+          ////// idMVA in bins of eta 
           if ( region== "Barrel") {
             if (fabs(Photonp4[PhotonIndex].Eta()) < 0.9 ) {
-	      histoContainer->Fill("pho_mitmvaEtaBin1",pho_mitmva()->at(PhotonIndex).at(0),weight);
-	    } else if (fabs(Photonp4[PhotonIndex].Eta()) >= 0.9   &&   fabs(Photonp4[PhotonIndex].Eta()) < 1.5 ) {
-	      histoContainer->Fill("pho_mitmvaEtaBin2",pho_mitmva()->at(PhotonIndex).at(0),weight);
-	    }
-	  } else {
+              histoContainer->Fill("pho_mitmvaEtaBin1",pho_mitmva()->at(PhotonIndex).at(0),weight);
+            } else if (fabs(Photonp4[PhotonIndex].Eta()) >= 0.9   &&   fabs(Photonp4[PhotonIndex].Eta()) < 1.5 ) {
+              histoContainer->Fill("pho_mitmvaEtaBin2",pho_mitmva()->at(PhotonIndex).at(0),weight);
+            }
+          } else {
             if (fabs(Photonp4[PhotonIndex].Eta()) >= 1.5   &&   fabs(Photonp4[PhotonIndex].Eta()) < 2 ) {
-	      histoContainer->Fill("pho_mitmvaEtaBin3",pho_mitmva()->at(PhotonIndex).at(0),weight);
-	    } else if (fabs(Photonp4[PhotonIndex].Eta()) >= 2   &&   fabs(Photonp4[PhotonIndex].Eta()) < 2.5 ) {
-	      histoContainer->Fill("pho_mitmvaEtaBin4",pho_mitmva()->at(PhotonIndex).at(0),weight);
-	    }
-	  }
-
-
+              histoContainer->Fill("pho_mitmvaEtaBin3",pho_mitmva()->at(PhotonIndex).at(0),weight);
+            } else if (fabs(Photonp4[PhotonIndex].Eta()) >= 2   &&   fabs(Photonp4[PhotonIndex].Eta()) < 2.5 ) {
+              histoContainer->Fill("pho_mitmvaEtaBin4",pho_mitmva()->at(PhotonIndex).at(0),weight);
+            }
+          }
 
           histoContainer->Fill("pho_tmva_photonid_sieip",region,pho_sieip()[PhotonIndex]*sietaiphiW,weight);
-	  if ( region== "Endcap" ) {
-           if (Photonp4[PhotonIndex].Eta() > 0 ) 
-	     histoContainer->Fill("pho_tmva_photonid_sieipEndcapPlus",pho_sieip()[PhotonIndex]*sietaiphiW,weight);
-	   else 
-	    histoContainer->Fill("pho_tmva_photonid_sieipEndcapMinus",pho_sieip()[PhotonIndex]*sietaiphiW,weight);
+          if ( region== "Endcap" ) {
+            if (Photonp4[PhotonIndex].Eta() > 0 ) 
+              histoContainer->Fill("pho_tmva_photonid_sieipEndcapPlus",pho_sieip()[PhotonIndex]*sietaiphiW,weight);
+            else 
+              histoContainer->Fill("pho_tmva_photonid_sieipEndcapMinus",pho_sieip()[PhotonIndex]*sietaiphiW,weight);
           }
 
           histoContainer->Fill("pho_tmva_photonid_etawidth",region,pho_etawidth()[PhotonIndex]*etawidthW+etawidthSlope,weight);
-          int scind=pho_scind()[PhotonIndex];
-	  histoContainer->Fill("pho_tmva_photonid_sigmaOverE",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
-	  ////// sigma/E in bins of Pt
+          histoContainer->Fill("pho_tmva_photonid_sigmaOverE",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
+          ////// sigma/E in bins of Pt
           if ( Photonp4[PhotonIndex].Pt() < 30 ) {
-	    histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin1",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
-	  } else {
-	    histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin2",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
-	  }
+            histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin1",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
+          } else {
+            histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin2",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
+          }
 
-	 
+          histoContainer->Fill("pho_tmva_photonid_phiwidth",region,tmva_photonid_phiwidth,weight);
+          histoContainer->Fill("pho_tmva_photonid_r9",region,tmva_photonid_r9,weight);
+          histoContainer->Fill("pho_tmva_photonid_s4ratio",region,tmva_photonid_s4ratio,weight);
+          histoContainer->Fill("pho_tmva_photonid_lambdaratio",region,tmva_photonid_lambdaratio,weight);
+          histoContainer->Fill("pho_tmva_photonid_sceta",region,tmva_photonid_sceta,weight);
+          histoContainer->Fill("pho_tmva_photonid_sceta",tmva_photonid_sceta,weight);
+          histoContainer->Fill("pho_tmva_photonid_eventrho",region,tmva_photonid_eventrho,weight);
 
-          histoContainer->Fill("pho_tmva_photonid_phiwidth",region,sc_sphi()[scind]*phiwidthW+phiwidthSlope,weight);
-          histoContainer->Fill("pho_tmva_photonid_r9",region,pho_r9()[PhotonIndex]*r9W+r9Slope,weight);
-          histoContainer->Fill("pho_tmva_photonid_s4ratio",region,pho_s4ratio*s4W+s4Slope,weight);
-          histoContainer->Fill("pho_tmva_photonid_lambdaratio",region,pho_lambdaratio()[PhotonIndex]*lambdarW,weight);
-          histoContainer->Fill("pho_tmva_photonid_sceta",region, ((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
-          histoContainer->Fill("pho_tmva_photonid_sceta", ((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
-          histoContainer->Fill("pho_tmva_photonid_eventrho",region,rho_algo1(),weight);
-
-          histoContainer->Fill("pho_tmva_photonid_ESEffSigmaRR",region,pho_ESEffSigmaRR*eseffSigW+eseffSigSlope,weight);
-          histoContainer->Fill("pho_tmva_photonid_sieie",region,pho_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope,weight);
-          histoContainer->Fill("pho_tmva_photonid_pfchargedisogood03",region,pho_tmva_photonid_pfchargedisogood03,weight);
-          histoContainer->Fill("pho_tmva_photonid_pfchargedisobad03",region,pho_tmva_photonid_pfchargedisobad03,weight);
-          histoContainer->Fill("pho_tmva_photonid_pfphotoniso03",region,pho_tmva_photonid_pfphotoniso03,weight);
-          histoContainer->Fill("pho_tmva_photonid_pfneutraliso03",region,pho_tmva_photonid_pfneutraliso03,weight);
+          histoContainer->Fill("pho_tmva_photonid_ESEffSigmaRR",region,tmva_photonid_ESEffSigmaRR,weight);
+          histoContainer->Fill("pho_tmva_photonid_sieie",region,tmva_photonid_sieie,weight);
+          histoContainer->Fill("pho_tmva_photonid_pfchargedisogood03",region,tmva_photonid_pfchargedisogood03,weight);
+          histoContainer->Fill("pho_tmva_photonid_pfchargedisobad03",region,tmva_photonid_pfchargedisobad03,weight);
+          histoContainer->Fill("pho_tmva_photonid_pfphotoniso03",region,tmva_photonid_pfphotoniso03,weight);
+          histoContainer->Fill("pho_tmva_photonid_pfneutraliso03",region,tmva_photonid_pfneutraliso03,weight);
 
           histoContainer->Fill("Numvtx",PrimaryVertex.size(),weight);
           histoContainer->Fill("Rho",rho_algo1(),weight);
@@ -769,11 +828,11 @@ int main(int argc, char * input[]) {
           if ( pho_mitmva()->at(PhotonIndex).at(0) < MVAcut )
             histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);
 
-	  /////// catch conversions
+          /////// catch conversions
           if ( pho_r9()[PhotonIndex]*r9W+r9Slope < 0.94 ) {
-	    histoContainer->Fill("conv_eta",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
-	    histoContainer->Fill("conv_pt",region,Photonp4[PhotonIndex].Pt(),weight);
-	  }
+            histoContainer->Fill("conv_eta",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
+            histoContainer->Fill("conv_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+          }
 
 
           mypho_pt=-99.;
@@ -787,10 +846,10 @@ int main(int argc, char * input[]) {
           mypho_sceta=-99.;
           mypho_eventrho=-99.;
           mypho_ESEffSigmaRR=-99.;
-	  mypho_pfPhotonIso=-99.;
-	  mypho_pfChargedIsoRV=-99.;
-	  mypho_pfChargedIsoWV=-99.;
-	  mypho_evt_PUw=-99.;
+          mypho_pfPhotonIso=-99.;
+          mypho_pfChargedIsoRV=-99.;
+          mypho_pfChargedIsoWV=-99.;
+          mypho_evt_PUw=-99.;
 
           nPho++;
           mypho_N               =  nPho;
@@ -798,7 +857,7 @@ int main(int argc, char * input[]) {
           mypho_pt              =  Photonp4[PhotonIndex].Pt();
           mypho_r9              =  pho_r9()[PhotonIndex]*r9W+r9Slope;
           mypho_sieie           =  pho_sieie()[PhotonIndex]*sietaietaW+sietaietaSlope;
-          mypho_sieip           =  pho_sieip()[PhotonIndex];
+          mypho_sieip           =  pho_sieip()[PhotonIndex]*sietaiphiW;
           mypho_etawidth        =  pho_etawidth()[PhotonIndex]*etawidthW+etawidthSlope;
           mypho_phiwidth        =  sc_sphi()[scind]*phiwidthW+phiwidthSlope;
           mypho_s4ratio         =  pho_s4ratio*s4W+s4Slope;
@@ -806,9 +865,9 @@ int main(int argc, char * input[]) {
           mypho_sceta           =   ((TVector3*)sc_xyz()->At(scind))->Eta();
           mypho_eventrho        =  rho_algo1();
           mypho_ESEffSigmaRR    =  pho_ESEffSigmaRR*eseffSigW+eseffSigSlope;
-          mypho_pfPhotonIso     =  pho_tmva_photonid_pfphotoniso03;
-	  mypho_pfChargedIsoRV  =  pho_tmva_photonid_pfchargedisogood03;
-	  mypho_pfChargedIsoWV  =  pho_tmva_photonid_pfchargedisobad03;
+          mypho_pfPhotonIso     =  tmva_photonid_pfphotoniso03;
+          mypho_pfChargedIsoRV  =  tmva_photonid_pfchargedisogood03;
+          mypho_pfChargedIsoWV  =  tmva_photonid_pfchargedisobad03;
           mypho_evt_PUw         =  PUWeight;
 
           minitree->Fill();
@@ -833,23 +892,23 @@ int main(int argc, char * input[]) {
 }
 
 /*
-bool GenMatch(TVector3 Photon) {
+  bool GenMatch(TVector3 Photon) {
 
   for (unsigned int i=0; i<(unsigned int) gp_n(); i++) {
-    if (gp_pdgid()[i]!=22 || gp_status()[i]!=1 || gp_pdgid()[gp_mother()[i]]>22) continue;
-    TLorentzVector GenParticlep4 = *((TLorentzVector*) gp_p4()->At(i));
-    if (GenParticlep4.Pt()<20) continue;
-    double deltaeta = fabs(Photon.Eta() - GenParticlep4.Eta());
-    double deltaphi = DeltaPhi(Photon.Phi(),GenParticlep4.Phi());
-    double DeltaR = sqrt(deltaphi*deltaphi + deltaeta*deltaeta);
+  if (gp_pdgid()[i]!=22 || gp_status()[i]!=1 || gp_pdgid()[gp_mother()[i]]>22) continue;
+  TLorentzVector GenParticlep4 = *((TLorentzVector*) gp_p4()->At(i));
+  if (GenParticlep4.Pt()<20) continue;
+  double deltaeta = fabs(Photon.Eta() - GenParticlep4.Eta());
+  double deltaphi = DeltaPhi(Photon.Phi(),GenParticlep4.Phi());
+  double DeltaR = sqrt(deltaphi*deltaphi + deltaeta*deltaeta);
 
-    if (DeltaR<.1) {
-      return true;
-    }
+  if (DeltaR<.1) {
+  return true;
+  }
   }
 
   return false;
-}
+  }
 */
 
 bool PhotonPreSelection(unsigned int PhotonIndex) {
@@ -1206,10 +1265,11 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"allpho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt_afterMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
-    BookBarrelAndEndcap(histoContainer,"pho_pt_afternewMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"pho_pt_afternewMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcapProfiles(histoContainer,"pho_idmva_vsPt","pho_idmva: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
 
   BookBarrelAndEndcap(histoContainer,"pho_mitmva","pho_mitmva: region;idmva value;Counts",50,-0.5,0.5);
+  BookBarrelAndEndcap(histoContainer,"pho_mitmva_rescaled","pho_mitmva_rescaled: region;idmva value (rescaled);Counts",50,-0.5,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_mitmvaPtBin1","pho_mitmvaPtBin1: region;idmva value;Counts",50,-0.5,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_mitmvaPtBin2","pho_mitmvaPtBin2: region;idmva value;Counts",50,-0.5,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_mitmvaR9Bin1","pho_mitmvaR9Bin1: region;idmva value;Counts",50,-0.5,0.5);
