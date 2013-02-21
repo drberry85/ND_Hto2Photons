@@ -1,7 +1,16 @@
-void fitter(char * filename = "/afs/cern.ch/user/n/nancy/public/forDoug/ZMuMu_Run2012ABCD_PhoPFPresel_HighPt.root", float startmass = 91.1876) {
+#include <vector>
+
+//void fitter(char * filename = "/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/Results/HighPtPFisoNewCorrPt25/ZMuMu_Run2012ABCD_PhoPFPresel_HighPt.root", float startmass = 91.1876) {
+void fitter(char * filename = "/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/Results/HighPtPFisoNewCorrPt25/ZMuMu_ZToMuMu_PhoPFPresel_Corr2012_HighPt.root", float startmass = 91.1876) {
   using namespace RooFit;
   float ZWidth=2.4952;
-  
+  ofstream outFile("output.txt");
+  vector<float> sCB_1;
+  vector<float> sCB_2;
+  vector<float> dCB_1;
+  vector<float> dCB_2;
+
+
   //  gStyle->SetOptStat(0);
   gStyle->SetPalette(1);
   gROOT->SetStyle("Plain");
@@ -17,7 +26,7 @@ void fitter(char * filename = "/afs/cern.ch/user/n/nancy/public/forDoug/ZMuMu_Ru
   for (Int_t i=1; i<HistList->GetSize(); ++i) {
     TString HistName(HistList->At(i)->GetName());
     //cout << "Looking at Hist: " << HistName << endl; 
-    if (HistName.Contains("ZMassEphot") || HistName.Contains("ZMassEregr")) {
+    if (HistName.Contains("ZMassEphot_cat") || HistName.Contains("ZMassEregr_cat")) {
       //Parameter used for mass in both CrystalBall or BreitWigner
       RooRealVar mass("mass","Mass_{2#gamma}", 70, 110,"GeV/c^{2}");
       mass.setBins(10000,"cache");
@@ -31,9 +40,14 @@ void fitter(char * filename = "/afs/cern.ch/user/n/nancy/public/forDoug/ZMuMu_Ru
       //RooCBShape ResolutionModel("ResolutionModel", "Resolution Model", mass, m0,sigma, cut, power);
 
       //Parameters for Breit-Wigner Distribution
-      RooRealVar mRes("M_{Z}", "Higgs Resonance  Mass", startmass, startmass-0.0021, startmass+0.0021);//,"GeV/c^{2}"); 
-      RooRealVar Gamma("#Gamma_{Z}", "#Gamma", ZWidth, ZWidth-0.0023, ZWidth+0.0023);//,"GeV/c^{2}"); 
+      //      RooRealVar mRes("M_{Z}", "Z Resonance  Mass", startmass, startmass-0.0021, startmass+0.0021);//,"GeV/c^{2}"); 
+      RooRealVar mRes("M_{Z}", "Z Resonance  Mass", startmass, "GeV/c^{2}"); 
+      //      RooRealVar Gamma("#Gamma_{Z}", "#Gamma", ZWidth, ZWidth-0.0023, ZWidth+0.0023);//,"GeV/c^{2}"); 
+      RooRealVar Gamma("#Gamma_{Z}", "#Gamma", ZWidth, "GeV/c^{2}"); 
       RooBreitWigner BreitWigner("BreitWigner","A Breit-Wigner Distribution",mass,mRes,Gamma);
+      mRes.setConstant(kTRUE);
+      Gamma.setConstant(kTRUE);
+
 
       //Convoluve the BreitWigner and Crystal Ball
       RooFFTConvPdf ResolutionModel("Convolution","Convolution", mass, BreitWigner, CrystalBall);
@@ -67,7 +81,7 @@ void fitter(char * filename = "/afs/cern.ch/user/n/nancy/public/forDoug/ZMuMu_Ru
       ResolutionModel.plotOn(plot);
       ResolutionModel.paramOn(plot,Format("NEL",AutoPrecision(2)), Parameters(RooArgSet(m0, sigma, mRes, Gamma)), Layout(.15, 0.5, 0.9), ShowConstants(kFALSE));
       TString PlotTitle(DataHist->GetTitle());
-      PlotTitle += ";Mass_{#mu#mu#gamma} (GeV/c^{2});Number of Weighted Events";
+      PlotTitle += ";Mass_{#mu#mu#gamma} (GeV/c^{2});Number of Events";
       plot->SetTitle(PlotTitle);
       //plot->GetXaxis()->SetRangeUser(startmass-20,startmass+10);
       TPaveText *box = (TPaveText*) plot->findObject("Convolution_paramBox");
@@ -76,7 +90,25 @@ void fitter(char * filename = "/afs/cern.ch/user/n/nancy/public/forDoug/ZMuMu_Ru
       plot->Draw();
       TString OutPutName = HistName + "fit.pdf";
       c1->SaveAs(OutPutName);
+      if (HistName.Contains("ZMassEphot_cat"))  {
+	sCB_1.push_back(sigma.getVal());
+	dCB_1.push_back(sigma.getError());
+      } else if (HistName.Contains("ZMassEregr_cat")) {
+	sCB_2.push_back(sigma.getVal());
+	dCB_2.push_back(sigma.getError());
+      }
+
     }
   }
+  for ( Int_t i=0; i<sCB_1.size(); ++i) {
+    outFile << sCB_1[i] << " " << dCB_1[i] << endl;
+    outFile << sCB_2[i] << " " << dCB_2[i] << endl;
+  }
+  for ( Int_t i=0; i<sCB_1.size(); ++i) {
+    float diff = sCB_2[i] - sCB_1[i];
+    float err = sqrt ( dCB_1[i]*dCB_1[i] + dCB_2[i]*dCB_2[i]);
+    outFile << " Diff " <<  diff << " +- " << err << endl;
+  }
+
   
 }
