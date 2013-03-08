@@ -73,6 +73,7 @@ int main(int argc, char * input[]) {
   bool varCorrections2011  = false;
   bool varCorrections2012  = false;
   bool idMVAScaling        = false;
+  bool idMVAScalingABCD        = false;
   bool idMVAScalingABC        = false;
   bool idMVAScalingC        = false;
   bool idMVAScalingD        = false;
@@ -106,10 +107,11 @@ int main(int argc, char * input[]) {
   if (InputArgs.Contains("PFiso")) preselpf=true;
   if (InputArgs.Contains("VarCorr2011")) varCorrections2011=true;
   if (InputArgs.Contains("VarCorr2012")) varCorrections2012=true;
-  if (InputArgs.Contains("VarCorr2012PlusABIdMVA_ABCScale")) idMVAScalingABC =true;
-  if (InputArgs.Contains("VarCorr2012PlusABIdMVA_CScale"))  idMVAScalingC =true;
-  if (InputArgs.Contains("VarCorr2012PlusABIdMVA_DScale"))  idMVAScalingD =true;
-  if ( idMVAScalingABC || idMVAScalingC || idMVAScalingD ) {
+  if (InputArgs.Contains("VarCorr2012PlusIdMVA_ABCDScale")) idMVAScalingABCD =true;
+  if (InputArgs.Contains("VarCorr2012PlusIdMVA_ABCScale")) idMVAScalingABC =true;
+  if (InputArgs.Contains("VarCorr2012PlusIdMVA_CScale"))  idMVAScalingC =true;
+  if (InputArgs.Contains("VarCorr2012PlusIdMVA_DScale"))  idMVAScalingD =true;
+  if ( idMVAScalingABCD || idMVAScalingABC || idMVAScalingC || idMVAScalingD ) {
      idMVAScaling = true; 
      varCorrections2012=true;
   }
@@ -140,8 +142,11 @@ int main(int argc, char * input[]) {
     return 0;
   }
 
-  TFile* idmvascaleFile1 = TFile::Open("/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/interface/Moriond13_phIDMVA_ABC.root");
-  TFile* idmvascaleFile2 = TFile::Open("/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/interface/Moriond13_phIDMVA.root");
+
+  TFile* idmvascaleFile  = TFile::Open("/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/interface/Moriond13_phIDMVA.root");
+  TFile* r9scaleFile     = TFile::Open("/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/interface/Moriond13_ZmmgR9.root");
+  TFile* sigmaOverEFile  = TFile::Open("/afs/cern.ch/work/n/nancy/private/Higgs_Moriond/CMSSW_5_3_7_patch4/src/ND_Hto2Photons/TreeReaders/interface/Moriond13_phSigEoE.root");
+
 
 
   TMVA::Reader *tmvaReaderID_Single_Barrel, *tmvaReaderID_Single_Endcap;
@@ -212,6 +217,7 @@ int main(int argc, char * input[]) {
       if (nearMuonDRcut ) outfilename.ReplaceAll(".root","_NearMuonDRCut.root");
       if (varCorrections2011)  outfilename.ReplaceAll(".root","_Corr2011.root");
       if (varCorrections2012)  outfilename.ReplaceAll(".root","_Corr2012.root");
+      if (idMVAScalingABCD)      outfilename.ReplaceAll(".root","_idMVAScalingABCD.root");
       if (idMVAScalingABC)      outfilename.ReplaceAll(".root","_idMVAScalingABC.root");
       if (idMVAScalingC)        outfilename.ReplaceAll(".root","_idMVAScalingC.root");
       if (idMVAScalingD)        outfilename.ReplaceAll(".root","_idMVAScalingD.root");
@@ -233,14 +239,22 @@ int main(int argc, char * input[]) {
     BookHistograms(histoContainer);
 
 
-    unsigned int iPhoAfterPreSel_PtBin1_EB;
-    unsigned int iPhoAfterPreSel_PtBin1_EE;
-    unsigned int iPhoAfterPreSelAndR9Cut_PtBin1_EB;
-    unsigned int iPhoAfterPreSelAndR9Cut_PtBin1_EE;
-    unsigned int iPhoAfterPreSel_PtBin2_EB;
-    unsigned int iPhoAfterPreSel_PtBin2_EE;
-    unsigned int iPhoAfterPreSelAndR9Cut_PtBin2_EB;
-    unsigned int iPhoAfterPreSelAndR9Cut_PtBin2_EE;
+    float iPhoAfterPreSel_PtBin1_EB;
+    float iPhoAfterPreSel_PtBin1_EE;
+    float iPhoAfterPreSelAndR9Cut_PtBin1_EB;
+    float iPhoAfterPreSelAndR9Cut_PtBin1_EE;
+    float iPhoAfterPreSel_PtBin2_EB;
+    float iPhoAfterPreSel_PtBin2_EE;
+    float iPhoAfterPreSelAndR9Cut_PtBin2_EB;
+    float iPhoAfterPreSelAndR9Cut_PtBin2_EE;
+    float nConvPtGT30EB;
+    float nConvPtGT30EE;
+    float nConvPtGT30LoR9EB;
+    float nConvPtGT30LoR9EE;
+    float nPhoPtGT30LoR9EB;
+    float nPhoPtGT30LoR9EE;
+ 
+
     iPhoAfterPreSel_PtBin1_EB=0;
     iPhoAfterPreSel_PtBin1_EE=0;
     iPhoAfterPreSelAndR9Cut_PtBin1_EB=0;
@@ -249,7 +263,13 @@ int main(int argc, char * input[]) {
     iPhoAfterPreSel_PtBin2_EE=0;
     iPhoAfterPreSelAndR9Cut_PtBin2_EB=0;
     iPhoAfterPreSelAndR9Cut_PtBin2_EE=0;
-    
+    nConvPtGT30EB=0;
+    nConvPtGT30EE=0;
+    nConvPtGT30LoR9EB=0;
+    nConvPtGT30LoR9EE=0;
+    nPhoPtGT30LoR9EB=0;
+    nPhoPtGT30LoR9EE=0;
+ 
 
 
     unsigned int mypho_N=0;
@@ -562,10 +582,6 @@ int main(int argc, char * input[]) {
           }
           float  pho_tmva_photonid_pfphotoniso03  = pho_pfiso_myphoton03()[PhotonIndex];
           float  pho_tmva_photonid_pfneutraliso03 = pho_pfiso_myneutral03()[PhotonIndex];
-          histoContainer->Fill("pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisogood03,weight);
-          histoContainer->Fill("pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisobad03,weight);
-          histoContainer->Fill("pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfphotoniso03,weight);
-          histoContainer->Fill("pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfneutraliso03,weight);
 
           string Category = GetPhotonCat(PhotonIndex);
 
@@ -579,7 +595,7 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("SubLeadMuDeltaEta",subleadmu_deltaeta,weight);
 
             if ( !nogsfveto && mu_glo_hasgsftrack()[NearMuonIndex]) continue;
-            //if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
+	    if ( MuonP4[FarMuonIndex].Pt()<30.0) continue;
 
             //histoContainer->Fill("pho_hcalIso_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hcal()[PhotonIndex],weight);
             //histoContainer->Fill("pho_hoe_vs_nearMuonDRBeforeCut",region,nearmu_deltaR,pho_tmva_id_mit_hoe()[PhotonIndex],weight);
@@ -587,7 +603,8 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("NearMuDeltaRBeforeCut",nearmu_deltaR,weight);
             histoContainer->Fill("NearMuDeltaEtaDeltaPhiBeforeCut",nearmu_deltaeta,nearmu_deltaphi,weight);
 
-            //if ( nearMuonDRcut && nearmu_deltaR<0.2) continue;
+	    if ( nearmu_deltaR > 0.8) continue;
+            //if ( nearMuonDRcut && nearmu_deltaR > 0.8) continue;
             //if ( nearMuonDRcut && ( nearmu_deltaphi < 0.1 &&   nearmu_deltaeta < 0.3 ) ) continue;
 
             histoContainer->Fill("NearMuDeltaRAfterCut", nearmu_deltaR,weight);
@@ -611,23 +628,41 @@ int main(int argc, char * input[]) {
 
           }
 
-          if ( highpt && Photonp4[PhotonIndex].Pt() < 20 ) continue;
+          histoContainer->Fill("pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisogood03,weight);
+          histoContainer->Fill("pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisobad03,weight);
+          histoContainer->Fill("pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfphotoniso03,weight);
+          histoContainer->Fill("pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfneutraliso03,weight);
+
+
+          if ( highpt) {
+	    if ( Photonp4[PhotonIndex].Pt() < 20 ) continue;
+	  } else {
+	    if ( Photonp4[PhotonIndex].Pt() < 10 ) continue; 
+	  }
+
           if ( presel && !PhotonPreSelection(PhotonIndex)) continue;
           if ( preselpf && !PhotonPreSelectionPFbased(PhotonIndex)) continue;
 
+          histoContainer->Fill("pho_pfchargedisogood03_vs_nearMuonDRAfterPhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisogood03,weight);
+          histoContainer->Fill("pho_pfchargedisobad03_vs_nearMuonDRAfterPhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfchargedisobad03,weight);
+          histoContainer->Fill("pho_pfphotoniso03_vs_nearMuonDRAfterPhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfphotoniso03,weight);
+          histoContainer->Fill("pho_pfneutraliso03_vs_nearMuonDRAfterPhoPresel",region,nearmu_deltaR,pho_tmva_photonid_pfneutraliso03,weight);
+
+
+
 	  if ( region == "Barrel" ) {
 	    if ( Photonp4[PhotonIndex].Pt() < 30 ) {      
-	      iPhoAfterPreSel_PtBin1_EB++;
+	      iPhoAfterPreSel_PtBin1_EB+=(1.*weight);
 	    } else {
-	      iPhoAfterPreSel_PtBin2_EB++;
+	      iPhoAfterPreSel_PtBin2_EB+=(1.*weight);
 	    }
 	    
 	  } else {
 	    
 	    if ( Photonp4[PhotonIndex].Pt() < 30 ) {      
-	      iPhoAfterPreSel_PtBin1_EE++;
+	      iPhoAfterPreSel_PtBin1_EE+=(1.*weight);
 	    } else {
-	      iPhoAfterPreSel_PtBin2_EE++;
+	      iPhoAfterPreSel_PtBin2_EE+=(1.*weight);
 	    }
 	  }
 	  
@@ -773,6 +808,7 @@ int main(int argc, char * input[]) {
 
           if (debug) cout << " Corrections being applied " << " r9 " << r9W << " etawidth " << etawidthW << " phywidth" << phiwidthW << " sieie " <<  sietaietaW << " sieie slope " << sietaietaSlope << " s4 " << s4W << " lambdar " << lambdarW << " eseffSig " <<   eseffSigW << endl;
           if (debug) cout << "Filling MVA Quantities" << endl;
+          if (debug) cout << " Photon eta " << Photonp4[PhotonIndex].Eta() << endl;
 
           int scind=pho_scind()[PhotonIndex];
           tmva_photonid_pfchargedisogood03=pho_tmva_photonid_pfchargedisogood03;
@@ -790,28 +826,78 @@ int main(int argc, char * input[]) {
           tmva_photonid_eventrho=rho_algo1();
           tmva_photonid_ESEffSigmaRR=pho_ESEffSigmaRR*eseffSigW+eseffSigSlope;
 
+          double sOverEOld=pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex];
+	  double sOverE=sOverEOld;
+
 	  double pho_mitmva_rescaled=0;
+	  ///// this was needed only when we had screwed up the resclaing at reduction level
           double pho_idmva_rescaled = pho_isEB()[PhotonIndex] ? tmvaReaderID_Single_Barrel->EvaluateMVA("AdaBoost") : tmvaReaderID_Single_Endcap->EvaluateMVA("AdaBoost");
           pho_mitmva_rescaled = pho_idmva_rescaled;
           
 	  //// Include Fabian's idMVArescaling on top of the ICHEP shower shapes corrections
 	  TGraph* idmvascale;
+	  TGraph* r9Graph;
+	  TGraph* soeGraph;
 	  TString idmvascalehistname;
-          
+	  TString r9scalehistname;
+	  TString soescalehistname;
           string runPeriod; 
+          string runPeriodForSOE; 
           if ( idMVAScaling ) {	 
-            TFile* myFile;  
-	    if ( idMVAScalingABC) {
-               runPeriod="ABC";
-               myFile = idmvascaleFile1;
+	    
+	    if ( idMVAScalingABCD) {
+	      runPeriod="ABCD";
+	      runPeriodForSOE="ABCD";
+	    } else if ( idMVAScalingABC) {
+	      runPeriod="ABC";
+	      runPeriodForSOE="ABCD";
 	    } else if ( idMVAScalingC)  {
 	      runPeriod="C";
-	      myFile = idmvascaleFile2;
+	      runPeriodForSOE="C";
 	    } else if ( idMVAScalingD)  {
 	      runPeriod="D";
-	      myFile = idmvascaleFile2;
+	      runPeriodForSOE="D";
 	    }
 
+	    if (debug) cout <<  " Scaling sOverE  sOverEOld " << sOverEOld <<  endl;	    
+	    //// scale sigma/E - independent from the rest 
+	    bool doSOEScale=false;
+	    if ( fabs(Photonp4[PhotonIndex].Eta()) < 1. ) {
+	      soescalehistname = "sigeoescale_"+runPeriodForSOE+"_0_10";
+	      doSOEScale=true;
+	    } else if (  fabs(Photonp4[PhotonIndex].Eta()) >= 1. && fabs(Photonp4[PhotonIndex].Eta()) <1.5 ) {
+	      soescalehistname = "sigeoescale_"+runPeriodForSOE+"_10_15";
+	      doSOEScale=true;
+	    } else if (  fabs(Photonp4[PhotonIndex].Eta()) >= 1.5 && fabs(Photonp4[PhotonIndex].Eta()) <= 2. ) {
+	      soescalehistname = "sigeoescale_"+runPeriodForSOE+"_15_20"; 
+	      doSOEScale=true;
+	    } else if (  fabs(Photonp4[PhotonIndex].Eta()) >= 2. && fabs(Photonp4[PhotonIndex].Eta()) <= 2.5 ) {
+	      soescalehistname = "sigeoescale_"+runPeriodForSOE+"_20_25";
+	      doSOEScale=true;
+	    }
+	    if (doSOEScale) {
+	      soeGraph = (TGraph*) sigmaOverEFile->Get(soescalehistname);
+	      sOverE  =TMath::Exp ( soeGraph->Eval(TMath::Log (sOverEOld)));
+	    } 
+	    
+	    if (debug) cout <<  " Scaling r9  " << endl;	    
+	    ////  Correct r9 in bins of eta first according to corrections from zmumug itslef
+            bool doR9Scale=false;
+            if ( fabs(Photonp4[PhotonIndex].Eta()) <1.5 ) {
+	      r9scalehistname = "zmmgR9scale_"+runPeriod+"_0_15";
+	      doR9Scale=true;
+	    } else if (  fabs(Photonp4[PhotonIndex].Eta()) >= 1.5 && fabs(Photonp4[PhotonIndex].Eta()) <= 2.5 ) {
+	      r9scalehistname = "zmmgR9scale_"+runPeriod+"_15_25";
+	      doR9Scale=true;
+	    } 
+            if ( doR9Scale ) {
+	      r9Graph = (TGraph*)r9scaleFile->Get(r9scalehistname);
+	      tmva_photonid_r9  = - TMath::Exp (  r9Graph->Eval( TMath::Log(1. - tmva_photonid_r9 )) ) + 1.;
+	    }
+
+	   
+	    if (debug) cout <<  " Scaling idMVA " << endl;	     
+	    ////////////  Now rescale the idMVA according to Fabian's corrections
 	    ///////  BARREL 
 	    if ( region == "Barrel" ) {
 	      if ( tmva_photonid_r9 > 0.94 ) {
@@ -830,14 +916,21 @@ int main(int argc, char * input[]) {
 
 	    }
 
-	    idmvascale = (TGraph*)myFile->Get(idmvascalehistname);
+	    idmvascale = (TGraph*)idmvascaleFile->Get(idmvascalehistname);
 	    pho_mitmva_rescaled = idmvascale->Eval(pho_idmva_rescaled);
+
+
+
 
 	  }
 
           histoContainer->Fill("pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+	  histoContainer->Fill("pho_pt_forConv",region,Photonp4[PhotonIndex].Pt(),weight);
+	 
           histoContainer->Fill("pho_idmva_rescaled",region,pho_mitmva_rescaled,weight);
           histoContainer->Fill("pho_mitmva",region,pho_mitmva_rescaled,weight);
+          histoContainer->Fill("pho_nearMuDR",region,nearmu_deltaR,weight);
+	  histoContainer->Fill("pho_numvtx",region,PrimaryVertex.size(),weight);
           ////// idMVA in bins of Pt
           if ( Photonp4[PhotonIndex].Pt() < 30 ) {
       	    histoContainer->Fill("pho_mitmvaPtBin1",region,pho_mitmva_rescaled,weight); 
@@ -881,12 +974,12 @@ int main(int argc, char * input[]) {
           histoContainer->Fill("pho_tmva_photonid_Eregr",region,pho_regr_energy()[PhotonIndex],weight);
 
 
-	  histoContainer->Fill("pho_tmva_photonid_sigmaOverE",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
+	  histoContainer->Fill("pho_tmva_photonid_sigmaOverE",region, sOverE,weight);
           ////// sigma/E in bins of Pt
           if ( Photonp4[PhotonIndex].Pt() < 30 ) {
-            histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin1",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
+            histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin1",region,sOverE,weight);
           } else {
-            histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin2",region,pho_regr_energyerr()[PhotonIndex]/pho_regr_energy()[PhotonIndex],weight);
+            histoContainer->Fill("pho_tmva_photonid_sigmaOverEPtBin2",region,sOverE,weight);
           }
 
           histoContainer->Fill("pho_tmva_photonid_phiwidth",region,tmva_photonid_phiwidth,weight);
@@ -949,23 +1042,44 @@ int main(int argc, char * input[]) {
 	  ////////////////
 
 	  if ( tmva_photonid_r9 > 0.94 ) {
+
 	    if ( region == "Barrel" ) {
-	      if ( Photonp4[PhotonIndex].Pt() < 30 ) {      
-		iPhoAfterPreSelAndR9Cut_PtBin1_EB++;
+	      if ( Photonp4[PhotonIndex].Pt() < 30 ) {   
+		iPhoAfterPreSelAndR9Cut_PtBin1_EB+=(1.*weight);
 	      } else {
-		iPhoAfterPreSelAndR9Cut_PtBin2_EB++;
+		iPhoAfterPreSelAndR9Cut_PtBin2_EB+=(1.*weight);
 	      }
 
 	    } else {
-
+	      
 	      if ( Photonp4[PhotonIndex].Pt() < 30 ) {      
-		iPhoAfterPreSelAndR9Cut_PtBin1_EE++;
+		iPhoAfterPreSelAndR9Cut_PtBin1_EE+=(1.*weight);
 	      } else {
-		iPhoAfterPreSelAndR9Cut_PtBin2_EE++;
+		iPhoAfterPreSelAndR9Cut_PtBin2_EE+=(1.*weight);
+	      }
+	    }
+
+	  }
+
+	  /////// low r9 photons
+          if ( tmva_photonid_r9 <0.8 ) {
+            if ( Photonp4[PhotonIndex].Pt() > 30 )  {
+	      if ( region == "Barrel" ) {
+		nPhoPtGT30LoR9EB+=(1.*weight);
+	      }else {
+		nPhoPtGT30LoR9EE+=(1.*weight); 
 	      }
 	    }
 	  }
+
 	  
+	  ////////  Denominators for conversion reco effciency w.r.t. low r9 photons
+	  if ( tmva_photonid_r9 < 0.80 ) {
+	    histoContainer->Fill("phoEtaWithLoR9",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
+    	    histoContainer->Fill("phoNumvtxWithLoR9",region,PrimaryVertex.size(),weight);
+	  }
+
+
 
           float MVAcut=-0.013;
           if ( region == "Endcap" )
@@ -977,10 +1091,38 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("pho_pt_afterMVAcut",region,Photonp4[PhotonIndex].Pt(),weight);
 
           /////// catch conversions
-          if ( pho_r9()[PhotonIndex]*r9W+r9Slope < 0.94 ) {
-            histoContainer->Fill("conv_eta",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
-            histoContainer->Fill("conv_pt",region,Photonp4[PhotonIndex].Pt(),weight);
-          }
+          int iConv = gettrackerconvindex(Photonxyz[PhotonIndex], BeamSpot[0] );
+          if ( iConv >= 0 ) {
+	    if ( tmva_photonid_r9 < 0.80 ) {
+	      histoContainer->Fill("conv_etaForR9test",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
+	      histoContainer->Fill("conv_numvtxForR9test",region,PrimaryVertex.size(),weight);
+	      histoContainer->Fill("conv_RForR9Test",region,ConversionVertex[iConv].Perp(),weight);
+	    }
+	    histoContainer->Fill("conv_eta",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
+            histoContainer->Fill("conv_pho_pt",region,Photonp4[PhotonIndex].Pt(),weight);
+            histoContainer->Fill("conv_pt",region,ConversionRefittedPairMomentum[iConv].Pt(),weight);
+            histoContainer->Fill("conv_r9",region,pho_r9()[PhotonIndex]*r9W+r9Slope,weight);
+	    histoContainer->Fill("conv_idmva",region,pho_mitmva_rescaled,weight);
+	    histoContainer->Fill("conv_R",region,ConversionVertex[iConv].Perp(),weight);
+	    histoContainer->Fill("conv_nearMuDR",region,nearmu_deltaR,weight);
+    	    histoContainer->Fill("conv_numvtx",region,PrimaryVertex.size(),weight);
+            histoContainer->Fill("conv_EoP",region,Photonp4[PhotonIndex].E()/ConversionRefittedPairMomentum[iConv].Mag(),weight);  
+            histoContainer->Fill("conv_EoPvsEta",((TVector3*)sc_xyz()->At(scind))->Eta(),Photonp4[PhotonIndex].E()/ConversionRefittedPairMomentum[iConv].Mag(),weight);  
+	    histoContainer->Fill("conv_VtxP",region,conv_chi2_probability()[iConv],weight);  
+	    histoContainer->Fill("conv_ZMassEregr",ZCandidateEregr.M(),weight);
+	    histoContainer->Fill("conv_ZMassEphot",ZCandidate.M(),weight);
+	    histoContainer->Fill("conv_ZMassEregr",Category,ZCandidateEregr.M(),weight);
+	    histoContainer->Fill("conv_ZMassEphot",Category,ZCandidate.M(),weight);
+	    if ( Photonp4[PhotonIndex].Pt() > 30) {
+	      if ( region == "Barrel" ) {
+		nConvPtGT30EB+=(1.*weight);
+		if ( tmva_photonid_r9 < 0.80 ) nConvPtGT30LoR9EB+=(1.*weight);
+	      } else if ( region == "Endcap" ) {
+		nConvPtGT30EE+=(1.*weight);
+		if ( tmva_photonid_r9 < 0.80 ) nConvPtGT30LoR9EE+=(1.*weight);
+	      }
+	    }
+	  }
 
 
           mypho_pt=-99.;
@@ -1028,25 +1170,42 @@ int main(int argc, char * input[]) {
     }
 
     cout << " EB pt1           " <<  iPhoAfterPreSel_PtBin1_EB <<          " pt2   " << iPhoAfterPreSel_PtBin2_EB << endl;
-    cout << " EB pt1 after cut " <<   iPhoAfterPreSelAndR9Cut_PtBin1_EB << " pt2  " << iPhoAfterPreSelAndR9Cut_PtBin2_EB << endl;
+    cout << " EB pt1 after r9>0.94  cut " <<   iPhoAfterPreSelAndR9Cut_PtBin1_EB << " pt2  " << iPhoAfterPreSelAndR9Cut_PtBin2_EB << endl;
     cout << " EE pt1           " <<  iPhoAfterPreSel_PtBin1_EE <<          " pt2   " << iPhoAfterPreSel_PtBin2_EE << endl;
-    cout << " EE pt1 after cut " <<   iPhoAfterPreSelAndR9Cut_PtBin1_EE << " pt2  " << iPhoAfterPreSelAndR9Cut_PtBin2_EE << endl;
+    cout << " EE pt1 after r9>0.94  cut " <<   iPhoAfterPreSelAndR9Cut_PtBin1_EE << " pt2  " << iPhoAfterPreSelAndR9Cut_PtBin2_EE << endl;
 
+    cout << " EB conversions with Pt > 30  " << nConvPtGT30EB << " EE conversions with Pr > 30 " << nConvPtGT30EE << endl;
+    cout << " EB photons with Pt > 30 and lo R9  " << nPhoPtGT30LoR9EB << " EE photons with Pt > 30 and LoR9 " << nPhoPtGT30LoR9EE << endl;
+    cout << " EB conversions with Pt > 30 and lo R9  " << nConvPtGT30LoR9EB << " EE conversions with Pt > 30 and LoR9 " << nConvPtGT30LoR9EE << endl;
 
     /// calculate some efficiencies
-    float effR9Cut_PtBin1_EB = float(iPhoAfterPreSelAndR9Cut_PtBin1_EB)/iPhoAfterPreSel_PtBin1_EB;
-    float effR9Cut_PtBin2_EB = float(iPhoAfterPreSelAndR9Cut_PtBin2_EB)/iPhoAfterPreSel_PtBin2_EB;
-    float effR9Cut_PtBin1_EE = float(iPhoAfterPreSelAndR9Cut_PtBin1_EE)/iPhoAfterPreSel_PtBin1_EE;
-    float effR9Cut_PtBin2_EE = float(iPhoAfterPreSelAndR9Cut_PtBin2_EE)/iPhoAfterPreSel_PtBin2_EE;
+    float effR9Cut_PtBin1_EB = iPhoAfterPreSelAndR9Cut_PtBin1_EB/iPhoAfterPreSel_PtBin1_EB;
+    float effR9Cut_PtBin2_EB = iPhoAfterPreSelAndR9Cut_PtBin2_EB/iPhoAfterPreSel_PtBin2_EB;
+    float effR9Cut_PtBin1_EE = iPhoAfterPreSelAndR9Cut_PtBin1_EE/iPhoAfterPreSel_PtBin1_EE;
+    float effR9Cut_PtBin2_EE = iPhoAfterPreSelAndR9Cut_PtBin2_EE/iPhoAfterPreSel_PtBin2_EE;
     float dEff1 = sqrt ( effR9Cut_PtBin1_EB* (1.-effR9Cut_PtBin1_EB)/iPhoAfterPreSel_PtBin1_EB);
     float dEff2 = sqrt ( effR9Cut_PtBin2_EB* (1.-effR9Cut_PtBin2_EB)/iPhoAfterPreSel_PtBin2_EB);
     float dEff3 = sqrt ( effR9Cut_PtBin1_EE* (1.-effR9Cut_PtBin1_EE)/iPhoAfterPreSel_PtBin1_EE);
     float dEff4 = sqrt ( effR9Cut_PtBin2_EE* (1.-effR9Cut_PtBin1_EE)/iPhoAfterPreSel_PtBin2_EE);
 
+    float convEffPtGT30_EB = nConvPtGT30EB/iPhoAfterPreSel_PtBin2_EB;
+    float convEffPtGT30_EE = nConvPtGT30EE/iPhoAfterPreSel_PtBin2_EE;
+    float convEffPtGT30LoR9_EB = nConvPtGT30LoR9EB/nPhoPtGT30LoR9EB;
+    float convEffPtGT30LoR9_EE = nConvPtGT30LoR9EE/nPhoPtGT30LoR9EE;
+    float dconvEffPtGT30_EB = sqrt ( convEffPtGT30_EB* (1.-convEffPtGT30_EB)/iPhoAfterPreSel_PtBin2_EB);
+    float dconvEffPtGT30_EE = sqrt ( convEffPtGT30_EE* (1.-convEffPtGT30_EE)/iPhoAfterPreSel_PtBin2_EE);
+    float dconvEffPtGT30LoR9_EB = sqrt ( convEffPtGT30LoR9_EB* (1.-convEffPtGT30LoR9_EB)/nPhoPtGT30LoR9EB);
+    float dconvEffPtGT30LoR9_EE = sqrt ( convEffPtGT30LoR9_EE* (1.-convEffPtGT30LoR9_EE)/nPhoPtGT30LoR9EE);
+
+
     cout << " effR9Cut_PtBin1_EB " << effR9Cut_PtBin1_EB << " +- " << dEff1 << endl;
     cout << " effR9Cut_PtBin2_EB " << effR9Cut_PtBin2_EB << " +- " << dEff2 << endl;
     cout << " effR9Cut_PtBin1_EE " << effR9Cut_PtBin1_EE << " +- " << dEff3 << endl;
     cout << " effR9Cut_PtBin2_EE " << effR9Cut_PtBin2_EE << " +- " << dEff4 << endl;
+    cout << " convEffPtGT30_EB " << convEffPtGT30_EB << " +- " << dconvEffPtGT30_EB << endl;
+    cout << " convEffPtGT30_EE " << convEffPtGT30_EE << " +- " << dconvEffPtGT30_EE << endl;
+    cout << " convEffPtGT30LoR9_EB " << convEffPtGT30LoR9_EB << " +- " << dconvEffPtGT30LoR9_EB << endl;
+    cout << " convEffPtGT30LoR9_EE " << convEffPtGT30LoR9_EE << " +- " << dconvEffPtGT30LoR9_EE << endl;
 
 
 
@@ -1316,32 +1475,39 @@ TLorentzVector  dgloren(TLorentzVector p, double b, double g, double ikey) {
 int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
 
   int ReturnIndex = -1;
-  double MindeltaR = 999999;
+
+  float detaMin=999.;
+  float dphiMin=999.;   
+  float dRMin = 999.;
+
 
   for (int i=0; i<conv_n(); i++) {
-    TVector3 ConversionRefittedPairMomentum = conv_singleleg_momentum()!=NULL && conv_ntracks()[i]==1 ? *((TVector3*) conv_singleleg_momentum()->At(i)) : *((TVector3*) conv_refitted_momentum()->At(i));
+    TVector3 refittedPairMomentum = conv_singleleg_momentum()!=NULL && conv_ntracks()[i]==1 ? *((TVector3*) conv_singleleg_momentum()->At(i)) : *((TVector3*) conv_refitted_momentum()->At(i));
     TVector3 ConversionVertex = *((TVector3*) conv_vtx()->At(i));
-    if (conv_ntracks()[i]!=2 && conv_ntracks()[i]!=1) continue;
-    if (conv_ntracks()[i]==2 && (conv_chi2_probability()[i]<0.000001 || ConversionRefittedPairMomentum.Pt()<1)) continue;
-    if (conv_ntracks()[i]==1 && ConversionRefittedPairMomentum.Pt()<1) continue;
+    if (refittedPairMomentum.Pt()<10) continue;
+    if (conv_ntracks()[i]!=2 ) continue;
+    if (conv_ntracks()[i]==2 && (!conv_validvtx()[i] || conv_chi2_probability()[i]<0.000001) ) continue;
 
-    double deltaphi = DeltaPhi(Photonxyz.Phi(),ConversionVertex.Phi());
-    double zfromconv = FindNewZConvLinear(ConversionVertex,Photonxyz,BeamSpot);
-    //cout << "NTracks: " << conv_ntracks()[i] << " Conerion Refitted Pair Momentum Eta: " << ConversionRefittedPairMomentum.Eta() << endl;
-    double deltaeta = fabs(Photonxyz.Eta() - etaTransformation(ConversionRefittedPairMomentum.Eta(),zfromconv));
-    double deltaR = sqrt(deltaeta*deltaeta+deltaphi*deltaphi);
 
-    if (deltaR<MindeltaR) {
-      MindeltaR=deltaR;
-      ReturnIndex = i;
+    //New matching technique from meeting on 06.08.12
+    TVector3 NewPhotonxyz = Photonxyz-ConversionVertex;
+    double dR = NewPhotonxyz.DeltaR(refittedPairMomentum);
+    double delta_eta = NewPhotonxyz.Eta()-refittedPairMomentum.Eta();
+    double delta_phi = NewPhotonxyz.DeltaPhi(refittedPairMomentum);
+
+    if ( dR < dRMin ) {
+      detaMin=fabs(delta_eta);
+      dphiMin=fabs(delta_phi);
+      dRMin=dR;
+      ReturnIndex=i;
     }
+    
   }
+  
+  if ( dRMin< 0.1 ) return ReturnIndex;
+  else return -1;
+  
 
-  if (MindeltaR<0.1) {
-    return ReturnIndex;
-  } else {
-    return -1;
-  }
 
 }
 
@@ -1435,10 +1601,15 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("NearMuDeltaRAfterCut","Near Muon #DeltaR  #mu;#DeltaR;Counts",30,0,1);
   histoContainer->Add("NearMuDeltaEtaDeltaPhiAfterCut","Near Muon #Delta#phi vs #Delta#eta   #mu;#Delta#eta;#Delta#phi",30,0.,1.,30,0.,1. );
 
-  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel","pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfcharedisogood03;",30,0.,1.,20,-10,10);
-  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel","pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfcharedisobad03;",30,0.,1.,20,-10,10);
-  BookBarrelAndEndcap2D(histoContainer,"pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel","pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfphotoniso03;",30,0.,1.,50,0.,10.);
-  BookBarrelAndEndcap2D(histoContainer,"pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel","pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel: region; ;nearMuondR;pfneutraliso03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel","pho_pfchargedisogood03_vs_nearMuonDRBeforePhoPresel: region; nearMuondR;pfcharedisogood03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel","pho_pfchargedisobad03_vs_nearMuonDRBeforePhoPresel: region; nearMuondR;pfcharedisobad03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel","pho_pfphotoniso03_vs_nearMuonDRBeforePhoPresel: region; nearMuondR;pfphotoniso03;",30,0.,1.,50,0.,10.);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel","pho_pfneutraliso03_vs_nearMuonDRBeforePhoPresel: region; nearMuondR;pfneutraliso03;",30,0.,1.,20,-10,10);
+
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisogood03_vs_nearMuonDRAfterPhoPresel","pho_pfchargedisogood03_vs_nearMuonDRAfterPhoPresel: region; nearMuondR;pfcharedisogood03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfchargedisobad03_vs_nearMuonDRAfterPhoPresel","pho_pfchargedisobad03_vs_nearMuonDRAfterPhoPresel: region; nearMuondR;pfcharedisobad03;",30,0.,1.,20,-10,10);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfphotoniso03_vs_nearMuonDRAfterPhoPresel","pho_pfphotoniso03_vs_nearMuonDRBAfterPhoPresel: region; nearMuondR;pfphotoniso03;",30,0.,1.,50,0.,10.);
+  BookBarrelAndEndcap2D(histoContainer,"pho_pfneutraliso03_vs_nearMuonDRAfterPhoPresel","pho_pfneutraliso03_vs_nearMuonDRAfterPhoPresel: region; nearMuondR;pfneutraliso03;",30,0.,1.,20,-10,10);
 
   BookCutsAndCategories(histoContainer,"Numvtx","Number of Primary Verticies:Cuts:Cat;Number of Vertices;Counts",100,0,100);
   BookCutsAndCategories(histoContainer,"PhotonPt","Pt of Photon:Cuts:Cat;Pt (GeV);Counts",100,0,200);
@@ -1449,6 +1620,8 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookCutsAndCategories(histoContainer,"ZMassZoom","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",16,87.2,95.2);
   BookCategories(histoContainer,"ZMassEregr","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",40,70,110);
   BookCategories(histoContainer,"ZMassEphot","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",40,70,110);
+  BookCategories(histoContainer,"conv_ZMassEregr","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",40,70,110);
+  BookCategories(histoContainer,"conv_ZMassEphot","Invariant mass of #mu#mu#gamma system:Cuts:Cat;Mass (GeV);Counts",40,70,110);
 
 
 
@@ -1456,9 +1629,12 @@ void BookHistograms(HistoContainer *histoContainer) {
   
   BookBarrelAndEndcap(histoContainer,"allpho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"pho_pt_forConv","pho_pt: region; Pt (GeV) ;Counts",50,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt_afterMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcap(histoContainer,"pho_pt_afternewMVAcut","pho_pt: region; Pt (GeV) ;Counts",100,0.,100.);
   BookBarrelAndEndcapProfiles(histoContainer,"pho_idmva_vsPt","pho_idmva: region;Pt;idmva value;",100,0.,100.,0.4,0.4);
+  BookBarrelAndEndcap(histoContainer,"pho_nearMuDR","near mu dR: region; dR(#gamma, #mu_{near})  ;Counts",30,0.,1.);
+  BookBarrelAndEndcap(histoContainer,"pho_numvtx","pho_numvtx: region; Vertices  ;Counts",40,-0.5,39.5);
 
   BookBarrelAndEndcap(histoContainer,"pho_mitmva","pho_mitmva: region; MVA output;Counts",50,-0.5,0.5);
   BookBarrelAndEndcap(histoContainer,"pho_idmva_rescaled","pho_idmva_rescaled: region; MVA output ;Counts",50,-0.5,0.5);
@@ -1506,8 +1682,25 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region; pfphotoniso03;Counts",50,0,10.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region; pfneutraliso03;Counts",50,0,1.5);
 
-  BookBarrelAndEndcap(histoContainer,"conv_pt","conv_pt: region; Pt (GeV) ;Counts",100,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"conv_pho_pt","conv_pho_pt: region; Pt (GeV) ;Counts",50,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"conv_pt","conv_pt: region; Pt (GeV) ;Counts",50,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"conv_idmva","conv_idmva: region; idmva  ;Counts",50,-0.5,0.5); 
+  BookBarrelAndEndcap(histoContainer,"conv_EoP","conv_EoP: region; E/p ;Counts",50,0.,5.);
+  BookBarrelAndEndcap(histoContainer,"conv_r9","conv_r9: region; R9  ;Counts",100,0.2,1.1);
+  BookBarrelAndEndcap(histoContainer,"conv_R","conv_R: region; R  ;Counts",50,0.,100.);
+  BookBarrelAndEndcap(histoContainer,"conv_VtxP","conv_VtxP: region; VtxP  ;Counts",100,0.,1.);
+  BookBarrelAndEndcap(histoContainer,"conv_nearMuDR","near mu dR: region; dR(#gamma, #mu_{near})  ;Counts",30,0.,1.);
+  BookBarrelAndEndcap(histoContainer,"conv_numvtx","conv_numvtx: region; Vertices  ;Counts",40,-0.5,39.5);
+  BookBarrelAndEndcap(histoContainer,"conv_numvtxForR9test","conv_numvtx: region; Vertices  ;Counts",40,-0.5,39.5);
+  BookBarrelAndEndcap(histoContainer,"phoNumvtxWithLoR9","phoNumvtxWithLoR9: region; Vertices  ;Counts",40,-0.5,39.5);
+
+ 
+  histoContainer->Add("phoWithHiR9","conv_eta: region; #eta;Counts",68,-3.4,3.4);
+  histoContainer->Add("phoEtaWithLoR9","phoEtaWithLoR9: region; #eta;Counts",68,-3.4,3.4);
   histoContainer->Add("conv_eta","conv_eta: region; #eta;Counts",68,-3.4,3.4);
+  histoContainer->Add("conv_etaForR9test","conv_eta: region; #eta;Counts",68,-3.4,3.4);
+  BookBarrelAndEndcap(histoContainer,"conv_RForR9Test","conv_R: region; R  ;Counts",50,0.,100.);
+  histoContainer->Add("conv_EoPvsEta","conv_EoPvsEta: ; #eta; E/p",68,-3.4,3.4,0.,5.);
 
 
 
@@ -1560,6 +1753,9 @@ void MakeFilesAndWeights(TString inputstring, vector<pair<string, float> > &inpu
   if (inputstring.Contains("ZToMuMu") ) { 
     inputfilelist.push_back(pair<string,int> ("ZToMuMu.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/ZMuMuGamma/Moriond2013/Reduced/Reduced_DYToMuMu2012.root",WeightsMap["ZToMuMu"]));
+  } else if ( inputstring.Contains("zmumugForABOnly") ) {
+    inputfilelist.push_back(pair<string,int> ("ZToMuMuForAB.root",1));
+    inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/ZMuMuGamma/Moriond2013/Reduced/Reduced_DYToMuMu2012.root",WeightsMap["ZToMuMu"]));
   } else if ( inputstring.Contains("zmumugForABC") ) {
     inputfilelist.push_back(pair<string,int> ("ZToMuMuForABC.root",1));
     inputvector.push_back(pair<string,float> ("/data/ndpc1/c/HiggsGammaGamma/ZMuMuGamma/Moriond2013/Reduced/Reduced_DYToMuMu2012.root",WeightsMap["ZToMuMu"]));
@@ -1588,7 +1784,9 @@ void MakePileUpWeights(TString inputstring, map<int,double> &PileUpMap) {
 
   if (inputstring.Contains("ZToMuMu") ) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_ZToMuMu.h"
-    
+  } else if (inputstring.Contains("zmumugForABOnly")) {
+    #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_ZToMuMu_Run2012AB.h"
+    cout << " zmumuForAB" << endl;
   } else if (inputstring.Contains("zmumugForABC")) {
     #include "ND_Hto2Photons/TreeReaders/interface/PileUpWeights/ZMuMu_ZToMuMu_Run2012ABC.h"
     cout << " zmumuForABC" << endl;
