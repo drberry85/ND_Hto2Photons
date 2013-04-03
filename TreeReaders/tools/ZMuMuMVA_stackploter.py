@@ -46,7 +46,7 @@ FileNames = ["ZMuMu_ZToMuMu_PhoPFPresel_Corr2012_HighPt.root"]
 Legends = ["Z#rightarrow#mu#mu#gamma MC"]
 label="_PhoPFPresel_HighPt"
 #label="_RunComparisonNoSelection"
-MakeLogScale=False
+MakeLogScale=True
 if MakeLogScale: label+="_Log"
 MCFiles=[]
 DataFiles=[]
@@ -144,6 +144,8 @@ for histbase in HistogramNames:
                 stack.Draw('hist')
                 if hist.find("pho_pt") != -1:
                     stack.GetXaxis().SetRangeUser(20,100)
+                if hist.find("etawidth") != -1:
+                    stack.GetXaxis().SetNdivisions(508);
                 Normalization=0
                 for i in range(len(DataFiles)):
                     if i==1: Normalization+=DataFiles[i].Get(hist).Integral()
