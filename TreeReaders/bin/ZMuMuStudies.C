@@ -49,6 +49,9 @@ template <class type> string makestring(type value);
 TLorentzVector dgieuler(TLorentzVector parent, TLorentzVector daughter);
 TLorentzVector dgloren(TLorentzVector p, double b, double g, double ikey);
 int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot);
+string GetConversionRegion(double Z, double R, bool isEB);
+double MomentumTrackdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot);
+double SuperclusterdZ(TVector3 convvtx, TVector3 superclustervtx, TVector3 primaryvertex);
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit);
 void BookBarrelAndEndcap2D(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita,int binsb, float lowerlimitb, float upperlimitb);
 void BookBarrelAndEndcapProfiles(HistoContainer *histoContainer, TString histname, TString histtitle, int binsa, float lowerlimita, float upperlimita, float lowerlimitb, float upperlimitb);
@@ -1062,7 +1065,7 @@ int main(int argc, char * input[]) {
 	  }
 
 	  /////// low r9 photons
-          if ( tmva_photonid_r9 <0.8 ) {
+          if ( tmva_photonid_r9 < 0.90 ) {
             if ( Photonp4[PhotonIndex].Pt() > 30 )  {
 	      if ( region == "Barrel" ) {
 		nPhoPtGT30LoR9EB+=(1.*weight);
@@ -1074,7 +1077,7 @@ int main(int argc, char * input[]) {
 
 	  
 	  ////////  Denominators for conversion reco effciency w.r.t. low r9 photons
-	  if ( tmva_photonid_r9 < 0.80 ) {
+	  if ( tmva_photonid_r9 < 0.90 ) {
 	    histoContainer->Fill("phoEtaWithLoR9",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
     	    histoContainer->Fill("phoNumvtxWithLoR9",region,PrimaryVertex.size(),weight);
 	  }
@@ -1092,8 +1095,17 @@ int main(int argc, char * input[]) {
 
           /////// catch conversions
           int iConv = gettrackerconvindex(Photonxyz[PhotonIndex], BeamSpot[0] );
-          if ( iConv >= 0 ) {
-	    if ( tmva_photonid_r9 < 0.80 ) {
+           if ( iConv >= 0 ) {
+
+	    string ConversionRegion = GetConversionRegion(ConversionVertex[iConv].Z(), ConversionVertex[iConv].Perp(), pho_isEB()[PhotonIndex]);
+	    double zfromconv=0;
+	    double vtxDeltaZ=-99.;
+	    if (ConversionRegion=="PixelBarrel" || ConversionRegion=="PixelFwd" || ConversionRegion=="TID") zfromconv=MomentumTrackdZ(ConversionVertex[iConv],ConversionRefittedPairMomentum[iConv],BeamSpot[0]);
+	    if (ConversionRegion=="TIB" || ConversionRegion=="TOB" || ConversionRegion=="TEC") zfromconv=SuperclusterdZ(ConversionVertex[iConv],SuperClusterxyz[pho_scind()[PhotonIndex]],BeamSpot[0]);
+	    vtxDeltaZ= zfromconv - SimVertex.Z();
+
+
+	    if ( tmva_photonid_r9 < 0.90 ) {
 	      histoContainer->Fill("conv_etaForR9test",((TVector3*)sc_xyz()->At(scind))->Eta(),weight);
 	      histoContainer->Fill("conv_numvtxForR9test",region,PrimaryVertex.size(),weight);
 	      histoContainer->Fill("conv_RForR9Test",region,ConversionVertex[iConv].Perp(),weight);
@@ -1109,6 +1121,7 @@ int main(int argc, char * input[]) {
             histoContainer->Fill("conv_EoP",region,Photonp4[PhotonIndex].E()/ConversionRefittedPairMomentum[iConv].Mag(),weight);  
             histoContainer->Fill("conv_EoPvsEta",((TVector3*)sc_xyz()->At(scind))->Eta(),Photonp4[PhotonIndex].E()/ConversionRefittedPairMomentum[iConv].Mag(),weight);  
 	    histoContainer->Fill("conv_VtxP",region,conv_chi2_probability()[iConv],weight);  
+	    histoContainer->Fill("conv_VtxPvsdZ",region,vtxDeltaZ,conv_chi2_probability()[iConv],weight);  
 	    histoContainer->Fill("conv_ZMassEregr",ZCandidateEregr.M(),weight);
 	    histoContainer->Fill("conv_ZMassEphot",ZCandidate.M(),weight);
 	    histoContainer->Fill("conv_ZMassEregr",Category,ZCandidateEregr.M(),weight);
@@ -1116,10 +1129,10 @@ int main(int argc, char * input[]) {
 	    if ( Photonp4[PhotonIndex].Pt() > 30) {
 	      if ( region == "Barrel" ) {
 		nConvPtGT30EB+=(1.*weight);
-		if ( tmva_photonid_r9 < 0.80 ) nConvPtGT30LoR9EB+=(1.*weight);
+		if ( tmva_photonid_r9 < 0.90 ) nConvPtGT30LoR9EB+=(1.*weight);
 	      } else if ( region == "Endcap" ) {
 		nConvPtGT30EE+=(1.*weight);
-		if ( tmva_photonid_r9 < 0.80 ) nConvPtGT30LoR9EE+=(1.*weight);
+		if ( tmva_photonid_r9 < 0.90 ) nConvPtGT30LoR9EE+=(1.*weight);
 	      }
 	    }
 	  }
@@ -1472,7 +1485,35 @@ TLorentzVector  dgloren(TLorentzVector p, double b, double g, double ikey) {
   return r;
 }
 
-int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
+
+string GetConversionRegion(double Z, double R, bool isEB) {
+
+
+  string ReturnString = "";
+  if (isEB) {
+    if (R<=15.0) {
+      ReturnString = "PixelBarrel";
+    } else if  (R>15 && R<=60.0) {
+      ReturnString = "TIB";
+    } else if (R>60.0) {
+      ReturnString = "TOB";
+    }
+  } else {
+    if (Z<=50.0) {
+      ReturnString = "PixelFwd";
+    }  else if (Z>50 && Z<=100.0) {
+      ReturnString = "TID";
+    }  else if (Z>100.0) {
+      ReturnString = "TEC";
+    }
+  }
+
+  return ReturnString;
+
+}
+
+
+int gettrackerconvindex (TVector3 Photonxyz, TVector3 BeamSpot) {
 
   int ReturnIndex = -1;
 
@@ -1486,7 +1527,8 @@ int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
     TVector3 ConversionVertex = *((TVector3*) conv_vtx()->At(i));
     if (refittedPairMomentum.Pt()<10) continue;
     if (conv_ntracks()[i]!=2 ) continue;
-    if (conv_ntracks()[i]==2 && (!conv_validvtx()[i] || conv_chi2_probability()[i]<0.000001) ) continue;
+    //    if (conv_ntracks()[i]==2 && (!conv_validvtx()[i] || conv_chi2_probability()[i]<0.000001) ) continue;
+    if (conv_ntracks()[i]==2 && (!conv_validvtx()[i] || conv_chi2_probability()[i]<0.01) ) continue;
 
 
     //New matching technique from meeting on 06.08.12
@@ -1510,6 +1552,33 @@ int gettrackerconvindex(TVector3 Photonxyz, TVector3 BeamSpot) {
 
 
 }
+
+
+double MomentumTrackdZ(TVector3 vtx, TVector3 mom, TVector3 myBeamSpot) {
+
+  double dz = (vtx.z()-myBeamSpot.z()) - ((vtx.x()-myBeamSpot.x())*mom.x()+(vtx.y()-myBeamSpot.y())*mom.y())/mom.Perp() * mom.z()/mom.Perp();
+  return dz + myBeamSpot.z();
+  
+}
+
+double SuperclusterdZ(TVector3 convvtx, TVector3 superclustervtx, TVector3 beamSpot) {
+  
+  double deltaX1 = superclustervtx.X()-convvtx.X();
+  double deltaY1 = superclustervtx.Y()-convvtx.Y();
+  double deltaZ1 = superclustervtx.Z()-convvtx.Z();
+  double R1 = sqrt(deltaX1*deltaX1+deltaY1*deltaY1);
+  double tantheta = R1/deltaZ1;
+  
+  double deltaX2 = convvtx.X()-beamSpot.X();
+  double deltaY2 = convvtx.Y()-beamSpot.Y();
+  double R2 = sqrt(deltaX2*deltaX2+deltaY2*deltaY2);
+  double deltaZ2 = R2/tantheta;
+  double primaryvertexZ = superclustervtx.Z()-deltaZ1-deltaZ2;
+  return primaryvertexZ;
+
+}
+
+
 
 void BookBarrelAndEndcap(HistoContainer *histoContainer, TString histname, TString histtitle, int bins, float lowerlimit, float upperlimit) {
   TString Regions[2] = {"Barrel","Endcap"};
@@ -1658,10 +1727,10 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("pho_tmva_photonid_etawidthEndcap","pho_tmva_photonid_etawidth: Endcap; #sigma_{#eta};Counts",50,0,0.05);
   histoContainer->Add("pho_tmva_photonid_sieieBarrel","pho_tmva_id_photonid_sieie: Barrel;#sigma_{i#etai#eta};Counts",100,0.004,0.014);
   histoContainer->Add("pho_tmva_photonid_sieieEndcap","pho_tmva_id_photonid_sieie: Endcap;#sigma_{i#etai#eta};Counts",100,0.01,0.04);
-  histoContainer->Add("pho_tmva_photonid_sieipBarrel","pho_tmva_id_photonid_sieip: Barrel;cov_{i#etai#phi};Counts",100,-0.0002,0.0002);
-  histoContainer->Add("pho_tmva_photonid_sieipEndcap","pho_tmva_id_photonid_sieip: Endcap;cov_{i#etai#phi};Counts",100,-0.001,0.001);
-  histoContainer->Add("pho_tmva_photonid_sieipEndcapPlus","pho_tmva_id_photonid_sieip: EndcapPlus cov_{i#etai#phi};Counts",100,-0.001,0.001);
-  histoContainer->Add("pho_tmva_photonid_sieipEndcapMinus","pho_tmva_id_photonid_sieip: EndcapMinus cov_{i#etai#phi};Counts",100,-0.001,0.001);
+  histoContainer->Add("pho_tmva_photonid_sieipBarrel","pho_tmva_id_photonid_sieip: Barrel;cov_{i#etai#phi};Counts",50,-0.0002,0.0002);
+  histoContainer->Add("pho_tmva_photonid_sieipEndcap","pho_tmva_id_photonid_sieip: Endcap;cov_{i#etai#phi};Counts",50,-0.001,0.001);
+  histoContainer->Add("pho_tmva_photonid_sieipEndcapPlus","pho_tmva_id_photonid_sieip: EndcapPlus cov_{i#etai#phi};Counts",50,-0.001,0.001);
+  histoContainer->Add("pho_tmva_photonid_sieipEndcapMinus","pho_tmva_id_photonid_sieip: EndcapMinus cov_{i#etai#phi};Counts",50,-0.001,0.001);
 
   histoContainer->Add("pho_tmva_photonid_sceta","pho_tmva_id_photonid_sceta;#eta_{SC};Counts",68,-3.4,3.4);
   
@@ -1676,8 +1745,8 @@ void BookHistograms(HistoContainer *histoContainer) {
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_lambdaratio","pho_tmva_id_photonid_lambdaratio: region;tmva_id_photonid_lambdaratio;Counts",50,0,1.5);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_sceta","pho_tmva_id_photonid_sceta: region; #eta_{SC};Counts",68,-3.4,3.4);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_eventrho","pho_tmva_id_photonid_eventrho: region; #rho;Counts",100,0,60.);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region; #sigma_{RR};Counts",100,0.,15.);
-  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region; pfchargedisogood03;Counts",80,0.,8.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_ESEffSigmaRR","pho_tmva_id_photonid_ESEffSigmaRR: region; #sigma_{RR};Counts",50,0.,15.);
+  BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisogood03","pho_tmva_id_photonid_pfchargedisogood03: region; pfchargedisogood03;Counts",50,0.,5.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfchargedisobad03","pho_tmva_id_photonid_pfchargedisobad03: region; pfchargedisobad03;Counts",80,0.,20.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfphotoniso03","pho_tmva_id_photonid_pfphotoniso03: region; pfphotoniso03;Counts",50,0,10.);
   BookBarrelAndEndcap(histoContainer,"pho_tmva_photonid_pfneutraliso03","pho_tmva_id_photonid_pfneutraliso03: region; pfneutraliso03;Counts",50,0,1.5);
@@ -1699,8 +1768,9 @@ void BookHistograms(HistoContainer *histoContainer) {
   histoContainer->Add("phoEtaWithLoR9","phoEtaWithLoR9: region; #eta;Counts",68,-3.4,3.4);
   histoContainer->Add("conv_eta","conv_eta: region; #eta;Counts",68,-3.4,3.4);
   histoContainer->Add("conv_etaForR9test","conv_eta: region; #eta;Counts",68,-3.4,3.4);
-  BookBarrelAndEndcap(histoContainer,"conv_RForR9Test","conv_R: region; R  ;Counts",50,0.,100.);
   histoContainer->Add("conv_EoPvsEta","conv_EoPvsEta: ; #eta; E/p",68,-3.4,3.4,0.,5.);
+  BookBarrelAndEndcap(histoContainer,"conv_RForR9Test","conv_R: region; R  ;Counts",50,0.,100.);
+  BookBarrelAndEndcap2D(histoContainer,"conv_VtxPvsdZ","conv_VtxPvsdZ:  region; #Delta Z; P(#chi^{2})",100,-5,5,100,0.,1.);
 
 
 
