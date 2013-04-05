@@ -46,7 +46,7 @@ FileNames = ["ZMuMu_ZToMuMu_PhoPFPresel_Corr2012_HighPt.root"]
 Legends = ["Z#rightarrow#mu#mu#gamma MC"]
 label="_PhoPFPresel_HighPt"
 #label="_RunComparisonNoSelection"
-MakeLogScale=True
+MakeLogScale=False
 if MakeLogScale: label+="_Log"
 MCFiles=[]
 DataFiles=[]
@@ -123,22 +123,22 @@ for histbase in HistogramNames:
             leg.AddEntry(mchistlist[i],Legends[i])
             if len(MCFiles)>0:
                 # bw= str(mchistlist[0].GetBinWidth(3))
-                bw= "%4.3f" %mchistlist[0].GetBinWidth(3)
-                if hist.find("etawidth") != -1:  bw= "%6.4f" %mchistlist[0].GetBinWidth(3)
-                if hist.find("sieie") != -1:  bw= "%5.4f" %mchistlist[0].GetBinWidth(3)
-                if hist.find("sieip") != -1:  bw= "%7.6f" %mchistlist[0].GetBinWidth(3)
+                bw= "%4.3g" %mchistlist[0].GetBinWidth(3)
+                if hist.find("etawidth") != -1:  bw= "%6.4g" %mchistlist[0].GetBinWidth(3)
+                if hist.find("sieie") != -1:  bw= "%5.4g" %mchistlist[0].GetBinWidth(3)
+                if hist.find("sieip") != -1:  bw= "%7.6g" %mchistlist[0].GetBinWidth(3)
                 stack.SetTitle(";"+mchistlist[0].GetXaxis().GetTitle()+";Events/"+bw)
                 if hist.find("pho_pt") != -1:
-                    bw= "%1.0f" %mchistlist[0].GetBinWidth(3)
+                    bw= "%1.0g" %mchistlist[0].GetBinWidth(3)
                     stack.SetTitle(";"+mchistlist[0].GetXaxis().GetTitle()+";Events/"+bw+" GeV")
                 if hist.find("pfchargedisogood") != -1:
-                    bw= "%2.1f" %mchistlist[0].GetBinWidth(3)
+                    bw= "%2.1g" %mchistlist[0].GetBinWidth(3)
                     stack.SetTitle(";"+mchistlist[0].GetXaxis().GetTitle()+";Events/"+bw+" GeV")
                 if hist.find("pfchargedisobad") != -1:
-                    bw= "%3.2f" %mchistlist[0].GetBinWidth(3)
+                    bw= "%3.2g" %mchistlist[0].GetBinWidth(3)
                     stack.SetTitle(";"+mchistlist[0].GetXaxis().GetTitle()+";Events/"+bw+" GeV")
                 if hist.find("photoniso") != -1:
-                    bw= "%2.1f" %mchistlist[0].GetBinWidth(3)
+                    bw= "%2.1g" %mchistlist[0].GetBinWidth(3)
                     stack.SetTitle(";"+mchistlist[0].GetXaxis().GetTitle()+";Events/"+bw+" GeV")
                 stack.SetMaximum(1.3*stack.GetMaximum())
                 stack.Draw('hist')
@@ -228,6 +228,7 @@ for histbase in HistogramNames:
                             myText.DrawLatex(0.60,0.72,"Endcap");
                         can.SaveAs("ZMuMuMVAStack_"+hist+label+".png")
                         can.SaveAs("ZMuMuMVAStack_"+hist+label+".pdf")
+                        can.SaveAs(hist+label+".C")
                         if len(DataFiles)+len(MCFiles)==2:
                             can.SetCanvasSize(600,300)
                             can.SetLogy(0)
@@ -248,6 +249,7 @@ for histbase in HistogramNames:
                             MyLine.Draw("")
                             can.SaveAs("ZMuMuMVAStack_"+hist+label+"_Ratio.png")
                             can.SaveAs("ZMuMuMVAStack_"+hist+label+"_Ratio.pdf")
+                            can.SaveAs(hist+label+"_Ratio.C")
                             stack.Clear()
                             leg.Clear()
                             
